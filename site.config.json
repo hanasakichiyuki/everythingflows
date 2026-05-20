@@ -1,0 +1,37 @@
+{
+  "name": "万物流转",
+  "description": "传播我的虚弱",
+  "url": "https://everythingflows.net",
+  "author": "Everything Flows",
+  "avatar": "/avatar/avatar.png",
+  "locale": "zh",
+  "links": [
+    {
+      "id": "github",
+      "label": "GitHub",
+      "href": "https://github.com/hanasakichiyuki",
+      "icon": "github"
+    }
+  ],
+  "music": {
+    "enabled": true,
+    "server": "netease",
+    "type": "playlist",
+    "id": "3778678"
+  },
+  "comments": {
+    "provider": "giscus",
+    "giscus": {
+      "repo": "hanasakichiyuki/everythingflows",
+      "repoId": "",
+      "category": "Announcements",
+      "categoryId": "",
+      "mapping": "pathname",
+      "lang": "zh-CN"
+    }
+  },
+  "features": {
+    "tools": true,
+    "admin": true
+  }
+}

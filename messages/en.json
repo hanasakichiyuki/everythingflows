@@ -1,0 +1,68 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "archive": "Archive",
+    "search": "Search",
+    "links": "Links",
+    "blog": "Blog",
+    "tools": "Tools",
+    "admin": "Write"
+  },
+  "theme": {
+    "dark": "Dark mode",
+    "light": "Light mode"
+  },
+  "locale": {
+    "label": "English",
+    "zh": "中文",
+    "en": "English"
+  },
+  "home": {
+    "latest": "Latest posts",
+    "empty": "No posts yet. Write your first one!"
+  },
+  "archive": {
+    "title": "Archive",
+    "posts": "posts"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search titles, tags, descriptions…",
+    "noResults": "No matching posts found"
+  },
+  "blog": {
+    "readMore": "Read more",
+    "tags": "Tags",
+    "category": "Category",
+    "comments": "Comments"
+  },
+  "about": {
+    "title": "About"
+  },
+  "links": {
+    "title": "Links"
+  },
+  "admin": {
+    "title": "Write a post",
+    "hint": "Write in the rich editor and publish — posts are stored in Supabase.",
+    "filesystemDisabled": "Set DATA_PROVIDER=supabase and configure Supabase env vars in .env.local to enable writing.",
+    "titleField": "Title",
+    "descField": "Description",
+    "tagsField": "Tags (comma-separated)",
+    "categoryField": "Category",
+    "contentField": "Body",
+    "contentPlaceholder": "Start writing…",
+    "embedHint": "Add links from the toolbar; embed Bilibili via iframe in HTML after publish if needed.",
+    "adminSecretField": "Admin secret",
+    "adminSecretPlaceholder": "Same as ADMIN_SECRET in .env (optional in local dev if unset)",
+    "publish": "Publish",
+    "publishing": "Publishing…",
+    "published": "Published: /blog/{slug}"
+  },
+  "tools": {
+    "title": "Toolbox",
+    "coming": "Coming soon",
+    "fortune": "Fortune telling"
+  }
+}

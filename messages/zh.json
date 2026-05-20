@@ -1,0 +1,68 @@
+{
+  "nav": {
+    "home": "主页",
+    "about": "关于",
+    "archive": "归档",
+    "search": "搜索",
+    "links": "Links",
+    "blog": "博客",
+    "tools": "工具",
+    "admin": "写作"
+  },
+  "theme": {
+    "dark": "暗色模式",
+    "light": "亮色模式"
+  },
+  "locale": {
+    "label": "中文",
+    "zh": "中文",
+    "en": "English"
+  },
+  "home": {
+    "latest": "最新文章",
+    "empty": "还没有文章，去写一篇吧。"
+  },
+  "archive": {
+    "title": "归档",
+    "posts": "篇"
+  },
+  "search": {
+    "title": "搜索",
+    "placeholder": "搜索标题、标签、摘要…",
+    "noResults": "没有找到匹配的文章"
+  },
+  "blog": {
+    "readMore": "阅读全文",
+    "tags": "标签",
+    "category": "分类",
+    "comments": "评论"
+  },
+  "about": {
+    "title": "关于"
+  },
+  "links": {
+    "title": "友情链接"
+  },
+  "admin": {
+    "title": "写文章",
+    "hint": "富文本写作，点击发布后文章会保存到 Supabase，站点即时可读。",
+    "filesystemDisabled": "请将 .env.local 中 DATA_PROVIDER 设为 supabase 并配置 Supabase 环境变量后再使用写作功能。",
+    "titleField": "标题",
+    "descField": "摘要",
+    "tagsField": "标签（逗号分隔）",
+    "categoryField": "分类",
+    "contentField": "正文",
+    "contentPlaceholder": "开始写作…",
+    "embedHint": "可插入链接；B 站视频可在发布后编辑 HTML 嵌入 iframe。",
+    "adminSecretField": "管理密钥",
+    "adminSecretPlaceholder": "与 .env 中 ADMIN_SECRET 一致（本地开发未设置时可留空）",
+    "publish": "发布",
+    "publishing": "发布中…",
+    "published": "已发布：/blog/{slug}"
+  },
+  "tools": {
+    "title": "工具箱",
+    "coming": "即将上线",
+    "fortune": "算命"
+  }
+}
