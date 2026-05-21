@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { getSearchIndex } from "@/lib/api/posts";
 import { SearchBox } from "@/components/search/SearchBox";
+import { ContentCard } from "@/components/layout/ContentCard";
 
 export const dynamic =
   process.env.DATA_PROVIDER === "supabase" ? "force-dynamic" : undefined;
@@ -14,5 +15,9 @@ export default async function SearchPage({
   setRequestLocale(locale);
   const items = await getSearchIndex(locale);
 
-  return <SearchBox items={items} />;
+  return (
+    <ContentCard>
+      <SearchBox items={items} />
+    </ContentCard>
+  );
 }

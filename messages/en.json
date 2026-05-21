@@ -24,7 +24,8 @@
   },
   "archive": {
     "title": "Archive",
-    "posts": "posts"
+    "posts": "posts",
+    "empty": "No posts yet"
   },
   "search": {
     "title": "Search",
@@ -45,7 +46,6 @@
   },
   "admin": {
     "title": "Write a post",
-    "hint": "Write in the rich editor and publish — posts are stored in Supabase.",
     "filesystemDisabled": "Set DATA_PROVIDER=supabase and configure Supabase env vars in .env.local to enable writing.",
     "titleField": "Title",
     "descField": "Description",
@@ -53,7 +53,8 @@
     "categoryField": "Category",
     "contentField": "Body",
     "contentPlaceholder": "Start writing…",
-    "embedHint": "Add links from the toolbar; embed Bilibili via iframe in HTML after publish if needed.",
+    "embedHint": "Paste screenshots with Ctrl+V, or use the Image button. Run supabase/storage.sql first.",
+    "insertImage": "Image",
     "adminSecretField": "Admin secret",
     "adminSecretPlaceholder": "Same as ADMIN_SECRET in .env (optional in local dev if unset)",
     "publish": "Publish",

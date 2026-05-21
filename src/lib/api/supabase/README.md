@@ -3,7 +3,7 @@
 ## Setup
 
 1. Create a project at [Supabase](https://supabase.com/dashboard).
-2. Run `supabase/schema.sql` in **SQL Editor**.
+2. Run `supabase/schema.sql` then `supabase/storage.sql` in **SQL Editor**.
 3. Copy **Project URL**, **anon key**, and **service role key** into `.env.local` (see `.env.example`).
 4. Set `DATA_PROVIDER=supabase` and `ADMIN_SECRET` for `/admin` publish.
 

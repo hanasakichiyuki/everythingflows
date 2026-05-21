@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useTheme } from "next-themes";
 import { siteConfig } from "@/config/site";
 
@@ -8,11 +8,19 @@ export function GiscusComments() {
   const ref = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const giscus = siteConfig.comments.giscus;
+  const loadedRef = useRef(false);
 
+  // Initial load — only once
   useEffect(() => {
-    if (siteConfig.comments.provider !== "giscus" || !giscus?.repoId || !ref.current) return;
+    if (
+      loadedRef.current ||
+      siteConfig.comments.provider !== "giscus" ||
+      !giscus?.repoId ||
+      !ref.current
+    )
+      return;
 
-    ref.current.innerHTML = "";
+    loadedRef.current = true;
     const script = document.createElement("script");
     script.src = "https://giscus.app/client.js";
     script.setAttribute("data-repo", process.env.NEXT_PUBLIC_GISCUS_REPO ?? giscus.repo);
@@ -29,7 +37,26 @@ export function GiscusComments() {
     script.setAttribute("crossOrigin", "anonymous");
     script.async = true;
     ref.current.appendChild(script);
-  }, [resolvedTheme, giscus]);
+  }, [giscus, resolvedTheme]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update theme without recreating the widget
+  const sendTheme = useCallback(
+    (theme: string) => {
+      const iframe = document.querySelector<HTMLIFrameElement>("iframe.giscus-frame");
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage(
+          { giscus: { setConfig: { theme } } },
+          "https://giscus.app"
+        );
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    sendTheme(resolvedTheme === "dark" ? "dark" : "light");
+  }, [resolvedTheme, sendTheme]);
 
   if (siteConfig.comments.provider === "disabled") {
     return (

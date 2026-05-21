@@ -5,8 +5,8 @@ import type { PostMeta } from "@/types";
 export function PostCard({ post, locale }: { post: PostMeta; locale: string }) {
   return (
     <article className="group border-b border-border py-6 last:border-0">
-      <Link href={`/blog/${post.slug}`} className="block">
-        <h2 className="text-lg font-semibold text-foreground transition-colors group-hover:text-accent">
+      <Link href={`/blog/${encodeURIComponent(post.slug)}`} className="block">
+        <h2 className="text-lg font-semibold text-foreground transition-colors group-hover:text-pink-500">
           {post.title}
         </h2>
         <p className="mt-2 line-clamp-2 text-sm text-muted">{post.description}</p>

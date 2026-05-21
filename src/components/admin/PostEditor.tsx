@@ -67,10 +67,6 @@ export function PostEditor({ locale, supabaseMode }: Props) {
 
   return (
     <div className="space-y-6">
-      <p className="rounded-lg bg-black/5 px-4 py-3 text-sm text-muted dark:bg-white/5">
-        {t("hint")}
-      </p>
-
       <label className="block">
         <span className="text-sm font-medium">{t("adminSecretField")}</span>
         <input
@@ -125,6 +121,8 @@ export function PostEditor({ locale, supabaseMode }: Props) {
           <RichTextEditor
             onChange={setContent}
             placeholder={t("contentPlaceholder")}
+            adminSecret={adminSecret || undefined}
+            supabaseMode={supabaseMode}
           />
         </div>
         <p className="mt-2 text-xs text-muted">{t("embedHint")}</p>

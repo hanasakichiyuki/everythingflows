@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { siteConfig } from "@/config/site";
 import { NavIcon } from "@/components/layout/NavIcon";
+import { ContentCard } from "@/components/layout/ContentCard";
 
 export default async function LinksPage({
   params,
@@ -12,7 +13,7 @@ export default async function LinksPage({
   const t = await getTranslations("links");
 
   return (
-    <section>
+    <ContentCard>
       <h1 className="mb-8 text-2xl font-bold">{t("title")}</h1>
       <ul className="space-y-4">
         {siteConfig.links.map((link) => (
@@ -30,8 +31,7 @@ export default async function LinksPage({
         ))}
       </ul>
       <p className="mt-6 text-sm text-muted">
-        在 site.config.json 的 links 数组中添加更多友链。
       </p>
-    </section>
+    </ContentCard>
   );
 }

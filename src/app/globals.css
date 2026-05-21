@@ -4,16 +4,16 @@
 
 :root {
   --background: #f5f5f4;
-  --foreground: #3d4451;
+  --foreground: #1a1a2e;
   --sidebar: #f0efed;
-  --muted: #8b919a;
+  --muted: #6b7280;
   --accent: #4a5568;
   --border: #e5e5e5;
 }
 
 .dark {
   --background: #1a1b1e;
-  --foreground: #e2e4e9;
+  --foreground: #e8e8f0;
   --sidebar: #141518;
   --muted: #9ca3af;
   --accent: #c5cad3;
@@ -23,6 +23,39 @@
 body {
   color: var(--foreground);
   background: var(--background);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+::selection {
+  background: rgba(236, 72, 153, 0.25);
+  color: inherit;
+}
+
+::-moz-selection {
+  background: rgba(236, 72, 153, 0.25);
+  color: inherit;
+}
+
+.dark ::selection {
+  background: rgba(236, 72, 153, 0.35);
+}
+
+.dark ::-moz-selection {
+  background: rgba(236, 72, 153, 0.35);
 }
 
 @layer components {
@@ -70,11 +103,16 @@ body {
     @apply border-l-4 border-border pl-4 italic text-muted;
   }
 
+  .prose-blog img {
+    @apply my-4 max-h-[480px] w-auto max-w-full rounded-lg;
+  }
+
   .nav-item {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/5;
+    @apply flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-all duration-200 hover:bg-pink-100/50 hover:pl-4 hover:text-pink-500 dark:hover:bg-pink-900/20;
+    color: color-mix(in srgb, var(--foreground) 80%, transparent);
   }
 
   .nav-item-active {
-    @apply font-semibold text-foreground;
+    @apply font-semibold text-pink-500;
   }
 }

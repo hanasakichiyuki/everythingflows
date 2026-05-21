@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { siteConfig } from "@/config/site";
 import { MdxContent } from "@/components/mdx/MdxContent";
+import { ContentCard } from "@/components/layout/ContentCard";
 
 function getAboutContent() {
   return `
@@ -29,9 +30,9 @@ export default async function AboutPage({
   const t = await getTranslations("about");
 
   return (
-    <section>
+    <ContentCard>
       <h1 className="mb-8 text-2xl font-bold">{t("title")}</h1>
       <MdxContent source={getAboutContent()} />
-    </section>
+    </ContentCard>
   );
 }

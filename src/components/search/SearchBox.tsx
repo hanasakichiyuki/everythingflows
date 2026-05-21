@@ -49,7 +49,7 @@ export function SearchBox({ items }: { items: SearchItem[] }) {
       <ul className="space-y-4">
         {results.map((item) => (
           <li key={item.slug}>
-            <Link href={`/blog/${item.slug}`} className="group block">
+            <Link href={`/blog/${encodeURIComponent(item.slug)}`} className="group block">
               <h3 className="font-medium group-hover:underline">{item.title}</h3>
               <p className="mt-1 text-sm text-muted">{item.description}</p>
             </Link>

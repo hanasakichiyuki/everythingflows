@@ -9,6 +9,7 @@ const nextConfig = {
       { protocol: "https", hostname: "**.hdslb.com" },
       { protocol: "https", hostname: "**.bilibili.com" },
       { protocol: "https", hostname: "**.mzstatic.com" },
+      { protocol: "https", hostname: "**.supabase.co" },
     ],
   },
 };

@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { futureTools } from "@/config/site";
+import { ContentCard } from "@/components/layout/ContentCard";
 
 export default async function ToolsPage({
   params,
@@ -12,7 +13,7 @@ export default async function ToolsPage({
   const t = await getTranslations("tools");
 
   return (
-    <section>
+    <ContentCard>
       <h1 className="mb-4 text-2xl font-bold">{t("title")}</h1>
       <p className="mb-8 text-sm text-muted">
         工具模块预留目录：src/app/[locale]/tools/。后续可接入 OpenAI / Azure 等。
@@ -34,6 +35,6 @@ export default async function ToolsPage({
           </li>
         ))}
       </ul>
-    </section>
+    </ContentCard>
   );
 }

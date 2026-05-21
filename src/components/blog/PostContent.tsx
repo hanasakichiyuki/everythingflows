@@ -1,6 +1,11 @@
+import dynamic from "next/dynamic";
 import { MdxContent } from "@/components/mdx/MdxContent";
 import type { ContentFormat } from "@/types";
-import DOMPurify from "isomorphic-dompurify";
+
+const HtmlContent = dynamic(() => import("./HtmlContent").then((m) => ({ default: m.HtmlContent })), {
+  ssr: false,
+  loading: () => <div className="prose-blog" />,
+});
 
 type Props = {
   content: string;
@@ -9,16 +14,7 @@ type Props = {
 
 export function PostContent({ content, contentFormat = "mdx" }: Props) {
   if (contentFormat === "html") {
-    const safe = DOMPurify.sanitize(content, {
-      ADD_TAGS: ["iframe"],
-      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "title"],
-    });
-    return (
-      <div
-        className="prose-blog"
-        dangerouslySetInnerHTML={{ __html: safe }}
-      />
-    );
+    return <HtmlContent content={content} />;
   }
 
   return <MdxContent source={content} />;

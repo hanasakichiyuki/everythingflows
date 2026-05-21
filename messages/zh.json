@@ -24,7 +24,8 @@
   },
   "archive": {
     "title": "归档",
-    "posts": "篇"
+    "posts": "篇文章",
+    "empty": "暂无文章"
   },
   "search": {
     "title": "搜索",
@@ -41,11 +42,10 @@
     "title": "关于"
   },
   "links": {
-    "title": "友情链接"
+    "title": "链接"
   },
   "admin": {
     "title": "写文章",
-    "hint": "富文本写作，点击发布后文章会保存到 Supabase，站点即时可读。",
     "filesystemDisabled": "请将 .env.local 中 DATA_PROVIDER 设为 supabase 并配置 Supabase 环境变量后再使用写作功能。",
     "titleField": "标题",
     "descField": "摘要",
@@ -53,7 +53,8 @@
     "categoryField": "分类",
     "contentField": "正文",
     "contentPlaceholder": "开始写作…",
-    "embedHint": "可插入链接；B 站视频可在发布后编辑 HTML 嵌入 iframe。",
+    "embedHint": "支持 Ctrl+V 粘贴截图，或点击「图片」上传；需先在 Supabase 执行 supabase/storage.sql。",
+    "insertImage": "图片",
     "adminSecretField": "管理密钥",
     "adminSecretPlaceholder": "与 .env 中 ADMIN_SECRET 一致（本地开发未设置时可留空）",
     "publish": "发布",

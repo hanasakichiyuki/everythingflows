@@ -67,6 +67,7 @@ export interface SiteConfig {
     tools: boolean;
     admin: boolean;
   };
+  backgroundImage?: string;
 }
 
 export interface ToolModule {

@@ -1,6 +1,7 @@
 import readingTime from "reading-time";
 import type { ContentFormat, Post, PostMeta } from "@/types";
 import { getSupabaseAdmin, type PostRow } from "./client";
+import { cleanupUnusedImages } from "./storage";
 
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -65,6 +66,19 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
   return rowToPost(data as PostRow);
 }
 
+export async function getAdjacentPosts(
+  slug: string,
+  locale?: string
+): Promise<{ prev: PostMeta | null; next: PostMeta | null }> {
+  const posts = await listAllPosts(locale);
+  const idx = posts.findIndex((p) => p.slug === slug);
+  if (idx === -1) return { prev: null, next: null };
+  return {
+    prev: idx + 1 < posts.length ? posts[idx + 1] : null,
+    next: idx - 1 >= 0 ? posts[idx - 1] : null,
+  };
+}
+
 export async function getPostsByTag(tag: string, locale?: string): Promise<PostMeta[]> {
   const posts = await listAllPosts(locale);
   return posts.filter((p) =>
@@ -127,10 +141,27 @@ function slugify(title: string) {
   );
 }
 
+async function uniqueSlug(supabase: ReturnType<typeof getSupabaseAdmin>, base: string): Promise<string> {
+  let slug = base;
+  let counter = 2;
+
+  while (true) {
+    const { data } = await supabase
+      .from("posts")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!data) return slug;
+    slug = `${base}-${counter}`;
+    counter++;
+  }
+}
+
 export async function upsertPost(input: UpsertPostInput): Promise<Post> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
-  const slug = input.slug?.trim() || slugify(input.title);
+  const baseSlug = input.slug?.trim() || slugify(input.title);
+  const slug = input.id ? baseSlug : await uniqueSlug(supabase, baseSlug);
   const contentFormat = input.contentFormat;
   const reading_time = computeReadingTime(input.body, contentFormat);
 
@@ -149,7 +180,17 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     reading_time,
   };
 
+  let oldBody = "";
+
   if (input.id) {
+    // Fetch old body before updating, for image cleanup
+    const { data: oldPost } = await supabase
+      .from("posts")
+      .select("body")
+      .eq("id", input.id)
+      .maybeSingle();
+    if (oldPost) oldBody = (oldPost as PostRow).body ?? "";
+
     const { data, error } = await supabase
       .from("posts")
       .update(row)
@@ -157,26 +198,16 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
       .select("*")
       .single();
     if (error) throw error;
+
+    if (oldBody) {
+      cleanupUnusedImages(oldBody, input.body).catch((e) =>
+        console.warn("Image cleanup failed:", e)
+      );
+    }
     return rowToPost(data as PostRow);
   }
 
-  const { data: existing } = await supabase
-    .from("posts")
-    .select("id")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (existing) {
-    const { data, error } = await supabase
-      .from("posts")
-      .update(row)
-      .eq("id", existing.id)
-      .select("*")
-      .single();
-    if (error) throw error;
-    return rowToPost(data as PostRow);
-  }
-
+  // New post: slug is guaranteed unique by uniqueSlug()
   const { data, error } = await supabase.from("posts").insert(row).select("*").single();
   if (error) throw error;
   return rowToPost(data as PostRow);

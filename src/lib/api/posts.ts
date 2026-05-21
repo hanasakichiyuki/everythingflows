@@ -72,6 +72,18 @@ export async function getSearchIndex(locale?: string) {
   }
 }
 
+export async function getAdjacentPosts(slug: string, locale?: string) {
+  const provider = getDataProvider();
+  switch (provider) {
+    case "filesystem":
+      return fsPosts.getAdjacentPosts?.(slug, locale) ?? { prev: null, next: null };
+    case "supabase":
+      return sbPosts.getAdjacentPosts(slug, locale);
+    default:
+      return { prev: null, next: null };
+  }
+}
+
 export async function listPostSlugs(locale?: string): Promise<string[]> {
   const provider = getDataProvider();
   switch (provider) {

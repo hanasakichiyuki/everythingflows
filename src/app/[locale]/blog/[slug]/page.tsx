@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { getPost, listPostSlugs } from "@/lib/api/posts";
+import { getPost, listPostSlugs, getAdjacentPosts } from "@/lib/api/posts";
 import { PostContent } from "@/components/blog/PostContent";
+import { PostNavigation } from "@/components/blog/PostNavigation";
 import { GiscusComments } from "@/components/comments/GiscusComments";
 import { formatDate } from "@/lib/utils";
+import { ContentCard } from "@/components/layout/ContentCard";
 
 import { routing } from "@/i18n/routing";
 
@@ -29,45 +31,57 @@ export default async function BlogPostPage({
 }) {
   const { locale, slug } = params;
   setRequestLocale(locale);
-  const post = await getPost(slug);
+
+  let post;
+  try {
+    const decodedSlug = decodeURIComponent(slug);
+    post = await getPost(decodedSlug);
+  } catch (e) {
+    console.error("Failed to fetch post:", e);
+  }
   if (!post) notFound();
+
+  const { prev, next } = await getAdjacentPosts(post.slug, locale);
 
   const t = await getTranslations("blog");
 
   return (
-    <article>
-      <header className="mb-8 border-b border-border pb-6">
-        <h1 className="text-3xl font-bold">{post.title}</h1>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted">
-          <time dateTime={post.date}>
-            {formatDate(post.date, locale === "zh" ? "zh-CN" : "en-US")}
-          </time>
-          <span>{post.readingTime}</span>
-          {post.category && (
-            <span>
-              {t("category")}: {post.category}
-            </span>
-          )}
-        </div>
-        {post.tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {post.tags.map((tag) => (
-              <Link
-                key={tag}
-                href={`/blog/tag/${encodeURIComponent(tag)}`}
-                className="rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10"
-              >
-                #{tag}
-              </Link>
-            ))}
+    <ContentCard>
+      <article>
+        <header className="mb-8 border-b border-border pb-6">
+          <h1 className="text-3xl font-bold">{post.title}</h1>
+          <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted">
+            <time dateTime={post.date}>
+              {formatDate(post.date, locale === "zh" ? "zh-CN" : "en-US")}
+            </time>
+            <span>{post.readingTime}</span>
+            {post.category && (
+              <span>
+                {t("category")}: {post.category}
+              </span>
+            )}
           </div>
-        )}
-      </header>
-      <PostContent content={post.content} contentFormat={post.contentFormat} />
-      <section className="mt-12">
-        <h2 className="mb-4 text-lg font-semibold">{t("comments")}</h2>
-        <GiscusComments />
-      </section>
-    </article>
+          {post.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {post.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/blog/tag/${encodeURIComponent(tag)}`}
+                  className="rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10"
+                >
+                  #{tag}
+                </Link>
+              ))}
+            </div>
+          )}
+        </header>
+        <PostContent content={post.content} contentFormat={post.contentFormat} />
+        <PostNavigation prev={prev} next={next} />
+        <section className="mt-12">
+          <h2 className="mb-4 text-lg font-semibold">{t("comments")}</h2>
+          <GiscusComments />
+        </section>
+      </article>
+    </ContentCard>
   );
 }

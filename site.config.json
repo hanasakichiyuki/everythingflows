@@ -17,7 +17,7 @@
     "enabled": true,
     "server": "netease",
     "type": "playlist",
-    "id": "3778678"
+    "id": "13706030690"
   },
   "comments": {
     "provider": "giscus",
@@ -33,5 +33,6 @@
   "features": {
     "tools": true,
     "admin": true
-  }
+  },
+  "backgroundImage": "/avatar/backgroud.jpg"
 }
