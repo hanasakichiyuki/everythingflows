@@ -46,6 +46,7 @@ type APlayerInstance = {
     switch: (index: number) => void;
   };
   volume: (value: number, toggle?: boolean) => void;
+  mode?: 'order' | 'random' | 'loop';
 };
 
 export function MusicPlayer() {
@@ -272,9 +273,9 @@ export function MusicPlayer() {
     const next = modes[(modes.indexOf(playMode) + 1) % modes.length];
     setPlayMode(next);
     if (playerRef.current) {
-      if (next === "random") (playerRef.current as any).mode = "random";
-      else if (next === "loop") (playerRef.current as any).mode = "loop";
-      else (playerRef.current as any).mode = "order";
+      if (next === "random") playerRef.current.mode = "random";
+      else if (next === "loop") playerRef.current.mode = "loop";
+      else playerRef.current.mode = "order";
     }
   }, [playMode]);
 
@@ -384,7 +385,7 @@ export function MusicPlayer() {
             </p>
             <div
               className="mt-1 flex h-1 cursor-pointer items-center overflow-hidden rounded-full bg-black/10 dark:bg-white/10"
-              onClick={(e) => { e.stopPropagation(); handleProgressClick(e as any); }}
+              onClick={(e) => { e.stopPropagation(); handleProgressClick(e); }}
             >
               <div
                 className="h-full rounded-full bg-pink-500 transition-[width] duration-100"

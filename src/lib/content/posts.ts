@@ -110,3 +110,13 @@ export function getSearchIndex(locale?: string) {
     date: p.date,
   }));
 }
+
+export function getAdjacentPosts(slug: string, locale?: string): { prev: PostMeta | null; next: PostMeta | null } {
+  const posts = getAllPosts(locale);
+  const index = posts.findIndex((p) => p.slug === slug);
+  if (index === -1) return { prev: null, next: null };
+  return {
+    prev: index > 0 ? posts[index - 1] : null,
+    next: index < posts.length - 1 ? posts[index + 1] : null,
+  };
+}
