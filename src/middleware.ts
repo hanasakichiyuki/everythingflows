@@ -6,7 +6,7 @@ import { updateSession } from "./lib/supabase/middleware";
 const intlMiddleware = createMiddleware(routing);
 
 export default async function middleware(request: NextRequest) {
-  const { response, session } = await updateSession(request);
+  const { session } = await updateSession(request);
 
   // Protect /admin routes
   if (request.nextUrl.pathname.includes("/admin")) {

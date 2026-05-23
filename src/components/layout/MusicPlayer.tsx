@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { siteConfig } from "@/config/site";
 
 declare global {
@@ -227,7 +228,7 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
         playerRef.current = null;
       }
     };
-  }, [music.enabled, songs]);
+  }, [music.enabled, songs, volume]);
 
   // Cleanup player on unmount
   useEffect(() => {
@@ -358,10 +359,11 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
             }}
           >
             {currentCover ? (
-              <img
+              <Image
                 src={currentCover}
                 alt="Album cover"
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-gray-800">
