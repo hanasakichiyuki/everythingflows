@@ -364,6 +364,7 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
                 alt="Album cover"
                 fill
                 className="object-cover"
+                unoptimized
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-gray-800">
