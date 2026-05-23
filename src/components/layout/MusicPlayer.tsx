@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 import { siteConfig } from "@/config/site";
 
 declare global {
@@ -88,11 +87,13 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
         if (Array.isArray(data)) {
           const parsed = data.map((s: Record<string, string>) => {
             const artist = s.artist || s.author || s.singer || "";
+            let cover = s.cover || s.pic || "";
+            if (cover.startsWith("//")) cover = "https:" + cover;
             return {
               name: s.name || s.title || "",
               artist,
               url: s.url || "",
-              cover: s.cover || s.pic || "",
+              cover,
               lrc: s.lrc || "",
             };
           });
@@ -358,13 +359,12 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
               boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
             }}
           >
-            {currentCover ? (
-              <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {currentCover ? (
+              <img
                 src={currentCover}
                 alt="Album cover"
-                fill
-                className="object-cover"
-                unoptimized
+                className="h-full w-full object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-gray-800">
