@@ -1,27 +1,24 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 type Props = {
   onChange: (html: string) => void;
   placeholder?: string;
-  adminSecret?: string;
   supabaseMode?: boolean;
+  initialContent?: string;
 };
 
 function exec(command: string, value?: string) {
   document.execCommand(command, false, value);
 }
 
-async function uploadImageFile(file: File, adminSecret?: string): Promise<string> {
+async function uploadImageFile(file: File): Promise<string> {
   const form = new FormData();
   form.append("file", file);
 
-  const headers: Record<string, string> = {};
-  if (adminSecret) headers["x-admin-secret"] = adminSecret;
-
-  const res = await fetch("/api/upload", { method: "POST", body: form, headers });
+  const res = await fetch("/api/upload", { method: "POST", body: form });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Upload failed");
   return json.url as string;
@@ -36,13 +33,22 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export function RichTextEditor({ onChange, placeholder, adminSecret, supabaseMode }: Props) {
+export function RichTextEditor({ onChange, placeholder, supabaseMode, initialContent }: Props) {
   const t = useTranslations("admin");
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const [uploading, setUploading] = useState(false);
+  const initializedRef = useRef(false);
+
+  // Set initial content once when mounted
+  useEffect(() => {
+    if (editorRef.current && initialContent && !initializedRef.current) {
+      initializedRef.current = true;
+      editorRef.current.innerHTML = initialContent;
+    }
+  }, [initialContent]);
 
   const sync = useCallback(() => {
     if (editorRef.current) onChange(editorRef.current.innerHTML);
@@ -98,7 +104,7 @@ export function RichTextEditor({ onChange, placeholder, adminSecret, supabaseMod
       try {
         let url: string;
         if (supabaseMode) {
-          url = await uploadImageFile(file, adminSecret);
+          url = await uploadImageFile(file);
         } else {
           url = await fileToBase64(file);
         }
@@ -112,7 +118,7 @@ export function RichTextEditor({ onChange, placeholder, adminSecret, supabaseMod
         setUploading(false);
       }
     },
-    [adminSecret, supabaseMode, insertHtml, saveSelection, restoreSelection]
+    [supabaseMode, insertHtml, saveSelection, restoreSelection]
   );
 
   const handlePaste = async (e: React.ClipboardEvent) => {

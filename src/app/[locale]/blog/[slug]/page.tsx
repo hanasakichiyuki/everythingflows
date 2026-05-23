@@ -7,21 +7,16 @@ import { PostNavigation } from "@/components/blog/PostNavigation";
 import { GiscusComments } from "@/components/comments/GiscusComments";
 import { formatDate } from "@/lib/utils";
 import { ContentCard } from "@/components/layout/ContentCard";
-
-import { routing } from "@/i18n/routing";
+import { createClient } from "@/lib/supabase/server-client";
+import { EditPostButton } from "@/components/blog/EditPostButton";
 
 export const dynamic =
   process.env.DATA_PROVIDER === "supabase" ? "force-dynamic" : undefined;
 
 export async function generateStaticParams() {
   if (process.env.DATA_PROVIDER === "supabase") return [];
-  const pairs = await Promise.all(
-    routing.locales.map(async (locale) => {
-      const slugs = await listPostSlugs(locale);
-      return slugs.map((slug) => ({ locale, slug }));
-    })
-  );
-  return pairs.flat();
+  const slugs = await listPostSlugs("zh");
+  return slugs.map((slug) => ({ locale: "zh", slug }));
 }
 
 export default async function BlogPostPage({
@@ -43,37 +38,45 @@ export default async function BlogPostPage({
 
   const { prev, next } = await getAdjacentPosts(post.slug, locale);
 
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const t = await getTranslations("blog");
 
   return (
     <ContentCard>
       <article>
-        <header className="mb-8 border-b border-border pb-6">
-          <h1 className="text-3xl font-bold">{post.title}</h1>
-          <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted">
-            <time dateTime={post.date}>
-              {formatDate(post.date, locale === "zh" ? "zh-CN" : "en-US")}
-            </time>
-            <span>{post.readingTime}</span>
-            {post.category && (
-              <span>
-                {t("category")}: {post.category}
-              </span>
+        <header className="mb-8 flex items-start justify-between border-b border-border pb-6">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">{post.title}</h1>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted">
+              <time dateTime={post.date}>
+                {formatDate(post.date)}
+              </time>
+              <span>{post.readingTime}</span>
+              {post.category && (
+                <span>
+                  {t("category")}: {post.category}
+                </span>
+              )}
+            </div>
+            {post.tags.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {post.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/blog/tag/${encodeURIComponent(tag)}`}
+                    className="rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
             )}
           </div>
-          {post.tags.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {post.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/blog/tag/${encodeURIComponent(tag)}`}
-                  className="rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10"
-                >
-                  #{tag}
-                </Link>
-              ))}
-            </div>
-          )}
+          {user && <EditPostButton postId={post.id!} />}
         </header>
         <PostContent content={post.content} contentFormat={post.contentFormat} />
         <PostNavigation prev={prev} next={next} />

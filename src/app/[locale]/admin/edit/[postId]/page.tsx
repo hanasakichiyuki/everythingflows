@@ -1,20 +1,20 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { notFound, redirect } from "next/navigation";
+import { setRequestLocale } from "next-intl/server";
 import { PostEditor } from "@/components/admin/PostEditor";
 import { isSupabaseMode } from "@/lib/api/posts";
+import { getPostById } from "@/lib/api/posts";
 import { ContentCard } from "@/components/layout/ContentCard";
 import { createClient } from "@/lib/supabase/server-client";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage({
+export default async function EditPostPage({
   params,
 }: {
-  params: { locale: string };
+  params: { locale: string; postId: string };
 }) {
-  const { locale } = params;
+  const { locale, postId } = params;
   setRequestLocale(locale);
-  const t = await getTranslations("admin");
 
   const supabase = await createClient();
   const {
@@ -25,10 +25,13 @@ export default async function AdminPage({
     redirect("/login");
   }
 
+  const post = await getPostById(postId);
+  if (!post) notFound();
+
   return (
     <ContentCard>
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <h1 className="text-2xl font-bold">编辑文章</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted">{user.email}</span>
           <form action="/api/auth/logout" method="POST">
@@ -38,7 +41,18 @@ export default async function AdminPage({
           </form>
         </div>
       </div>
-      <PostEditor locale={locale} supabaseMode={isSupabaseMode()} />
+      <PostEditor
+        locale={locale}
+        supabaseMode={isSupabaseMode()}
+        initialData={{
+          id: post.id!,
+          title: post.title,
+          description: post.description,
+          tags: post.tags,
+          category: post.category,
+          body: post.content,
+        }}
+      />
     </ContentCard>
   );
 }

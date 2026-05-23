@@ -5,14 +5,27 @@
   "author": "Everything Flows",
   "avatar": "/avatar/avatar.png",
   "locale": "zh",
-  "links": [
+  "social": [
     {
       "id": "github",
       "label": "GitHub",
       "href": "https://github.com/hanasakichiyuki",
       "icon": "github"
+    },
+    {
+      "id": "bilibili",
+      "label": "Bilibili",
+      "href": "https://space.bilibili.com/537259",
+      "icon": "bilibili"
+    },
+    {
+      "id": "qq",
+      "label": "QQ",
+      "href": "tencent://message/?uin=407450353",
+      "icon": "qq"
     }
   ],
+  "links": [],
   "music": {
     "enabled": true,
     "server": "netease",

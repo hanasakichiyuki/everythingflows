@@ -52,6 +52,19 @@ export async function listAllPosts(locale?: string): Promise<PostMeta[]> {
   return (data as PostRow[]).map(rowToMeta);
 }
 
+export async function getPostById(id: string): Promise<Post | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return rowToPost(data as PostRow);
+}
+
 export async function getPostBySlug(slug: string): Promise<Post | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase

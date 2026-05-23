@@ -45,6 +45,7 @@ export interface SiteConfig {
   author: string;
   avatar: string;
   locale: string;
+  social: SiteLink[];
   links: SiteLink[];
   music: {
     enabled: boolean;

@@ -1,6 +1,6 @@
-import { verifyAdminSecret } from "@/lib/auth/admin";
 import { getDataProvider } from "@/lib/api/provider";
 import { uploadPostImage } from "@/lib/api/supabase/storage";
+import { createClient } from "@/lib/supabase/server-client";
 
 const MAX_SIZE = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -10,12 +10,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Upload requires DATA_PROVIDER=supabase" }, { status: 501 });
   }
 
-  const auth = request.headers.get("authorization");
-  const adminSecret = auth?.startsWith("Bearer ")
-    ? auth.slice(7)
-    : request.headers.get("x-admin-secret") ?? undefined;
+  // Verify Supabase authentication
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!verifyAdminSecret(adminSecret)) {
+  if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

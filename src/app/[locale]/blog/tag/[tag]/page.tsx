@@ -21,7 +21,7 @@ export default async function TagPage({
       <p className="mb-8 text-sm text-muted">{posts.length} posts</p>
       <div>
         {posts.map((post) => (
-          <PostCard key={post.slug} post={post} locale={locale} />
+          <PostCard key={post.slug} post={post} />
         ))}
       </div>
     </section>

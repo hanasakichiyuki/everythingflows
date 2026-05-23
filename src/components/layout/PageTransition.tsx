@@ -49,40 +49,65 @@ export function PageTransitionProvider({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const pendingHref = useRef<string | null>(null);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const pathnameRef = useRef(pathname);
-  const isTransitioningRef = useRef(false);
 
-  // Track pathname changes to reset transition state
-  useEffect(() => {
-    if (pathnameRef.current !== pathname) {
-      pathnameRef.current = pathname;
-      if (isTransitioningRef.current) {
-        isTransitioningRef.current = false;
-        // New page loaded, start fade-in
-        const timer = setTimeout(() => setIsTransitioning(false), 50);
-        return () => clearTimeout(timer);
-      }
+  const clearTimers = useCallback(() => {
+    if (transitionTimerRef.current) {
+      clearTimeout(transitionTimerRef.current);
+      transitionTimerRef.current = null;
     }
-  }, [pathname]);
-
-  const navigate = useCallback((href: string) => {
-    pendingHref.current = href;
-    isTransitioningRef.current = true;
-    setIsTransitioning(true);
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
   }, []);
 
-  // 淡出完成后执行路由跳转
   useEffect(() => {
-    if (!isTransitioning || !pendingHref.current) return;
+    if (pathnameRef.current === pathname) return;
 
-    const timer = setTimeout(() => {
-      const href = pendingHref.current;
-      pendingHref.current = null;
-      if (href) router.push(href);
-    }, 700);
+    pathnameRef.current = pathname;
 
-    return () => clearTimeout(timer);
-  }, [isTransitioning, router]);
+    if (isTransitioning) {
+      clearTimers();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsTransitioning(false);
+        });
+      });
+    }
+  }, [pathname, isTransitioning, clearTimers]);
+
+  useEffect(() => {
+    return () => clearTimers();
+  }, [clearTimers]);
+
+  const navigate = useCallback(
+    (href: string) => {
+      if (isTransitioning || href === pathname) {
+        return;
+      }
+
+      pendingHref.current = href;
+      setIsTransitioning(true);
+
+      transitionTimerRef.current = setTimeout(() => {
+        const nextHref = pendingHref.current;
+        pendingHref.current = null;
+        if (nextHref) {
+          router.push(nextHref);
+        }
+      }, 520);
+
+      fallbackTimerRef.current = setTimeout(() => {
+        pendingHref.current = null;
+        setIsTransitioning(false);
+      }, 3000);
+    },
+    [isTransitioning, pathname, router]
+  );
 
   return (
     <TransitionContext.Provider value={{ isTransitioning, navigate }}>

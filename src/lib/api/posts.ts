@@ -36,6 +36,21 @@ export async function getPost(slug: string): Promise<Post | null> {
   }
 }
 
+export async function getPostById(id: string): Promise<Post | null> {
+  const provider = getDataProvider();
+
+  switch (provider) {
+    case "filesystem":
+      return null;
+    case "supabase":
+      return sbPosts.getPostById(id);
+    case "api":
+      throw new Error("API provider not configured");
+    default:
+      return null;
+  }
+}
+
 export async function getPostsByTag(tag: string, locale?: string): Promise<PostMeta[]> {
   const provider = getDataProvider();
   switch (provider) {
@@ -97,16 +112,10 @@ export async function listPostSlugs(locale?: string): Promise<string[]> {
 }
 
 export async function publishPost(
-  input: sbPosts.UpsertPostInput,
-  adminSecret?: string
+  input: sbPosts.UpsertPostInput
 ): Promise<{ ok: true; post: Post } | { ok: false; error: string }> {
-  const { verifyAdminSecret } = await import("@/lib/auth/admin");
-
   if (getDataProvider() !== "supabase") {
     return { ok: false, error: "DATA_PROVIDER must be supabase to publish" };
-  }
-  if (!verifyAdminSecret(adminSecret)) {
-    return { ok: false, error: "Invalid admin secret" };
   }
 
   try {

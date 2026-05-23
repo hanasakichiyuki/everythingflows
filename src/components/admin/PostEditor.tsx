@@ -9,19 +9,28 @@ import { RichTextEditor } from "./RichTextEditor";
 type Props = {
   locale: string;
   supabaseMode: boolean;
+  initialData?: {
+    id: string;
+    title: string;
+    description: string;
+    tags: string[];
+    category?: string;
+    body: string;
+  };
 };
 
-export function PostEditor({ locale, supabaseMode }: Props) {
+export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   const t = useTranslations("admin");
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const [category, setCategory] = useState("");
-  const [content, setContent] = useState("");
-  const [adminSecret, setAdminSecret] = useState("");
+  const [title, setTitle] = useState(initialData?.title ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [tags, setTags] = useState(initialData?.tags.join(", ") ?? "");
+  const [category, setCategory] = useState(initialData?.category ?? "");
+  const [content, setContent] = useState(initialData?.body ?? "");
   const [status, setStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
   const [message, setMessage] = useState("");
+
+  const isEditMode = !!initialData;
 
   const parseTags = () =>
     tags
@@ -43,7 +52,7 @@ export function PostEditor({ locale, supabaseMode }: Props) {
       contentFormat: "html",
       locale,
       published: true,
-      adminSecret: adminSecret || undefined,
+      id: initialData?.id,
     });
 
     if (!result.ok) {
@@ -53,7 +62,7 @@ export function PostEditor({ locale, supabaseMode }: Props) {
     }
 
     setStatus("ok");
-    setMessage(t("published", { slug: result.post.slug }));
+    setMessage(isEditMode ? t("updated", { slug: result.post.slug }) : t("published", { slug: result.post.slug }));
     router.push(`/blog/${result.post.slug}`);
   };
 
@@ -67,18 +76,6 @@ export function PostEditor({ locale, supabaseMode }: Props) {
 
   return (
     <div className="space-y-6">
-      <label className="block">
-        <span className="text-sm font-medium">{t("adminSecretField")}</span>
-        <input
-          type="password"
-          className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
-          value={adminSecret}
-          onChange={(e) => setAdminSecret(e.target.value)}
-          placeholder={t("adminSecretPlaceholder")}
-          autoComplete="off"
-        />
-      </label>
-
       <label className="block">
         <span className="text-sm font-medium">{t("titleField")}</span>
         <input
@@ -121,8 +118,8 @@ export function PostEditor({ locale, supabaseMode }: Props) {
           <RichTextEditor
             onChange={setContent}
             placeholder={t("contentPlaceholder")}
-            adminSecret={adminSecret || undefined}
             supabaseMode={supabaseMode}
+            initialContent={initialData?.body}
           />
         </div>
         <p className="mt-2 text-xs text-muted">{t("embedHint")}</p>
@@ -142,7 +139,7 @@ export function PostEditor({ locale, supabaseMode }: Props) {
         disabled={!title.trim() || !content.trim() || status === "saving"}
         className="rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-background disabled:opacity-50"
       >
-        {status === "saving" ? t("publishing") : t("publish")}
+        {status === "saving" ? (isEditMode ? t("updating") : t("publishing")) : (isEditMode ? t("update") : t("publish"))}
       </button>
     </div>
   );

@@ -24,7 +24,7 @@ export default async function HomePage({
       ) : (
         <div>
           {posts.map((post) => (
-            <PostCard key={post.slug} post={post} locale={locale} />
+            <PostCard key={post.slug} post={post} />
           ))}
         </div>
       )}

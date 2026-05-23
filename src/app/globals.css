@@ -115,4 +115,60 @@ body::-webkit-scrollbar {
   .nav-item-active {
     @apply font-semibold text-pink-500;
   }
+
+  /* Icon column - centered */
+  .nav-item-icon {
+    @apply flex items-center justify-center rounded-lg p-2 text-sm transition-all duration-200 hover:bg-pink-100/50 hover:text-pink-500 dark:hover:bg-pink-900/20;
+    color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  }
+  .nav-item-icon-active {
+    @apply text-pink-500;
+  }
+
+  /* Text column - centered */
+  .nav-item-text {
+    @apply block rounded-lg px-2 py-2 text-center text-sm transition-all duration-200 hover:bg-pink-100/50 hover:text-pink-500 dark:hover:bg-pink-900/20;
+    color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  }
+  .nav-item-text-active {
+    @apply font-semibold text-pink-500;
+  }
+
+  /* Cute anime-style music player hover effect */
+  .music-player-btn {
+    @apply relative cursor-pointer transition-all duration-300;
+  }
+  .music-player-btn::before {
+    content: "♪";
+    position: absolute;
+    top: -12px;
+    left: 30px;
+    transform: none;
+    font-size: 14px;
+    color: #f472b6;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+  .music-player-btn:hover::before {
+    top: -18px;
+    opacity: 0.8;
+  }
+  .music-player-btn:hover {
+    filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.4));
+  }
+
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .animate-slideDown {
+    animation: slideDown 0.3s ease-out forwards;
+  }
+
+  /* Spinning album cover with cute glow */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { siteConfig } from "@/config/site";
 
 declare global {
@@ -49,7 +50,7 @@ type APlayerInstance = {
   mode?: 'order' | 'random' | 'loop';
 };
 
-export function MusicPlayer() {
+export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<APlayerInstance | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -182,8 +183,9 @@ export function MusicPlayer() {
           console.log("APlayer: pause event");
           setIsPlaying(false);
         });
-        ap.on("error", (err) => {
-          console.error("APlayer error:", err);
+        ap.on("error", () => {
+          // APlayer may fire a transient error on initial load when the audio
+          // source hasn't resolved yet. This is expected and self-recovers.
         });
         ap.on("timeupdate", () => {
           if (ap.audio.duration > 0) {
@@ -220,6 +222,10 @@ export function MusicPlayer() {
 
     return () => {
       cancelled = true;
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
     };
   }, [music.enabled, songs]);
 
@@ -298,13 +304,15 @@ export function MusicPlayer() {
     <>
       {/* Player container */}
       <div
-        className="fixed z-50"
+        className="music-player-btn fixed z-50"
         style={{
           bottom: "24px",
-          right: "24px",
-          width: isExpanded ? "480px" : "64px",
+          left: "24px",
+          width: "480px",
           height: "64px",
-          transition: "width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)",
+          opacity: collapsed ? 0 : 1,
+          pointerEvents: collapsed ? "none" : "auto",
+          transition: "opacity 0.3s ease",
         }}
         onClick={() => {
           if (!isExpanded) {
@@ -313,25 +321,22 @@ export function MusicPlayer() {
           }
         }}
       >
-        {/* White capsule background - full width pill shape */}
-        <div
+        {/* White capsule background - expands from left */}
+        <motion.div
           className="absolute border border-white/40 bg-white/90 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/90"
           style={{
             top: "0",
             left: "0",
-            right: "0",
             height: "64px",
-            borderRadius: "32px",
-            opacity: isExpanded ? 1 : 0,
-            transform: isExpanded ? "scaleX(1)" : "scaleX(0)",
-            transformOrigin: "left center",
-            transition: "opacity 0.3s ease, transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)",
+            borderRadius: "9999px",
           }}
+          animate={{ width: isExpanded ? "480px" : "64px" }}
+          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
         />
 
         {/* Album cover - circular, click to collapse when expanded */}
         <div
-          className="absolute left-0 top-0 flex h-16 w-16 items-center justify-center"
+          className="absolute left-0 top-0 flex h-16 w-16 items-center justify-center group"
           style={{
             zIndex: 10,
             cursor: isExpanded ? "pointer" : "default",
@@ -345,7 +350,7 @@ export function MusicPlayer() {
           }}
         >
           <div
-            className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-white/30 dark:border-white/10"
+            className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-white/30 transition-all duration-300 group-hover:border-pink-400/60 dark:border-white/10 dark:group-hover:border-pink-400/40"
             style={{
               animation: "spin 40s linear infinite",
               animationPlayState: isPlaying ? "running" : "paused",
@@ -369,15 +374,15 @@ export function MusicPlayer() {
         </div>
 
         {/* Expanded controls - appears inside capsule */}
-        <div
-          className="absolute inset-0 flex items-center gap-3 pl-20 pr-4"
-          style={{
-            opacity: isExpanded ? 1 : 0,
-            transform: isExpanded ? "translateX(0)" : "translateX(-10px)",
-            transition: "opacity 0.3s ease 0.15s, transform 0.35s ease 0.15s",
-            pointerEvents: isExpanded ? "auto" : "none",
-          }}
-        >
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              className="absolute inset-0 flex items-center gap-3 pl-20 pr-4"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
           {/* Song info + progress */}
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium text-foreground">
@@ -457,23 +462,27 @@ export function MusicPlayer() {
           <button onClick={(e) => { e.stopPropagation(); setShowList(!showList); }} className={`rounded-full p-1.5 transition-colors ${showList ? "text-pink-500" : "text-muted hover:text-pink-500"}`} aria-label="Playlist">
             <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z" /></svg>
           </button>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Playlist popup */}
-      <div
-        className="fixed z-40 overflow-hidden rounded-xl border border-white/40 bg-white/90 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/90"
-        style={{
-          bottom: "calc(24px + 64px + 8px)",
-          right: "24px",
-          width: "480px",
-          opacity: showList ? 1 : 0,
-          transform: showList ? "translateY(0) scale(1)" : "translateY(10px) scale(0.95)",
-          transition: "opacity 0.25s ease, transform 0.25s ease",
-          pointerEvents: showList ? "auto" : "none",
-          maxHeight: "300px",
-        }}
-      >
+      <AnimatePresence>
+        {showList && (
+          <motion.div
+            className="fixed z-40 overflow-hidden rounded-xl border border-white/40 bg-white/90 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/90"
+            style={{
+              bottom: "calc(24px + 64px + 8px)",
+              left: "24px",
+              width: "480px",
+              maxHeight: "300px",
+            }}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+          >
         <div className="px-4 py-2.5 border-b border-border/50">
           <p className="text-xs font-medium text-foreground">播放列表 ({songs.length})</p>
         </div>
@@ -509,7 +518,9 @@ export function MusicPlayer() {
             <p className="py-4 text-center text-xs text-muted">No songs available</p>
           )}
         </div>
-      </div>
+      </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Custom scrollbar styles */}
       <style>{`

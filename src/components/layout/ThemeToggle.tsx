@@ -2,12 +2,11 @@
 
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
-import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const t = useTranslations("theme");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -18,11 +17,32 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="nav-item w-full"
-      aria-label={isDark ? t("light") : t("dark")}
+      className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:text-pink-500"
+      aria-label={isDark ? "亮色模式" : "暗色模式"}
     >
-      {isDark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
-      <span>{isDark ? t("light") : t("dark")}</span>
+      <AnimatePresence mode="wait">
+        {isDark ? (
+          <motion.div
+            key="sun"
+            initial={{ opacity: 0, rotate: -90 }}
+            animate={{ opacity: 1, rotate: 0 }}
+            exit={{ opacity: 0, rotate: 90 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Sun className="h-4 w-4" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="moon"
+            initial={{ opacity: 0, rotate: 90 }}
+            animate={{ opacity: 1, rotate: 0 }}
+            exit={{ opacity: 0, rotate: -90 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Moon className="h-4 w-4" />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </button>
   );
 }

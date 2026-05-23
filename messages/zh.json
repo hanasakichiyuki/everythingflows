@@ -7,16 +7,12 @@
     "links": "Links",
     "blog": "博客",
     "tools": "工具",
-    "admin": "写作"
+    "admin": "写作",
+    "login": "登录"
   },
   "theme": {
     "dark": "暗色模式",
     "light": "亮色模式"
-  },
-  "locale": {
-    "label": "中文",
-    "zh": "中文",
-    "en": "English"
   },
   "home": {
     "latest": "最新文章",
@@ -46,6 +42,7 @@
   },
   "admin": {
     "title": "写文章",
+    "editTitle": "编辑文章",
     "filesystemDisabled": "请将 .env.local 中 DATA_PROVIDER 设为 supabase 并配置 Supabase 环境变量后再使用写作功能。",
     "titleField": "标题",
     "descField": "摘要",
@@ -59,7 +56,9 @@
     "adminSecretPlaceholder": "与 .env 中 ADMIN_SECRET 一致（本地开发未设置时可留空）",
     "publish": "发布",
     "publishing": "发布中…",
-    "published": "已发布：/blog/{slug}"
+    "published": "已发布：/blog/{slug}",
+    "updating": "更新中…",
+    "updated": "已更新：/blog/{slug}"
   },
   "tools": {
     "title": "工具箱",

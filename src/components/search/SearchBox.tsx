@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Fuse from "fuse.js";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
+import { TransitionLink } from "@/components/layout/PageTransition";
 import { Search } from "lucide-react";
 
 export interface SearchItem {
@@ -49,10 +49,10 @@ export function SearchBox({ items }: { items: SearchItem[] }) {
       <ul className="space-y-4">
         {results.map((item) => (
           <li key={item.slug}>
-            <Link href={`/blog/${encodeURIComponent(item.slug)}`} className="group block">
+            <TransitionLink href={`/blog/${encodeURIComponent(item.slug)}`} className="group block">
               <h3 className="font-medium group-hover:underline">{item.title}</h3>
               <p className="mt-1 text-sm text-muted">{item.description}</p>
-            </Link>
+            </TransitionLink>
           </li>
         ))}
       </ul>

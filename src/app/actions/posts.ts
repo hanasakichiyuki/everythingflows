@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { publishPost } from "@/lib/api/posts";
+import { createClient } from "@/lib/supabase/server-client";
 import type { ContentFormat } from "@/types";
 
 export type PublishPostPayload = {
@@ -15,10 +16,19 @@ export type PublishPostPayload = {
   published?: boolean;
   slug?: string;
   id?: string;
-  adminSecret?: string;
 };
 
 export async function publishPostAction(payload: PublishPostPayload) {
+  // Verify Supabase authentication
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false as const, error: "未登录" };
+  }
+
   const result = await publishPost(
     {
       title: payload.title,
@@ -31,8 +41,7 @@ export async function publishPostAction(payload: PublishPostPayload) {
       published: payload.published,
       slug: payload.slug,
       id: payload.id,
-    },
-    payload.adminSecret
+    }
   );
 
   if (result.ok) {

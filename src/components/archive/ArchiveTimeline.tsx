@@ -1,4 +1,7 @@
-import { Link } from "@/i18n/routing";
+"use client";
+
+import { motion } from "framer-motion";
+import { TransitionLink } from "@/components/layout/PageTransition";
 import type { PostMeta } from "@/types";
 
 type YearGroup = {
@@ -20,9 +23,26 @@ function formatMonthDay(date: string) {
 
 export function ArchiveTimeline({ archive, postsLabel }: Props) {
   return (
-    <div className="space-y-10">
+    <motion.div
+      className="space-y-10"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: { staggerChildren: 0.08 },
+        },
+      }}
+    >
       {archive.map(({ year, posts }) => (
-        <section key={year}>
+        <motion.section
+          key={year}
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } },
+          }}
+        >
           {/* Year header */}
           <div className="mb-4 flex items-center gap-4">
             <h2 className="text-2xl font-bold tracking-tight text-foreground/90">{year}</h2>
@@ -45,7 +65,7 @@ export function ArchiveTimeline({ archive, postsLabel }: Props) {
             <ul className="space-y-1">
               {posts.map((post) => (
                 <li key={post.slug}>
-                  <Link
+                  <TransitionLink
                     href={`/blog/${encodeURIComponent(post.slug)}`}
                     className="group relative grid grid-cols-[3.5rem_1fr_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
                   >
@@ -81,13 +101,13 @@ export function ArchiveTimeline({ archive, postsLabel }: Props) {
                         )}
                       </div>
                     )}
-                  </Link>
+                  </TransitionLink>
                 </li>
               ))}
             </ul>
           </div>
-        </section>
+        </motion.section>
       ))}
-    </div>
+    </motion.div>
   );
 }
