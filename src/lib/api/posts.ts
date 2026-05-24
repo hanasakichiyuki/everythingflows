@@ -127,7 +127,8 @@ export async function publishPost(
     if (e instanceof Error) {
       message = e.message;
     } else if (e && typeof e === "object") {
-      message = (e as any).message || (e as any).error || JSON.stringify(e);
+      const err = e as Record<string, unknown>;
+      message = (err.message as string) || (err.error as string) || JSON.stringify(e);
     }
     return { ok: false, error: message };
   }
