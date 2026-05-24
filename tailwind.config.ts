@@ -18,7 +18,24 @@ const config: Config = {
         border: "var(--border)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: [
+          "var(--font-geist-sans)",
+          "PingFang SC",
+          "Microsoft YaHei",
+          "system-ui",
+          "sans-serif",
+        ],
+        serif: [
+          '"LXGW WenKai"',
+          "PingFang SC",
+          "serif",
+        ],
+        mono: [
+          "var(--font-geist-mono)",
+          "SFMono-Regular",
+          "Consolas",
+          "monospace",
+        ],
       },
     },
   },

@@ -57,6 +57,7 @@
     "publish": "发布",
     "publishing": "发布中…",
     "published": "已发布：/blog/{slug}",
+    "update": "更新",
     "updating": "更新中…",
     "updated": "已更新：/blog/{slug}"
   },

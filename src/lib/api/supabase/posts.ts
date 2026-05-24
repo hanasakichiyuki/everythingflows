@@ -173,10 +173,27 @@ async function uniqueSlug(supabase: ReturnType<typeof getSupabaseAdmin>, base: s
 export async function upsertPost(input: UpsertPostInput): Promise<Post> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
-  const baseSlug = input.slug?.trim() || slugify(input.title);
-  const slug = input.id ? baseSlug : await uniqueSlug(supabase, baseSlug);
   const contentFormat = input.contentFormat;
   const reading_time = computeReadingTime(input.body, contentFormat);
+
+  let slug: string;
+
+  if (input.id) {
+    // For updates, keep existing slug unless explicitly provided
+    if (input.slug?.trim()) {
+      slug = input.slug.trim();
+    } else {
+      const { data: existing } = await supabase
+        .from("posts")
+        .select("slug")
+        .eq("id", input.id)
+        .maybeSingle();
+      slug = existing?.slug || slugify(input.title);
+    }
+  } else {
+    const baseSlug = input.slug?.trim() || slugify(input.title);
+    slug = await uniqueSlug(supabase, baseSlug);
+  }
 
   const row = {
     slug,

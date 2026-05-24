@@ -5,11 +5,10 @@ import { ContentCard } from "@/components/layout/ContentCard";
 
 function getAboutContent() {
   return `
-# 关于我
 
 欢迎来到 **${siteConfig.name}** — ${siteConfig.description}。
 
-这里记录思考、技术与生活。站点基于 Next.js 构建，无后端运行；未来会扩展更多工具与能力。
+这里记录思考、技术与生活。站点基于 Next.js 构建，无后端运行。
 
 ## 技术栈
 
@@ -31,8 +30,10 @@ export default async function AboutPage({
 
   return (
     <ContentCard>
+      <div className="font-serif font-medium leading-8 tracking-wide">
       <h1 className="mb-8 text-2xl font-bold">{t("title")}</h1>
       <MdxContent source={getAboutContent()} />
+      </div>
     </ContentCard>
   );
 }

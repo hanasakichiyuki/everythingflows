@@ -122,7 +122,13 @@ export async function publishPost(
     const post = await sbPosts.upsertPost(input);
     return { ok: true, post };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to save post";
+    console.error("publishPost error:", JSON.stringify(e, null, 2));
+    let message = "Failed to save post";
+    if (e instanceof Error) {
+      message = e.message;
+    } else if (e && typeof e === "object") {
+      message = (e as any).message || (e as any).error || JSON.stringify(e);
+    }
     return { ok: false, error: message };
   }
 }

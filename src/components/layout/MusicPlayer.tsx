@@ -53,6 +53,7 @@ type APlayerInstance = {
 export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<APlayerInstance | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showList, setShowList] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -68,6 +69,10 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
   const [playMode, setPlayMode] = useState<PlayMode>("sequence");
 
   const { music } = siteConfig;
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!music.enabled) return;
@@ -300,7 +305,7 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
     playerRef.current.audio.currentTime = ratio * duration;
   }, [duration]);
 
-  if (!music.enabled) return null;
+  if (!music.enabled || !isMounted) return null;
 
   return (
     <>
