@@ -26,7 +26,7 @@ const config: Config = {
           "sans-serif",
         ],
         serif: [
-          '"LXGW WenKai"',
+          '"LXGW WenKai Screen"',
           "PingFang SC",
           "serif",
         ],

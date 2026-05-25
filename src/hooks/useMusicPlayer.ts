@@ -1,0 +1,331 @@
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from "react";
+import { siteConfig } from "@/config/site";
+
+// ---------- APlayer global type ----------
+declare global {
+  interface Window {
+    APlayer?: {
+      new (options: Record<string, unknown>): APlayerInstance;
+    };
+  }
+}
+
+export type Song = { name: string; artist: string; url: string; cover: string; lrc?: string };
+export type PlayMode = "sequence" | "random" | "loop";
+
+export type APlayerInstance = {
+  destroy: () => void;
+  play: () => void;
+  pause: () => void;
+  toggle: () => void;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
+  audio: { currentTime: number; duration: number };
+  list: {
+    audios: Array<{ name: string; artist: string; cover: string }>;
+    index: number;
+    switch: (index: number) => void;
+  };
+  volume: (value: number, toggle?: boolean) => void;
+  mode?: "order" | "random" | "loop";
+};
+
+export function useMusicPlayer() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<APlayerInstance | null>(null);
+  const playHistoryRef = useRef<number[]>([]);
+  const volumeBeforeMute = useRef(0.8);
+
+  const [isMounted, setIsMounted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentSong, setCurrentSong] = useState("");
+  const [currentCover, setCurrentCover] = useState("");
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [volume, setVolume] = useState(0.8);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playMode, setPlayMode] = useState<PlayMode>("sequence");
+
+  const { music } = siteConfig;
+
+  useEffect(() => { setIsMounted(true); }, []);
+
+  // -------- Fetch playlist --------
+  useEffect(() => {
+    if (!music.enabled) return;
+    setLoading(true);
+
+    const apiMap: Record<string, string> = {
+      netease: "https://api.i-meto.com/meting/api?server=netease&type=playlist&id=",
+      tencent: "https://api.i-meto.com/meting/api?server=tencent&type=playlist&id=",
+    };
+
+    const apiUrl = apiMap[music.server] || apiMap.netease;
+
+    fetch(`${apiUrl}${music.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const parsed = data.map((s: Record<string, string>) => {
+            const artist = s.artist || s.author || s.singer || "";
+            let cover = s.cover || s.pic || "";
+            if (cover.startsWith("//")) cover = "https:" + cover;
+            return {
+              name: s.name || s.title || "",
+              artist,
+              url: s.url || "",
+              cover,
+              lrc: s.lrc || "",
+            };
+          });
+          setSongs(parsed);
+          if (parsed.length > 0) {
+            setCurrentSong(`${parsed[0].name} - ${parsed[0].artist}`);
+            setCurrentCover(parsed[0].cover);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load playlist:", err);
+        setError("Failed to load playlist");
+      })
+      .finally(() => setLoading(false));
+  }, [music.enabled, music.server, music.id]);
+
+  // -------- Create APlayer instance --------
+  useEffect(() => {
+    if (!music.enabled || songs.length === 0) return;
+
+    if (playerRef.current) {
+      playerRef.current.destroy();
+      playerRef.current = null;
+    }
+
+    const loadScript = (src: string) =>
+      new Promise<void>((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) return resolve();
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = reject;
+        document.body.appendChild(s);
+      });
+
+    const loadCss = (href: string) => {
+      if (document.querySelector(`link[href="${href}"]`)) return;
+      const l = document.createElement("link");
+      l.rel = "stylesheet";
+      l.href = href;
+      document.head.appendChild(l);
+    };
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        loadCss("https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css");
+        await loadScript("https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js");
+        if (cancelled || !containerRef.current || !window.APlayer) return;
+
+        const APlayerClass = window.APlayer!;
+        const ap = new APlayerClass({
+          container: containerRef.current,
+          audio: songs.map((s) => ({
+            name: s.name,
+            artist: s.artist,
+            url: s.url,
+            cover: s.cover,
+            lrc: s.lrc,
+          })),
+          theme: "#ec4899",
+          autoplay: false,
+          listFolded: true,
+          listMaxHeight: 200,
+          lrcType: 0,
+        });
+
+        playerRef.current = ap;
+        ap.volume(volume, false);
+
+        ap.on("play", () => setIsPlaying(true));
+        ap.on("pause", () => setIsPlaying(false));
+        ap.on("error", (err: unknown) => {
+          if (err instanceof Error && err.name === "AbortError") return;
+        });
+        ap.on("timeupdate", () => {
+          if (ap.audio.duration > 0) {
+            setProgress((ap.audio.currentTime / ap.audio.duration) * 100);
+            setCurrentTime(ap.audio.currentTime);
+            setDuration(ap.audio.duration);
+          }
+        });
+        ap.on("listswitch", () => {
+          setTimeout(() => {
+            const idx = ap.list.index;
+            const audio = ap.list.audios[idx];
+            if (audio) {
+              setCurrentSong(`${audio.name} - ${audio.artist}`);
+              setCurrentCover(audio.cover || "");
+              playHistoryRef.current.push(idx);
+              if (playHistoryRef.current.length > 50) {
+                playHistoryRef.current = playHistoryRef.current.slice(-50);
+              }
+            }
+          }, 50);
+        });
+        ap.on("canplay", () => {
+          const idx = ap.list.index;
+          const audio = ap.list.audios[idx];
+          if (audio) {
+            setCurrentSong(`${audio.name} - ${audio.artist}`);
+            setCurrentCover(audio.cover || "");
+          }
+        });
+
+        if (songs.length > 0) {
+          setCurrentSong(`${songs[0].name} - ${songs[0].artist}`);
+          setCurrentCover(songs[0].cover);
+          playHistoryRef.current = [0];
+        }
+      } catch (e) {
+        console.error("Music player failed to load", e);
+        setError("Failed to load player");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [music.enabled, songs]);
+
+  // -------- Playback controls --------
+  const togglePlay = useCallback(() => {
+    playerRef.current?.toggle();
+  }, []);
+
+  const prevSong = useCallback(() => {
+    if (!playerRef.current) return;
+    if (playMode === "random") {
+      if (playHistoryRef.current.length >= 2) {
+        playHistoryRef.current.pop();
+        const prevIdx = playHistoryRef.current[playHistoryRef.current.length - 1];
+        playerRef.current.list.switch(prevIdx);
+      }
+    } else {
+      playerRef.current.list.switch(Math.max(0, playerRef.current.list.index - 1));
+    }
+  }, [playMode]);
+
+  const nextSong = useCallback(() => {
+    if (!playerRef.current) return;
+    if (playMode === "random") {
+      const currentIdx = playerRef.current.list.index;
+      let randomIdx: number;
+      do {
+        randomIdx = Math.floor(Math.random() * songs.length);
+      } while (randomIdx === currentIdx && songs.length > 1);
+      playerRef.current.list.switch(randomIdx);
+    } else {
+      playerRef.current.list.switch(Math.min(songs.length - 1, playerRef.current.list.index + 1));
+    }
+  }, [songs.length, playMode]);
+
+  const playSong = useCallback((index: number) => {
+    playerRef.current?.list.switch(index);
+  }, []);
+
+  // -------- Volume --------
+  const handleVolumeChange = useCallback(
+    (v: number) => {
+      setVolume(v);
+      if (v > 0 && isMuted) {
+        setIsMuted(false);
+      }
+      playerRef.current?.volume(v, false);
+    },
+    [isMuted],
+  );
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (next) {
+        volumeBeforeMute.current = volume;
+        playerRef.current?.volume(0, false);
+      } else {
+        setVolume(volumeBeforeMute.current);
+        playerRef.current?.volume(volumeBeforeMute.current, false);
+      }
+      return next;
+    });
+  }, [volume]);
+
+  // -------- Play mode --------
+  const cyclePlayMode = useCallback(() => {
+    const modes: PlayMode[] = ["sequence", "random", "loop"];
+    const next = modes[(modes.indexOf(playMode) + 1) % modes.length];
+    setPlayMode(next);
+    if (playerRef.current) {
+      if (next === "random") playerRef.current.mode = "random";
+      else if (next === "loop") playerRef.current.mode = "loop";
+      else playerRef.current.mode = "order";
+    }
+  }, [playMode]);
+
+  // -------- Progress --------
+  const seekTo = useCallback(
+    (ratio: number) => {
+      if (!playerRef.current || duration === 0) return;
+      playerRef.current.audio.currentTime = ratio * duration;
+    },
+    [duration],
+  );
+
+  // -------- Current index --------
+  const currentIndex = playerRef.current?.list?.index ?? 0;
+
+  return {
+    containerRef,
+    playerRef,
+    isMounted,
+    isPlaying,
+    progress,
+    currentTime,
+    duration,
+    currentSong,
+    currentCover,
+    currentIndex,
+    songs,
+    loading,
+    error,
+    volume,
+    isMuted,
+    playMode,
+    musicEnabled: music.enabled,
+    togglePlay,
+    prevSong,
+    nextSong,
+    playSong,
+    handleVolumeChange,
+    toggleMute,
+    cyclePlayMode,
+    seekTo,
+  };
+}
+
+export const formatTime = (t: number) => {
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
+export type UseMusicPlayerReturn = ReturnType<typeof useMusicPlayer>;

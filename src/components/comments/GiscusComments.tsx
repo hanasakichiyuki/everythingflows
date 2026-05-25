@@ -32,7 +32,7 @@ export function GiscusComments() {
     script.setAttribute("data-reactions-enabled", "1");
     script.setAttribute("data-emit-metadata", "0");
     script.setAttribute("data-input-position", "top");
-    script.setAttribute("data-theme", resolvedTheme === "dark" ? "dark" : "light");
+    script.setAttribute("data-theme", giscus.theme || (resolvedTheme === "dark" ? "dark" : "light"));
     script.setAttribute("data-lang", giscus.lang);
     script.setAttribute("crossOrigin", "anonymous");
     script.async = true;
@@ -55,8 +55,9 @@ export function GiscusComments() {
 
   useEffect(() => {
     if (!loadedRef.current) return;
+    if (giscus && giscus.theme) return; // Don't auto-switch theme if configured
     sendTheme(resolvedTheme === "dark" ? "dark" : "light");
-  }, [resolvedTheme, sendTheme]);
+  }, [resolvedTheme, sendTheme, giscus]);
 
   if (siteConfig.comments.provider === "disabled") {
     return (
@@ -78,5 +79,5 @@ export function GiscusComments() {
     );
   }
 
-  return <div ref={ref} className="mt-8" />;
+  return <div ref={ref} className="mt-8 rounded-xl border border-border/50 bg-background/60 p-4 backdrop-blur-sm" />;
 }

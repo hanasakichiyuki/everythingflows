@@ -8,6 +8,7 @@ import {
   Pencil,
   Lock,
   PanelLeftClose,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -37,6 +38,7 @@ const icons: Record<string, LucideIcon | typeof GitHubIcon> = {
   "panel-left-close": PanelLeftClose,
   bilibili: BilibiliIcon as unknown as LucideIcon,
   qq: QQIcon as unknown as LucideIcon,
+  sparkles: Sparkles,
 };
 
 export function NavIcon({ name, className }: { name: string; className?: string }) {

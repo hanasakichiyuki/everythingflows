@@ -7,6 +7,7 @@ export const navItems = [
   { href: "/", icon: "home", label: "home" },
   { href: "/about", icon: "user", label: "about" },
   { href: "/archive", icon: "archive", label: "archive" },
+  { href: "/fragments", icon: "sparkles", label: "fragments" },
   { href: "/search", icon: "search", label: "search" },
   { href: "/links", icon: "link", label: "links" },
 ] as const;

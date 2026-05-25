@@ -36,11 +36,12 @@
     "provider": "giscus",
     "giscus": {
       "repo": "hanasakichiyuki/everythingflows",
-      "repoId": "",
+      "repoId": "R_kgDOSjJCkQ",
       "category": "Announcements",
-      "categoryId": "",
+      "categoryId": "DIC_kwDOSjJCkc4C9wIq",
       "mapping": "pathname",
-      "lang": "zh-CN"
+      "lang": "zh-CN",
+      "theme": "transparent_dark"
     }
   },
   "features": {

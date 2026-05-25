@@ -62,6 +62,7 @@ export interface SiteConfig {
       categoryId: string;
       mapping: string;
       lang: string;
+      theme?: string;
     };
   };
   features: {
