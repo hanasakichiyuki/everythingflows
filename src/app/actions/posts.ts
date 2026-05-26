@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { publishPost } from "@/lib/api/posts";
+import { publishPost, deletePost, deletePosts } from "@/lib/api/posts";
 import { createClient } from "@/lib/supabase/server-client";
 import type { ContentFormat } from "@/types";
 
@@ -47,6 +47,50 @@ export async function publishPostAction(payload: PublishPostPayload) {
   if (result.ok) {
     revalidatePath("/", "layout");
     revalidatePath(`/blog/${result.post.slug}`);
+    revalidatePath("/archive");
+    revalidatePath("/search");
+  }
+
+  return result;
+}
+
+export async function deletePostAction(id: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false as const, error: "未登录" };
+  }
+
+  const result = await deletePost(id);
+
+  if (result.ok) {
+    revalidatePath("/", "layout");
+    revalidatePath("/admin");
+    revalidatePath("/archive");
+    revalidatePath("/search");
+  }
+
+  return result;
+}
+
+export async function deletePostsAction(ids: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false as const, error: "未登录" };
+  }
+
+  const result = await deletePosts(ids);
+
+  if (result.ok) {
+    revalidatePath("/", "layout");
+    revalidatePath("/admin");
     revalidatePath("/archive");
     revalidatePath("/search");
   }

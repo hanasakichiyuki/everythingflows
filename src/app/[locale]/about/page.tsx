@@ -6,16 +6,25 @@ import { ContentCard } from "@/components/layout/ContentCard";
 function getAboutContent() {
   return `
 
-欢迎来到 **${siteConfig.name}** — ${siteConfig.description}。
+欢迎来到 **${siteConfig.name}** 。
 
-这里记录思考、技术与生活。站点基于 Next.js 构建，无后端运行。
+万物流转，源自古希腊哲学家赫拉克利特的理论。宇宙在一团永恒的火中燃尽又重生。
 
-## 技术栈
+当火舌绞成火结
 
-- 前端：Next.js 14 · React 18 · Tailwind · TypeScript
-- 内容：MDX 文件系统（可切换 Supabase）
-- 评论：Giscus（GitHub Discussions）
-- 部署：Vercel · 域名 everythingflows.net
+烈火与玫瑰合二为一时
+
+一切都会平安无事
+
+世界万物也平安无事
+
+In my beginning is my end
+
+In my end is my beginning
+
+在互联网的幽暗角落，烧着属于我的火。
+
+
 `;
 }
 

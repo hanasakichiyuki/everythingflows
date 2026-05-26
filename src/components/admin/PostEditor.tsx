@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
-import { publishPostAction } from "@/app/actions/posts";
+import { publishPostAction, deletePostAction } from "@/app/actions/posts";
 import { RichTextEditor } from "./RichTextEditor";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type Props = {
   locale: string;
@@ -29,6 +30,8 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   const [content, setContent] = useState(initialData?.body ?? "");
   const [status, setStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isEditMode = !!initialData;
 
@@ -64,6 +67,20 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     setStatus("ok");
     setMessage(isEditMode ? t("updated", { slug: result.post.slug }) : t("published", { slug: result.post.slug }));
     router.push(`/blog/${result.post.slug}`);
+  };
+
+  const handleDelete = async () => {
+    if (!initialData?.id) return;
+    setDeleting(true);
+    const result = await deletePostAction(initialData.id);
+    setDeleting(false);
+    setDeleteConfirmOpen(false);
+    if (result.ok) {
+      router.push("/admin");
+    } else {
+      setStatus("error");
+      setMessage(result.error);
+    }
   };
 
   if (!supabaseMode) {
@@ -133,14 +150,37 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={publish}
-        disabled={!title.trim() || !content.trim() || status === "saving"}
-        className="rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-background disabled:opacity-50"
-      >
-        {status === "saving" ? (isEditMode ? t("updating") : t("publishing")) : (isEditMode ? t("update") : t("publish"))}
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={publish}
+          disabled={!title.trim() || !content.trim() || status === "saving"}
+          className="rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-background disabled:opacity-50"
+        >
+          {status === "saving" ? (isEditMode ? t("updating") : t("publishing")) : (isEditMode ? t("update") : t("publish"))}
+        </button>
+
+        {isEditMode && (
+          <button
+            type="button"
+            onClick={() => setDeleteConfirmOpen(true)}
+            className="rounded-lg border border-red-500/50 px-4 py-2.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
+          >
+            删除文章
+          </button>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="删除文章"
+        message="确定要删除这篇文章吗？此操作不可撤销。"
+        confirmText="确认删除"
+        cancelText="取消"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        loading={deleting}
+      />
     </div>
   );
 }

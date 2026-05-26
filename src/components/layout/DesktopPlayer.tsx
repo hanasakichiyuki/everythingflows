@@ -149,19 +149,19 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
             >
               {/* Song info + progress */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[11px] font-light tracking-wide text-zinc-200">
+                <p className="truncate text-[11px] font-light tracking-wide text-black/80">
                   {currentSong || (loading ? "Loading..." : "Music Player")}
                 </p>
                 <div
-                  className="mt-1.5 flex h-[2px] cursor-pointer items-center overflow-hidden rounded-full bg-zinc-700/50"
+                  className="mt-1.5 flex h-[2px] cursor-pointer items-center overflow-hidden rounded-full bg-black/15"
                   onClick={handleProgressClick}
                 >
                   <div
-                    className="h-full rounded-full bg-zinc-400 transition-[width] duration-200"
+                    className="h-full rounded-full bg-black/70 transition-[width] duration-200"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <div className="mt-1 flex justify-between text-[9px] font-light tracking-wider text-zinc-500/70">
+                <div className="mt-1 flex justify-between text-[9px] font-light tracking-wider text-black/35">
                   <span>{formatTime(currentTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
@@ -189,12 +189,10 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
               {/* Playlist toggle */}
               <button
                 onClick={() => setShowList(!showList)}
-                className={`flex h-5 w-5 items-center justify-center rounded-full shadow-sm transition-all ${
-                  showList ? "bg-zinc-700 text-zinc-100" : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
-                }`}
+                className={`transition-colors ${showList ? "text-black/80" : "text-black/35 hover:text-black"}`}
                 aria-label="播放列表"
               >
-                <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="h-[15px] w-[15px]" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z" />
                 </svg>
               </button>
@@ -222,25 +220,25 @@ function ControlButtons({
   isPlaying: boolean; togglePlay: () => void; prevSong: () => void; nextSong: () => void;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <button onClick={prevSong} className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-zinc-300 shadow-sm transition-all hover:bg-zinc-700 hover:text-zinc-100 hover:shadow-md" aria-label="上一首">
-        <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+    <div className="flex items-center gap-2">
+      <button onClick={prevSong} className="text-black/40 hover:text-black active:scale-95 transition-all" aria-label="上一首">
+        <svg className="h-[18px] w-[18px]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
         </svg>
       </button>
-      <button onClick={togglePlay} className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-zinc-100 shadow-md transition-all hover:bg-zinc-800 hover:text-white hover:shadow-lg" aria-label={isPlaying ? "暂停" : "播放"}>
+      <button onClick={togglePlay} className="text-black/80 hover:text-black active:scale-95 transition-all" aria-label={isPlaying ? "暂停" : "播放"}>
         {isPlaying ? (
-          <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="h-[26px] w-[26px]" fill="currentColor" viewBox="0 0 24 24">
             <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
           </svg>
         ) : (
-          <svg className="h-3.5 w-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="h-[26px] w-[26px] pl-0.5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
           </svg>
         )}
       </button>
-      <button onClick={nextSong} className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-zinc-300 shadow-sm transition-all hover:bg-zinc-700 hover:text-zinc-100 hover:shadow-md" aria-label="下一首">
-        <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+      <button onClick={nextSong} className="text-black/40 hover:text-black active:scale-95 transition-all" aria-label="下一首">
+        <svg className="h-[18px] w-[18px]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
         </svg>
       </button>
@@ -255,8 +253,8 @@ function VolumeControl({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <button onClick={onToggleMute} className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-zinc-400 shadow-sm transition-all hover:bg-zinc-700 hover:text-zinc-200" aria-label="音量">
-        <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
+      <button onClick={onToggleMute} className="text-black/35 hover:text-black transition-colors" aria-label="音量">
+        <svg className="h-[15px] w-[15px]" fill="currentColor" viewBox="0 0 24 24">
           {isMuted || volume === 0 ? (
             <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
           ) : volume < 0.5 ? (
@@ -273,7 +271,7 @@ function VolumeControl({
         step="0.01"
         value={isMuted ? 0 : volume}
         onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-        className="h-[2px] w-12 appearance-none rounded-full bg-zinc-700/50 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-zinc-300"
+        className="h-[2px] w-12 appearance-none rounded-full bg-black/15 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black/60 [&::-webkit-slider-thumb]:hover:bg-black"
       />
     </div>
   );
@@ -283,22 +281,22 @@ function PlayModeButton({ playMode, onClick }: { playMode: PlayMode; onClick: ()
   return (
     <button
       onClick={onClick}
-      className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-zinc-400 shadow-sm transition-all hover:bg-zinc-700 hover:text-zinc-200"
+      className="text-black/35 hover:text-black transition-colors"
       aria-label="播放模式"
       title={playMode === "sequence" ? "顺序播放" : playMode === "random" ? "随机播放" : "单曲循环"}
     >
       {playMode === "sequence" && (
-        <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="h-[15px] w-[15px]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z" />
         </svg>
       )}
       {playMode === "random" && (
-        <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="h-[15px] w-[15px]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" />
         </svg>
       )}
       {playMode === "loop" && (
-        <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="h-[15px] w-[15px]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
         </svg>
       )}

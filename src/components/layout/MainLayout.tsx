@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { PageTransitionProvider, usePageTransition } from "./PageTransition";
+import { RightSidebarProvider } from "./RightSidebarContext";
 import { SearchModal } from "@/components/search/SearchModal";
 import type { SearchItem } from "@/components/search/SearchModal";
 import { siteConfig } from "@/config/site";
@@ -33,6 +34,7 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
+    <RightSidebarProvider>
     <PageTransitionProvider>
       <div className="relative flex min-h-screen">
         {/* Full-screen background image */}
@@ -92,5 +94,6 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
         onClose={() => setSearchOpen(false)}
       />
     </PageTransitionProvider>
+    </RightSidebarProvider>
   );
 }

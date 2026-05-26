@@ -179,15 +179,6 @@ export function useMusicPlayer() {
             }
           }, 50);
         });
-        ap.on("canplay", () => {
-          const idx = ap.list.index;
-          const audio = ap.list.audios[idx];
-          if (audio) {
-            setCurrentSong(`${audio.name} - ${audio.artist}`);
-            setCurrentCover(audio.cover || "");
-          }
-        });
-
         if (songs.length > 0) {
           setCurrentSong(`${songs[0].name} - ${songs[0].artist}`);
           setCurrentCover(songs[0].cover);
@@ -208,40 +199,60 @@ export function useMusicPlayer() {
   }, [music.enabled, songs]);
 
   // -------- Playback controls --------
+  const setSongInfo = useCallback(
+    (idx: number) => {
+      if (idx >= 0 && idx < songs.length) {
+        const s = songs[idx];
+        setCurrentSong(`${s.name} - ${s.artist}`);
+        setCurrentCover(s.cover || "");
+      }
+    },
+    [songs],
+  );
+
   const togglePlay = useCallback(() => {
     playerRef.current?.toggle();
   }, []);
 
   const prevSong = useCallback(() => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || songs.length === 0) return;
+    let idx: number;
     if (playMode === "random") {
       if (playHistoryRef.current.length >= 2) {
         playHistoryRef.current.pop();
-        const prevIdx = playHistoryRef.current[playHistoryRef.current.length - 1];
-        playerRef.current.list.switch(prevIdx);
+        idx = playHistoryRef.current[playHistoryRef.current.length - 1];
+      } else {
+        idx = playerRef.current.list.index;
       }
     } else {
-      playerRef.current.list.switch(Math.max(0, playerRef.current.list.index - 1));
+      idx = Math.max(0, playerRef.current.list.index - 1);
     }
-  }, [playMode]);
+    playerRef.current.list.switch(idx);
+    setSongInfo(idx);
+  }, [playMode, songs.length, setSongInfo]);
 
   const nextSong = useCallback(() => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || songs.length === 0) return;
+    let idx: number;
     if (playMode === "random") {
       const currentIdx = playerRef.current.list.index;
-      let randomIdx: number;
       do {
-        randomIdx = Math.floor(Math.random() * songs.length);
-      } while (randomIdx === currentIdx && songs.length > 1);
-      playerRef.current.list.switch(randomIdx);
+        idx = Math.floor(Math.random() * songs.length);
+      } while (idx === currentIdx && songs.length > 1);
     } else {
-      playerRef.current.list.switch(Math.min(songs.length - 1, playerRef.current.list.index + 1));
+      idx = Math.min(songs.length - 1, playerRef.current.list.index + 1);
     }
-  }, [songs.length, playMode]);
+    playerRef.current.list.switch(idx);
+    setSongInfo(idx);
+  }, [songs.length, playMode, setSongInfo]);
 
-  const playSong = useCallback((index: number) => {
-    playerRef.current?.list.switch(index);
-  }, []);
+  const playSong = useCallback(
+    (index: number) => {
+      playerRef.current?.list.switch(index);
+      setSongInfo(index);
+    },
+    [setSongInfo],
+  );
 
   // -------- Volume --------
   const handleVolumeChange = useCallback(

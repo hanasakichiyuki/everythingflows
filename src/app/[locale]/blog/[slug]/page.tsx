@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/utils";
 import { ContentCard } from "@/components/layout/ContentCard";
 import { createClient } from "@/lib/supabase/server-client";
 import { EditPostButton } from "@/components/blog/EditPostButton";
+import { BackButton } from "@/components/blog/BackButton";
 
 export const dynamic =
   process.env.DATA_PROVIDER === "supabase" ? "force-dynamic" : undefined;
@@ -48,9 +49,11 @@ export default async function BlogPostPage({
   return (
     <ContentCard>
       <article>
-        <header className="mb-8 flex items-start justify-between border-b border-border pb-6">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold">{post.title}</h1>
+        <header className="mb-8 border-b border-border pb-6">
+          <BackButton />
+          <div className="mt-3 flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold">{post.title}</h1>
             <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted">
               <time dateTime={post.date}>
                 {formatDate(post.date)}
@@ -75,8 +78,9 @@ export default async function BlogPostPage({
                 ))}
               </div>
             )}
-          </div>
+            </div>
           {user && <EditPostButton postId={post.id!} />}
+          </div>
         </header>
         <PostContent content={post.content} contentFormat={post.contentFormat} />
         <PostNavigation prev={prev} next={next} />

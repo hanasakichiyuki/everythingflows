@@ -1,7 +1,7 @@
 import readingTime from "reading-time";
 import type { ContentFormat, Post, PostMeta } from "@/types";
 import { getSupabaseAdmin, type PostRow } from "./client";
-import { cleanupUnusedImages } from "./storage";
+import { cleanupUnusedImages, deletePostImages, extractImageUrls } from "./storage";
 
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -167,6 +167,57 @@ async function uniqueSlug(supabase: ReturnType<typeof getSupabaseAdmin>, base: s
     if (!data) return slug;
     slug = `${base}-${counter}`;
     counter++;
+  }
+}
+
+export async function deletePost(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  // Fetch body before deleting, to clean up associated images
+  const { data: post } = await supabase
+    .from("posts")
+    .select("body")
+    .eq("id", id)
+    .maybeSingle();
+
+  const { error } = await supabase.from("posts").delete().eq("id", id);
+  if (error) throw error;
+
+  // Clean up images from storage
+  if (post) {
+    const urls = extractImageUrls((post as PostRow).body ?? "");
+    if (urls.length > 0) {
+      deletePostImages(urls).catch((e) =>
+        console.warn("Image cleanup failed on post delete:", e)
+      );
+    }
+  }
+}
+
+export async function deletePosts(ids: string[]): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  // Fetch bodies before deleting, to clean up associated images
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("body")
+    .in("id", ids);
+
+  const { error } = await supabase.from("posts").delete().in("id", ids);
+  if (error) throw error;
+
+  // Clean up images from storage
+  if (posts && posts.length > 0) {
+    const allUrls: string[] = [];
+    for (const row of posts as PostRow[]) {
+      const urls = extractImageUrls(row.body ?? "");
+      allUrls.push(...urls);
+    }
+    if (allUrls.length > 0) {
+      deletePostImages(allUrls).catch((e) =>
+        console.warn("Image cleanup failed on posts delete:", e)
+      );
+    }
   }
 }
 

@@ -134,6 +134,36 @@ export async function publishPost(
   }
 }
 
+export async function deletePost(
+  id: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (getDataProvider() !== "supabase") {
+    return { ok: false, error: "DATA_PROVIDER must be supabase to delete" };
+  }
+  try {
+    await sbPosts.deletePost(id);
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to delete post";
+    return { ok: false, error: message };
+  }
+}
+
+export async function deletePosts(
+  ids: string[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (getDataProvider() !== "supabase") {
+    return { ok: false, error: "DATA_PROVIDER must be supabase to delete" };
+  }
+  try {
+    await sbPosts.deletePosts(ids);
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to delete posts";
+    return { ok: false, error: message };
+  }
+}
+
 export function isSupabaseMode() {
   return getDataProvider() === "supabase";
 }

@@ -60,7 +60,17 @@
     "published": "已发布：/blog/{slug}",
     "update": "更新",
     "updating": "更新中…",
-    "updated": "已更新：/blog/{slug}"
+    "updated": "已更新：/blog/{slug}",
+    "delete": "删除",
+    "deleteConfirm": "确定要删除这篇文章吗？此操作不可撤销。",
+    "batchDeleteConfirm": "确定要删除选中的 {count} 篇文章吗？此操作不可撤销。",
+    "postList": "文章列表",
+    "newPost": "新建文章",
+    "deleteSelected": "删除选中",
+    "selectAll": "全选",
+    "edit": "编辑",
+    "draft": "草稿",
+    "noPosts": "暂无文章"
   },
   "tools": {
     "title": "工具箱",
