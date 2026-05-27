@@ -170,12 +170,17 @@ export function useMusicPlayer() {
             const idx = ap.list.index;
             const audio = ap.list.audios[idx];
             if (audio) {
-              setCurrentSong(`${audio.name} - ${audio.artist}`);
+              const songName = `${audio.name} - ${audio.artist}`;
+              setCurrentSong(songName);
               setCurrentCover(audio.cover || "");
               playHistoryRef.current.push(idx);
               if (playHistoryRef.current.length > 50) {
                 playHistoryRef.current = playHistoryRef.current.slice(-50);
               }
+              // 通知 Live2D 音乐切换
+              window.dispatchEvent(
+                new CustomEvent("live2d:music-change", { detail: { songName } })
+              );
             }
           }, 50);
         });

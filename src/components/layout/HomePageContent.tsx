@@ -14,10 +14,8 @@ interface HomePageContentProps {
 
 const text = `或许鸟儿
 会借这拓展的空间,飞得愈发炽烈。
-春天曾需要你。
-常有一颗星辰
-静静等候,
-只为让你留意。`;
+春天曾需要你。常有一颗星辰
+静静等候,只为让你留意。`;
 
 const chars = (() => {
   let delay = 0;

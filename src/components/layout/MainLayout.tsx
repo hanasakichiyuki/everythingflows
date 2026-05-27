@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Sidebar } from "./Sidebar";
 import { PageTransitionProvider, usePageTransition } from "./PageTransition";
 import { RightSidebarProvider } from "./RightSidebarContext";
@@ -8,6 +9,12 @@ import { SearchModal } from "@/components/search/SearchModal";
 import type { SearchItem } from "@/components/search/SearchModal";
 import { siteConfig } from "@/config/site";
 import { motion, AnimatePresence } from "framer-motion";
+
+// 动态导入 Live2DAI，禁止 SSR（依赖 PIXI/window API）
+const Live2DAI = dynamic(
+  () => import("@/components/live2d/Live2DAI").then((m) => m.Live2DAI),
+  { ssr: false }
+);
 
 function TransitionContent({ children }: { children: React.ReactNode }) {
   const { isTransitioning } = usePageTransition();
@@ -77,7 +84,7 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
         </AnimatePresence>
 
         {/* Main content */}
-        <main className={`relative z-10 flex-1 px-6 py-8 md:px-10 lg:px-12 transition-all duration-300 ${sidebarCollapsed ? "ml-0" : "ml-[200px]"}`}>
+        <main className={`relative z-10 flex-1 px-6 py-8 md:px-10 lg:px-12 transition-all duration-300 ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[200px]"}`}>
           <TransitionContent>
             <div className="mx-auto max-w-4xl">{children}</div>
           </TransitionContent>
@@ -85,6 +92,9 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
             © 2026 Everythingflows.All rights reserved.
           </footer>
         </main>
+
+        {/* Live2D AI 少女 — 栖息在页面左下角 */}
+        <Live2DAI sidebarCollapsed={sidebarCollapsed} />
       </div>
 
       {/* Search Modal */}
