@@ -17,7 +17,7 @@ const text = `或许鸟儿
 春天曾需要你。常有一颗星辰
 静静等候,只为让你留意。`;
 
-const chars = (() => {
+/* const chars = (() => {
   let delay = 0;
   return text.split("").map((char) => {
     const currentDelay = delay;
@@ -37,7 +37,7 @@ const chars = (() => {
       delay: currentDelay,
     };
   });
-})();
+})(); */
 
 export function HomePageContent({ posts, fragments }: HomePageContentProps) {
   const { day, month, year, weekday } = useCurrentTime();
@@ -57,6 +57,26 @@ export function HomePageContent({ posts, fragments }: HomePageContentProps) {
               </h1>
             </div>
 
+            <p
+              className="
+    max-w-[320px]
+    text-[15px]
+    leading-[2.2]
+    tracking-[0.04em]
+    text-neutral-700/70
+    dark:text-neutral-300/65
+    font-light
+    whitespace-pre-line
+  "
+              style={{
+                fontFamily: '"LXGW WenKai Screen", serif',
+                textShadow: "0 0 20px rgba(255,255,255,0.05)",
+              }}
+            >
+              {text}
+            </p>
+
+            {/* 逐字延迟动画（已注释）
             <motion.p
               className="
     max-w-[320px]
@@ -108,6 +128,7 @@ export function HomePageContent({ posts, fragments }: HomePageContentProps) {
                 </motion.span>
               ))}
             </motion.p>
+            */}
           </div>
 
           <motion.div

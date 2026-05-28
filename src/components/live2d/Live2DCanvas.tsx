@@ -11,21 +11,37 @@ declare global {
 interface Live2DCanvasProps {
   onLoad?: () => void;
   onError?: (err: Error) => void;
+  onControllerReady?: (ctrl: ModelController) => void;
   mouseX?: number;
   mouseY?: number;
   isMobile?: boolean;
   disabled?: boolean;
 }
 
-const W = 280;
-const H = 420;
-const MODEL_PATH = "/avatar/live2d/huohuo/huohuo.model3.json";
+/** 提供给父组件的模型控制接口 */
+export interface ModelController {
+  /** 切换表情 */
+  setExpression: (id: string) => void;
+  /** 触发动作，group 为 .motion3.json 文件名，index 从 0 开始 */
+  startMotion: (group: string, index: number) => void;
+  /** 重置表情到默认 */
+  resetExpression: () => void;
+  /** 终止当前所有动作 */
+  stopAllMotions: () => void;
+}
+
+const W_DESKTOP = 280;
+const H_DESKTOP = 420;
+const W_MOBILE = 180;
+const H_MOBILE = 280;
+const MODEL_PATH = "/avatar/live2d/huohuo/huohuo.model3.json?v=2";
 const CUBISM4_SDK =
   "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js";
 
 export function Live2DCanvas({
   onLoad,
   onError,
+  onControllerReady,
   mouseX = 0,
   mouseY = 0,
   isMobile = false,
@@ -37,6 +53,12 @@ export function Live2DCanvas({
   const breathTimeRef = useRef(0);
   const mountedRef = useRef(true);
   const [loaded, setLoaded] = useState(false);
+
+  // 用 ref 追踪回调，避免主初始化 effect 依赖外部回调
+  const onControllerReadyRef = useRef(onControllerReady);
+  useEffect(() => {
+    onControllerReadyRef.current = onControllerReady;
+  }, [onControllerReady]);
 
   // 使用 ref 追踪鼠标值，避免 ticker 闭包捕获旧值
   const mouseXRef = useRef(mouseX);
@@ -65,39 +87,28 @@ export function Live2DCanvas({
         })
         : Promise.resolve();
 
-      // 2. 等 SDK 就绪后再导入 PIXI + Live2D
-      let pixiModule: unknown = null;
-      let live2dModule: unknown = null;
-
-      const loadModules = sdkReady.then(async () => {
-        if (cancelled) return;
-        const [p, l] = await Promise.all([
-          import("pixi.js"),
-          import("pixi-live2d-display/cubism4"),
-        ]);
-        pixiModule = p;
-        live2dModule = l;
-      });
-
-      // 3. 等页面就绪后再休眠 5 秒
-      await new Promise<void>((resolve) => {
-        if (document.readyState === "complete") {
-          setTimeout(resolve, 6000);
-        } else {
-          window.addEventListener(
-            "load",
-            () => setTimeout(resolve, 5000),
-            { once: true }
-          );
-        }
-      }); 
+      // 2. 页面就绪后立即开始
+      if (document.readyState === "complete") {
+        // 已就绪，直接继续
+      } else {
+        await new Promise<void>((resolve) => {
+          window.addEventListener("load", () => resolve(), { once: true });
+        });
+      }
       if (cancelled) return;
 
-      // 4. 确保全部加载完毕
-      await loadModules;
+      // 3. 等待 SDK 就绪
+      await sdkReady;
       if (cancelled) return;
 
-      return { pixiModule, live2dModule };
+      // 4. 立即加载 PIXI + Live2D 模块（先于文字渲染完成）
+      const [p, l] = await Promise.all([
+        import("pixi.js"),
+        import("pixi-live2d-display/cubism4"),
+      ]);
+      if (cancelled) return;
+
+      return { pixiModule: p, live2dModule: l };
     }
 
     async function init() {
@@ -115,9 +126,11 @@ export function Live2DCanvas({
         if (cancelled || !containerRef.current) return;
 
         // WebGL 上下文创建（唯一的同步阻塞点）
+        const w = isMobile ? W_MOBILE : W_DESKTOP;
+        const h = isMobile ? H_MOBILE : H_DESKTOP;
         const app = new PIXI.Application({
-          width: W,
-          height: H,
+          width: w,
+          height: h,
           transparent: true,
           antialias: true,
         });
@@ -165,15 +178,37 @@ export function Live2DCanvas({
           core.setParameterValueById("ParamBreath", 0.5 + breath * 0.15);
 
           // 使用 model.focus() 让模型跟随鼠标
-          // focus 需要 canvas 坐标系（0~W, 0~H），mouseX/mouseY 是 -1~1
-          const focusX = ((mouseXRef.current + 1) / 2) * W;
-          const focusY = ((mouseYRef.current + 1) / 2) * H;
+          // focus 需要 canvas 坐标系（0~w, 0~h），mouseX/mouseY 是 -1~1
+          const focusX = ((mouseXRef.current + 1) / 2) * w;
+          const focusY = ((mouseYRef.current + 1) / 2) * h;
           (modelRef.current as { focus: (x: number, y: number) => void }).focus(focusX, focusY);
         });
 
         if (mountedRef.current) {
           setLoaded(true);
           onLoad?.();
+
+          // 暴露模型控制接口给父组件
+          onControllerReadyRef.current?.({
+            setExpression: (id: string) => {
+              const em = (modelRef.current as { internalModel?: { motionManager?: { expressionManager?: { resetExpression?: () => void; setExpression?: (id: string) => void } } } }).internalModel?.motionManager?.expressionManager;
+              em?.resetExpression?.(); // 先清掉上一个表情的参数，避免叠加
+              (modelRef.current as { expression?: (id: string) => Promise<boolean> })?.expression?.(id);
+            },
+            startMotion: (group: string, index: number) => {
+              (modelRef.current as { motion?: (g: string, i: number, p: number) => Promise<boolean> })?.motion?.(group, index, 3);
+            },
+            resetExpression: () => {
+              const im = (modelRef.current as { internalModel?: { motionManager?: { expressionManager?: { resetExpression?: () => void; _motionManager?: { stopAllMotions?: () => void } } } } }).internalModel?.motionManager;
+              const em = im?.expressionManager;
+              em?.resetExpression?.();
+              // 兜底：清空表达式动作队列
+              em?._motionManager?.stopAllMotions?.();
+            },
+            stopAllMotions: () => {
+              (modelRef.current as { internalModel?: { motionManager?: { stopAllMotions?: () => void } } }).internalModel?.motionManager?.stopAllMotions?.();
+            },
+          });
         }
       } catch (err) {
         console.error("Live2D 模型加载失败:", err);
@@ -189,66 +224,39 @@ export function Live2DCanvas({
       mountedRef.current = false;
       cancelled = true;
 
-      // 1. 清理 Live2D model
-      const model = modelRef.current;
-
-      if (model) {
-        try {
-          const parent = (model as { parent?: { removeChild: (child: unknown) => void } }).parent;
-
-          if (parent) {
-            parent.removeChild(model);
-          }
-
-          const destroyFn = (model as { destroy?: (options?: unknown) => void }).destroy;
-
-          if (typeof destroyFn === "function") {
-            destroyFn.call(model, { children: true });
-          }
-
-          modelRef.current = null;
-        } catch (err) {
-          console.warn("model cleanup failed:", err);
-        }
-      }
-
-      // 2. 清理 Pixi App
+      // 清理 Pixi App（会自动销毁所有子元素包括 model）
       const app = appRef.current;
-
       if (app) {
         try {
-          const view = (app as { view?: HTMLCanvasElement }).view;
-
-          const destroyFn = (app as {
-            destroy?: (
-              removeView: boolean,
-              options?: {
-                children?: boolean;
-                texture?: boolean;
-                baseTexture?: boolean;
-              }
-            ) => void;
-          }).destroy;
-
-          if (typeof destroyFn === "function") {
-            destroyFn.call(app, true, {
-              children: true,
-              texture: true,
-              baseTexture: true,
-            });
-          }
-
-          if (view && view.parentNode) {
-            view.parentNode.removeChild(view);
-          }
-
-          appRef.current = null;
+          (app as { destroy: (removeView: boolean, options?: { children?: boolean; texture?: boolean; baseTexture?: boolean }) => void }).destroy(true, {
+            children: true,
+            texture: true,
+            baseTexture: true,
+          });
         } catch (err) {
           console.warn("pixi cleanup failed:", err);
         }
+        appRef.current = null;
+        modelRef.current = null;
       }
     };
   }, [disabled]);
+
+  // isMobile 变化时：只 resize renderer + 重调模型缩放/位置，不重建
+  useEffect(() => {
+    const app = appRef.current;
+    const model = modelRef.current;
+    if (!app || !model) return;
+    const w = isMobile ? W_MOBILE : W_DESKTOP;
+    const h = isMobile ? H_MOBILE : H_DESKTOP;
+    app.renderer.resize(w, h);
+    const modelH = model.height;
+    const targetH = h * (isMobile ? 0.55 : 0.88);
+    const s = modelH > 0 ? targetH / modelH : 0.22;
+    model.scale.set(s);
+    model.x = w / 2;
+    model.y = h * 0.28;
+  }, [isMobile]);
 
   if (disabled) return null;
 
@@ -256,8 +264,8 @@ export function Live2DCanvas({
     <div
       ref={containerRef}
       style={{
-        width: W,
-        height: H,
+        width: isMobile ? W_MOBILE : W_DESKTOP,
+        height: isMobile ? H_MOBILE : H_DESKTOP,
         opacity: loaded ? (isMobile ? 0.35 : 1) : 0,
         transition: "opacity 1.5s ease-out",
       }}
