@@ -249,13 +249,13 @@ export function Live2DCanvas({
     if (!app || !model) return;
     const w = isMobile ? W_MOBILE : W_DESKTOP;
     const h = isMobile ? H_MOBILE : H_DESKTOP;
-    app.renderer.resize(w, h);
-    const modelH = model.height;
+    (app as { renderer: { resize: (w: number, h: number) => void } }).renderer.resize(w, h);
+    const modelH = (model as { height: number }).height;
     const targetH = h * (isMobile ? 0.55 : 0.88);
     const s = modelH > 0 ? targetH / modelH : 0.22;
-    model.scale.set(s);
-    model.x = w / 2;
-    model.y = h * 0.28;
+    (model as { scale: { set: (s: number) => void } }).scale.set(s);
+    (model as { x: number }).x = w / 2;
+    (model as { y: number }).y = h * 0.28;
   }, [isMobile]);
 
   if (disabled) return null;

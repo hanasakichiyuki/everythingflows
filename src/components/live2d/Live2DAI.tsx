@@ -41,6 +41,12 @@ function pickNotRepeat<T>(list: T[], lastRef: React.MutableRefObject<T | null>):
   return pick;
 }
 
+const motions = ["haoqi", "yaotou", "keshui", "Scene1"];
+const exps = ["cry", "angry"];
+const CLICK_COOLDOWN = 400;
+const HOLD_INTERVAL = 2500;
+const EXPR_DURATION = 3000; // 表情持续 ms，到时间自动复位
+
 export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
   const [, setMouseProximity] = useState(0);
@@ -61,12 +67,6 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
   const lastMotion = useRef<string | null>(null);
   const lastExpr = useRef<string | null>(null);
   const lastClickRef = useRef(0);
-
-  const motions = ["haoqi", "yaotou", "keshui", "Scene1"];
-  const exps = ["cry", "angry"];
-  const CLICK_COOLDOWN = 400;
-  const HOLD_INTERVAL = 2500;
-  const EXPR_DURATION = 3000; // 表情持续 ms，到时间自动复位
 
   const handleControllerReady = useCallback((ctrl: ModelController) => {
     modelCtrl.current = ctrl;
