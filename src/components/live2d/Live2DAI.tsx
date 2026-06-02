@@ -846,7 +846,7 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none fixed bottom-0 left-0 z-20 select-none"
+      className="pointer-events-none fixed bottom-0 left-0 z-10 select-none"
       style={{
         marginLeft: sidebarCollapsed ? "0px" : isDesktop ? "170px" : "0px",
       }}

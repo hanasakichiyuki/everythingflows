@@ -136,7 +136,7 @@ body::-webkit-scrollbar {
     @apply font-semibold text-pink-500;
   }
 
-  /* Cute anime-style music player hover effect */
+  /* Music player button */
   .music-player-btn {
     @apply relative cursor-pointer transition-all duration-300;
   }
@@ -155,9 +155,6 @@ body::-webkit-scrollbar {
   .music-player-btn:hover::before {
     top: -18px;
     opacity: 0.8;
-  }
-  .music-player-btn:hover {
-    filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.4));
   }
 
   @keyframes slideDown {
