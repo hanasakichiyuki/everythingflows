@@ -154,7 +154,11 @@ export function useMusicPlayer() {
         ap.volume(volume, false);
 
         ap.on("play", () => setIsPlaying(true));
-        ap.on("pause", () => setIsPlaying(false));
+        ap.on("pause", () => {
+          setIsPlaying(false);
+          // 通知 Live2D 音乐暂停
+          window.dispatchEvent(new CustomEvent("live2d:music-pause"));
+        });
         ap.on("error", (err: unknown) => {
           if (err instanceof Error && err.name === "AbortError") return;
         });

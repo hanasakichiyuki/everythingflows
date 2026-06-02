@@ -74,8 +74,14 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     .eq("published", true)
     .maybeSingle();
 
-  if (error) throw error;
-  if (!data) return null;
+  if (error) {
+    console.error("[Supabase] getPostBySlug error:", error);
+    throw error;
+  }
+  if (!data) {
+    console.warn("[Supabase] getPostBySlug: no post found for slug:", slug);
+    return null;
+  }
   return rowToPost(data as PostRow);
 }
 

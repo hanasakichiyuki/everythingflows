@@ -33,6 +33,7 @@ export default async function BlogPostPage({
     post = await getPost(decodedSlug);
   } catch (e) {
     console.error("Failed to fetch post:", e);
+    notFound();
   }
   if (!post) notFound();
 

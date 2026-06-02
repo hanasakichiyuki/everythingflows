@@ -75,6 +75,8 @@ export function PageTransitionProvider({ children }: { children: React.ReactNode
     }
     navigatingRef.current = false;
     setIsNavigating(false);
+    // 通知 Live2D 页面切换
+    window.dispatchEvent(new CustomEvent("live2d:route-change"));
   }, [pathname]);
 
   return (

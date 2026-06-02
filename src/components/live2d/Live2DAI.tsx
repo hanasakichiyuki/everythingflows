@@ -13,6 +13,8 @@ const Live2DCanvas = dynamic(
 
 /** 音乐切换事件名 */
 const MUSIC_CHANGE_EVENT = "live2d:music-change";
+/** 音乐暂停事件名 */
+const MUSIC_PAUSE_EVENT = "live2d:music-pause";
 
 /**
  * 分发音乐切换事件（由 MusicPlayer 调用）
@@ -21,6 +23,13 @@ export function notifyMusicChange(songName: string) {
   window.dispatchEvent(
     new CustomEvent(MUSIC_CHANGE_EVENT, { detail: { songName } })
   );
+}
+
+/**
+ * 分发音乐暂停事件
+ */
+export function notifyMusicPause() {
+  window.dispatchEvent(new CustomEvent(MUSIC_PAUSE_EVENT));
 }
 
 /* ============================================================
@@ -34,8 +43,8 @@ interface StateConfig {
   motion: string;
   expression: string | null;
   followMouse: boolean;
-  mouseSensitivity: number; // 1 = 正常, >1 = 增强
-  duration: number | null;  // null = 直到外部事件才退出
+  mouseSensitivity: number;
+  duration: number | null;
 }
 
 const STATE_CONFIG: Record<CharState, StateConfig> = {
@@ -55,25 +64,146 @@ function pickNotRepeat<T>(list: T[], lastRef: React.MutableRefObject<T | null>):
   return pick;
 }
 
+/** 从列表中随机选取 */
+function pickRandom<T>(list: T[]): T {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 /* ============================================================
- *  组件
+ *  台词库 — 安静、克制、低频
+ * ============================================================ */
+
+const LINES = {
+  /** 首次访问 */
+  firstVisit: [
+    "这里一直很安静。",
+  ],
+  /** 回访 */
+  welcomeBack: [
+    "欢迎回来。",
+  ],
+  /** 久别重逢 */
+  longTimeNoSee: [
+    "已经很久没见了。",
+    "欢迎回来。",
+  ],
+  /** 页面停留较久 */
+  stayLong: [
+    "还在看吗？",
+    "今天也睡不着？",
+    "时间好像流得很慢。",
+    "你已经停留很久了。",
+  ],
+  /** 长时间无操作 */
+  idle: [
+    "……睡着了吗？",
+    "我还在。",
+  ],
+  /** 快速滚动 */
+  fastScroll: [
+    "慢一点。",
+  ],
+  /** 滚动到底部 */
+  bottom: [
+    "已经没有更多内容了。",
+    "河流已经流到尽头了吗？",
+    "再往下，就什么都没有了。",
+  ],
+  /** 回到顶部 */
+  top: [
+    "又回到最初了。",
+  ],
+  /** 深夜 */
+  lateNight: [
+    "凌晨的互联网很安静。",
+    "这个时间，还有人在。",
+    "又是深夜。",
+  ],
+  /** 连续深夜访问 */
+  consecutiveLateNight: [
+    "你最近总是在凌晨出现。",
+  ],
+  /** 音乐切换 */
+  musicChange: [
+    "这首很好听。",
+    "我记得这段旋律。",
+  ],
+  /** 音乐暂停 */
+  musicPause: [
+    "怎么停下来了？",
+  ],
+  /** 鼠标靠近 */
+  mouseNearby: [
+    "……",
+  ],
+  /** 鼠标靠近低概率 */
+  mouseNearbyRare: [
+    "不要一直盯着我看。",
+  ],
+  /** 鼠标长时间停留角色身上 */
+  mouseHoverLong: [
+    "有点近了。",
+  ],
+  /** 频繁切换页面 */
+  pageSwitchFrequent: [
+    "今天好像很焦躁。",
+  ],
+  /** 页面加载慢 */
+  slowLoad: [
+    "网络有点慢。",
+  ],
+  /** 关闭页面前 */
+  beforeLeave: [
+    "晚安。",
+    "下次见。",
+  ],
+  /** 截图 */
+  screenshot: [
+    "你在保存什么？",
+  ],
+};
+
+/* ============================================================
+ *  冷却配置 — 克制、低频
  * ============================================================ */
 
 /** 空闲触发阈值（毫秒） */
-const IDLE_THRESHOLD = 15000;
+const IDLE_THRESHOLD = 20000;
 /** 空闲冷却时间 */
-const IDLE_COOLDOWN = 60000;
+const IDLE_COOLDOWN = 90000;
 /** 滚动底部冷却 */
-const BOTTOM_COOLDOWN = 30000;
+const BOTTOM_COOLDOWN = 60000;
 /** 音乐切换冷却 */
-const MUSIC_COOLDOWN = 15000;
+const MUSIC_COOLDOWN = 30000;
 /** 点击冷却 */
 const CLICK_COOLDOWN = 400;
-/** 连击窗口（毫秒内点击 N 次触发兴奋） */
+/** 连击窗口 */
 const COMBO_WINDOW = 5000;
 const COMBO_THRESHOLD = 2;
 /** 兴奋中点击触发害羞的概率 */
 const SHY_PROBABILITY = 0.7;
+/** 页面停留台词冷却 */
+const STAY_COOLDOWN = 40000;
+/** 快速滚动冷却 */
+const FAST_SCROLL_COOLDOWN = 30000;
+/** 回到顶部冷却 */
+const TOP_COOLDOWN = 30000;
+/** 深夜台词冷却 */
+const LATE_NIGHT_COOLDOWN = 120000;
+/** 鼠标靠近台词冷却 */
+const MOUSE_NEARBY_COOLDOWN = 20000;
+/** 鼠标长时间停留冷却 */
+const MOUSE_HOVER_LONG_COOLDOWN = 45000;
+/** 频繁切换页面冷却 */
+const PAGE_SWITCH_COOLDOWN = 60000;
+/** 关闭页面前冷却 */
+const BEFORE_LEAVE_COOLDOWN = 30000;
+/** 截图冷却 */
+const SCREENSHOT_COOLDOWN = 30000;
+
+/* ============================================================
+ *  组件
+ * ============================================================ */
 
 export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
@@ -98,6 +228,41 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
 
   // 连击计数
   const clickTimestamps = useRef<number[]>([]);
+
+  // ------ 交互冷却追踪 ------
+  const lastStayTrigger = useRef(0);
+  const lastFastScrollTrigger = useRef(0);
+  const lastTopTrigger = useRef(0);
+  const lastLateNightTrigger = useRef(0);
+  const lastMouseNearbyTrigger = useRef(0);
+  const lastMouseHoverLongTrigger = useRef(0);
+  const lastPageSwitchTrigger = useRef(0);
+  const lastBeforeLeaveTrigger = useRef(0);
+  const lastScreenshotTrigger = useRef(0);
+
+  // ------ 鼠标追踪 ------
+  const mouseNearContainer = useRef(false);
+  const mouseHoverStartTime = useRef(0);
+
+  // ------ 页面切换追踪 ------
+  const pageSwitchCount = useRef(0);
+  const pageSwitchResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ------ 本地存储 ------
+  const storageRef = useRef<Storage | null>(null);
+
+  useEffect(() => {
+    try {
+      storageRef.current = window.localStorage;
+    } catch {
+      // localStorage 不可用
+    }
+  }, []);
+
+  /** 安全地发送消息 */
+  const say = useCallback((text: string) => {
+    setMessage(text);
+  }, []);
 
   /** 应用某个状态：停止旧动作 → 播放新 motion → 设表情 → 设超时 */
   const applyState = useCallback((state: CharState) => {
@@ -160,7 +325,7 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
     clickTimestamps.current = clickTimestamps.current.filter(t => now - t < COMBO_WINDOW);
     clickTimestamps.current.push(now);
 
-    // 连击检查：在任何状态下，5s 内点击 >= 3 次都触发兴奋
+    // 连击检查：在任何状态下，5s 内点击 >= 2 次都触发兴奋
     if (clickTimestamps.current.length >= COMBO_THRESHOLD) {
       clickTimestamps.current = [];
       applyState("excited");
@@ -191,7 +356,7 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
         break;
 
       case "excited":
-        // 兴奋中点击：30% 概率害羞
+        // 兴奋中点击：70% 概率害羞
         if (Math.random() < SHY_PROBABILITY) {
           applyState("shy");
         } else {
@@ -245,10 +410,14 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
         clearInterval(idleTimer.current);
         idleTimer.current = null;
       }
+      if (pageSwitchResetTimer.current) {
+        clearTimeout(pageSwitchResetTimer.current);
+        pageSwitchResetTimer.current = null;
+      }
     };
   }, []);
 
-  // 桌面端 / 移动端判断（null=初始尚未检测，避免桌面端先以移动端尺寸渲染）
+  // 桌面端 / 移动端判断
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
   useEffect(() => {
     const checkDesktop = () => setIsDesktop(window.innerWidth >= 768);
@@ -265,7 +434,6 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
       lastActivity.current = Date.now();
       if (!containerRef.current) return;
 
-      // 当前状态不允许跟随则跳过
       const cfg = STATE_CONFIG[currentState.current];
       if (!cfg.followMouse) return;
 
@@ -278,6 +446,21 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
       setMouseX(dx);
       setMouseY(dy);
       setMouseProximity(1);
+
+      // 检测鼠标是否靠近角色
+      const dist = Math.sqrt(
+        (e.clientX - (rect.left + rect.width / 2)) ** 2 +
+        (e.clientY - (rect.top + rect.height / 2)) ** 2
+      );
+      const wasNear = mouseNearContainer.current;
+      mouseNearContainer.current = dist < 200;
+
+      if (mouseNearContainer.current && !wasNear) {
+        mouseHoverStartTime.current = Date.now();
+      }
+      if (!mouseNearContainer.current) {
+        mouseHoverStartTime.current = 0;
+      }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -306,6 +489,38 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
     };
   }, [isDesktop]);
 
+  // ------ 鼠标靠近 / 长时间停留检测 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    const checkMouseProximity = setInterval(() => {
+      if (!mouseNearContainer.current) return;
+
+      const now = Date.now();
+      const hoverDuration = now - mouseHoverStartTime.current;
+
+      // 长时间停留角色身上
+      if (
+        hoverDuration > MOUSE_HOVER_LONG_COOLDOWN &&
+        now - lastMouseHoverLongTrigger.current > MOUSE_HOVER_LONG_COOLDOWN * 2
+      ) {
+        lastMouseHoverLongTrigger.current = now;
+        say(pickRandom(LINES.mouseHoverLong));
+        return;
+      }
+
+      // 鼠标靠近低概率台词
+      if (now - lastMouseNearbyTrigger.current > MOUSE_NEARBY_COOLDOWN) {
+        if (Math.random() < 0.15) {
+          lastMouseNearbyTrigger.current = now;
+          say(pickRandom(LINES.mouseNearbyRare));
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(checkMouseProximity);
+  }, [isDesktop, say]);
+
   // ------ 空闲检测 → Sleepy ------
   useEffect(() => {
     if (!isDesktop) return;
@@ -317,7 +532,7 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
       ) {
         lastIdleTrigger.current = Date.now();
         applyState("sleepy");
-        setMessage("还在看吗？");
+        say(pickRandom(LINES.idle));
       }
     }, 5000);
     return () => {
@@ -326,7 +541,25 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
         idleTimer.current = null;
       }
     };
-  }, [isDesktop, applyState]);
+  }, [isDesktop, applyState, say]);
+
+  // ------ 页面停留较久台词 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    const checkStay = setInterval(() => {
+      const elapsed = Date.now() - lastActivity.current;
+      if (
+        elapsed > 25000 &&
+        Date.now() - lastStayTrigger.current > STAY_COOLDOWN
+      ) {
+        lastStayTrigger.current = Date.now();
+        say(pickRandom(LINES.stayLong));
+      }
+    }, 10000);
+
+    return () => clearInterval(checkStay);
+  }, [isDesktop, say]);
 
   // ------ 深夜检测 ------
   useEffect(() => {
@@ -336,19 +569,38 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
 
     const scheduleNextCheck = () => {
       const now = new Date();
-
       const nextMinute = new Date(now);
       nextMinute.setMinutes(now.getMinutes() + 1);
       nextMinute.setSeconds(0);
       nextMinute.setMilliseconds(0);
-
       const delay = nextMinute.getTime() - now.getTime();
 
       timeout = setTimeout(() => {
         const hour = new Date().getHours();
+        if ((hour >= 0 && hour < 5) || hour >= 23) {
+          if (Date.now() - lastLateNightTrigger.current > LATE_NIGHT_COOLDOWN) {
+            lastLateNightTrigger.current = Date.now();
 
-        if (hour >= 23 || hour < 5) {
-          setMessage("夜晚的互联网很安静。");
+            // 检查是否连续深夜访问
+            const storage = storageRef.current;
+            if (storage) {
+              const lateNightDays = JSON.parse(storage.getItem("ef_late_night_days") || "[]");
+              const today = new Date().toDateString();
+              if (!lateNightDays.includes(today)) {
+                lateNightDays.push(today);
+              }
+              // 保留最近 7 天
+              const recentDays = lateNightDays.slice(-7);
+              storage.setItem("ef_late_night_days", JSON.stringify(recentDays));
+
+              if (recentDays.length >= 3) {
+                say(pickRandom(LINES.consecutiveLateNight));
+                return;
+              }
+            }
+
+            say(pickRandom(LINES.lateNight));
+          }
         }
 
         scheduleNextCheck();
@@ -356,9 +608,8 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
     };
 
     scheduleNextCheck();
-
     return () => clearTimeout(timeout);
-  }, [isDesktop]);
+  }, [isDesktop, say]);
 
   // ------ 滚动到底部 ------
   useEffect(() => {
@@ -372,12 +623,63 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
         Date.now() - lastBottomTrigger.current > BOTTOM_COOLDOWN
       ) {
         lastBottomTrigger.current = Date.now();
-        setMessage("已经没有更多内容了。");
+        say(pickRandom(LINES.bottom));
       }
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [isDesktop]);
+  }, [isDesktop, say]);
+
+  // ------ 快速滚动检测 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    let lastScrollY = window.scrollY;
+    let scrollAccumulator = 0;
+
+    const handleScroll = () => {
+      const now = Date.now();
+      const delta = Math.abs(window.scrollY - lastScrollY);
+      scrollAccumulator += delta;
+      lastScrollY = window.scrollY;
+
+      // 每 300ms 检查一次滚动速度
+      if (scrollAccumulator > 800) {
+        if (now - lastFastScrollTrigger.current > FAST_SCROLL_COOLDOWN) {
+          lastFastScrollTrigger.current = now;
+          say(pickRandom(LINES.fastScroll));
+        }
+        scrollAccumulator = 0;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isDesktop, say]);
+
+  // ------ 回到顶部检测 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    let wasNearTop = false;
+
+    const handleScroll = () => {
+      const nearTop = window.scrollY < 100;
+      if (nearTop && !wasNearTop) {
+        wasNearTop = true;
+        if (Date.now() - lastTopTrigger.current > TOP_COOLDOWN) {
+          lastTopTrigger.current = Date.now();
+          say(pickRandom(LINES.top));
+        }
+      }
+      if (!nearTop) {
+        wasNearTop = false;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isDesktop, say]);
 
   // ------ 音乐切换 ------
   useEffect(() => {
@@ -389,12 +691,142 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
         Date.now() - lastMusicTrigger.current > MUSIC_COOLDOWN
       ) {
         lastMusicTrigger.current = Date.now();
-        setMessage("这首很好听。");
+        say(pickRandom(LINES.musicChange));
       }
     };
     window.addEventListener(MUSIC_CHANGE_EVENT, handleMusicChange);
     return () =>
       window.removeEventListener(MUSIC_CHANGE_EVENT, handleMusicChange);
+  }, [isDesktop, say]);
+
+  // ------ 音乐暂停 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+    const handleMusicPause = () => {
+      say(pickRandom(LINES.musicPause));
+    };
+    window.addEventListener(MUSIC_PAUSE_EVENT, handleMusicPause);
+    return () =>
+      window.removeEventListener(MUSIC_PAUSE_EVENT, handleMusicPause);
+  }, [isDesktop, say]);
+
+  // ------ 频繁切换页面检测 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    const handleRouteChange = () => {
+      const now = Date.now();
+      pageSwitchCount.current++;
+
+      // 重置计数器
+      if (pageSwitchResetTimer.current) {
+        clearTimeout(pageSwitchResetTimer.current);
+      }
+      pageSwitchResetTimer.current = setTimeout(() => {
+        pageSwitchCount.current = 0;
+      }, 10000);
+
+      // 10s 内切换 >= 4 次
+      if (
+        pageSwitchCount.current >= 4 &&
+        now - lastPageSwitchTrigger.current > PAGE_SWITCH_COOLDOWN
+      ) {
+        lastPageSwitchTrigger.current = now;
+        pageSwitchCount.current = 0;
+        say(pickRandom(LINES.pageSwitchFrequent));
+      }
+    };
+
+    window.addEventListener("live2d:route-change", handleRouteChange);
+    return () => window.removeEventListener("live2d:route-change", handleRouteChange);
+  }, [isDesktop, say]);
+
+  // ------ 关闭页面前 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    const handleBeforeUnload = () => {
+      if (Date.now() - lastBeforeLeaveTrigger.current > BEFORE_LEAVE_COOLDOWN) {
+        lastBeforeLeaveTrigger.current = Date.now();
+        // 使用 sendBeacon 确保消息能发送（虽然可能看不到）
+        try {
+          storageRef.current?.setItem("ef_last_message", pickRandom(LINES.beforeLeave));
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDesktop]);
+
+  // ------ 截图检测 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // PrintScreen 或 Cmd+Shift+3 (Mac)
+      if (e.key === "PrintScreen" || (e.metaKey && e.shiftKey && e.key === "3")) {
+        const now = Date.now();
+        if (now - lastScreenshotTrigger.current > SCREENSHOT_COOLDOWN) {
+          lastScreenshotTrigger.current = now;
+          say(pickRandom(LINES.screenshot));
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isDesktop, say]);
+
+  // ------ 首次访问 / 回访 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    const storage = storageRef.current;
+    if (!storage) return;
+
+    const lastVisit = storage.getItem("ef_last_visit");
+    const now = Date.now();
+    storage.setItem("ef_last_visit", String(now));
+
+    if (!lastVisit) {
+      // 首次访问
+      setTimeout(() => {
+        say(pickRandom(LINES.firstVisit));
+      }, 3000);
+    } else {
+      const daysSinceLastVisit = (now - parseInt(lastVisit)) / (1000 * 60 * 60 * 24);
+      if (daysSinceLastVisit > 3) {
+        // 久别重逢
+        setTimeout(() => {
+          say(pickRandom(LINES.longTimeNoSee));
+        }, 3000);
+      } else {
+        // 回访
+        setTimeout(() => {
+          say(pickRandom(LINES.welcomeBack));
+        }, 3000);
+      }
+    }
+  }, [isDesktop, say]);
+
+  // ------ 关闭页面前显示上次留言 ------
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    const storage = storageRef.current;
+    if (!storage) return;
+
+    const lastMessage = storage.getItem("ef_last_message");
+    if (lastMessage) {
+      // 下次访问时显示
+      setTimeout(() => {
+        // 不显示，只存储用于下次
+      }, 100);
+      storage.removeItem("ef_last_message");
+    }
   }, [isDesktop]);
 
   // ------ 消息消失回调 ------
