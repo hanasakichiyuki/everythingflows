@@ -10,6 +10,19 @@ const components = {
       <iframe {...props} className="h-full w-full" />
     </div>
   ),
+  a: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+    const isExternal = href?.startsWith("http://") || href?.startsWith("https://");
+    return (
+      <a
+        href={href}
+        {...props}
+        target={isExternal ? "_blank" : undefined}
+        rel={isExternal ? "noopener noreferrer" : undefined}
+      >
+        {children}
+      </a>
+    );
+  },
 };
 
 export function MdxContent({ source }: { source: string }) {

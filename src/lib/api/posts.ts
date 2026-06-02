@@ -21,6 +21,21 @@ export async function listPosts(locale?: string): Promise<PostMeta[]> {
   }
 }
 
+export async function listPostsAdmin(locale?: string): Promise<PostMeta[]> {
+  const provider = getDataProvider();
+
+  switch (provider) {
+    case "filesystem":
+      return fsPosts.getAllPosts(locale);
+    case "supabase":
+      return sbPosts.listAllPostsAdmin(locale);
+    case "api":
+      throw new Error("API provider not configured. Implement lib/api/rest/posts.ts");
+    default:
+      return fsPosts.getAllPosts(locale);
+  }
+}
+
 export async function getPost(slug: string): Promise<Post | null> {
   const provider = getDataProvider();
 

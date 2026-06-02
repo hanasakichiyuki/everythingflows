@@ -9,6 +9,11 @@ export function HtmlContent({ content }: { content: string }) {
   useEffect(() => {
     if (ref.current) {
       ref.current.innerHTML = DOMPurify.sanitize(content);
+      // Add target="_blank" to external links
+      ref.current.querySelectorAll('a[href^="http"]').forEach((link) => {
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener noreferrer");
+      });
     }
   }, [content]);
 

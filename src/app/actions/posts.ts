@@ -18,6 +18,42 @@ export type PublishPostPayload = {
   id?: string;
 };
 
+export async function saveDraftAction(payload: PublishPostPayload) {
+  // Verify Supabase authentication
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false as const, error: "未登录" };
+  }
+
+  const result = await publishPost(
+    {
+      title: payload.title,
+      description: payload.description,
+      tags: payload.tags,
+      category: payload.category,
+      body: payload.body,
+      contentFormat: payload.contentFormat,
+      locale: payload.locale,
+      published: false,
+      slug: payload.slug,
+      id: payload.id,
+    }
+  );
+
+  if (result.ok) {
+    revalidatePath("/", "layout");
+    revalidatePath(`/blog/${result.post.slug}`);
+    revalidatePath("/archive");
+    revalidatePath("/search");
+  }
+
+  return result;
+}
+
 export async function publishPostAction(payload: PublishPostPayload) {
   // Verify Supabase authentication
   const supabase = await createClient();

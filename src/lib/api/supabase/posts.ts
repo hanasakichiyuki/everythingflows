@@ -52,6 +52,20 @@ export async function listAllPosts(locale?: string): Promise<PostMeta[]> {
   return (data as PostRow[]).map(rowToMeta);
 }
 
+export async function listAllPostsAdmin(locale?: string): Promise<PostMeta[]> {
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from("posts")
+    .select("*")
+    .order("updated", { ascending: false });
+
+  if (locale) query = query.eq("locale", locale);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data as PostRow[]).map(rowToMeta);
+}
+
 export async function getPostById(id: string): Promise<Post | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
