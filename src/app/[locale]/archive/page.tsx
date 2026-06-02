@@ -5,7 +5,7 @@ import { AdminArchiveTimeline } from "@/components/archive/AdminArchiveTimeline"
 import { ContentCard } from "@/components/layout/ContentCard";
 import { createClient } from "@/lib/supabase/server-client";
 
-export const dynamic = "auto";
+export const dynamic = "force-dynamic";
 
 export default async function ArchivePage({
   params,

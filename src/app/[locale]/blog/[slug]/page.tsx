@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server-client";
 import { EditPostButton } from "@/components/blog/EditPostButton";
 import { BackButton } from "@/components/blog/BackButton";
 
-export const dynamic = "auto";
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   if (process.env.DATA_PROVIDER === "supabase") return [];

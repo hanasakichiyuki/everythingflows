@@ -4,7 +4,7 @@ import { HomePageContent } from "@/components/layout/HomePageContent";
 import { MemoryFragment } from "@/types/memory";
 import { seedFragments } from "@/data/seed-fragments";
 
-export const dynamic = "auto";
+export const dynamic = "force-dynamic";
 
 async function getFragments(): Promise<MemoryFragment[]> {
   try {
