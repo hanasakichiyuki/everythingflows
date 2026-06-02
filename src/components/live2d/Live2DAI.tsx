@@ -703,7 +703,10 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
   useEffect(() => {
     if (!isDesktop) return;
     const handleMusicPause = () => {
-      say(pickRandom(LINES.musicPause));
+      if (Date.now() - lastMusicTrigger.current > MUSIC_COOLDOWN) {
+        lastMusicTrigger.current = Date.now();
+        say(pickRandom(LINES.musicPause));
+      }
     };
     window.addEventListener(MUSIC_PAUSE_EVENT, handleMusicPause);
     return () =>

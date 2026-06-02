@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { getPost, listPostSlugs, getAdjacentPosts } from "@/lib/api/posts";
+import type { PostMeta } from "@/types";
 import { PostContent } from "@/components/blog/PostContent";
 import { PostNavigation } from "@/components/blog/PostNavigation";
 import { GiscusComments } from "@/components/comments/GiscusComments";
@@ -28,16 +29,21 @@ export default async function BlogPostPage({
   setRequestLocale(locale);
 
   let post;
+  let prev: PostMeta | null = null;
+  let next: PostMeta | null = null;
   try {
     const decodedSlug = decodeURIComponent(slug);
     post = await getPost(decodedSlug);
+    if (post) {
+      const adjacent = await getAdjacentPosts(post.slug, locale);
+      prev = adjacent.prev;
+      next = adjacent.next;
+    }
   } catch (e) {
     console.error("Failed to fetch post:", e);
     notFound();
   }
   if (!post) notFound();
-
-  const { prev, next } = await getAdjacentPosts(post.slug, locale);
 
   const supabase = await createClient();
   const {
