@@ -20,7 +20,7 @@ const DISPLAY_DURATION = 4500;
 export function Live2DSpeechBubble({ message, onDismiss }: Live2DSpeechBubbleProps) {
   const [messages, setMessages] = useState<SpeechMessage[]>([]);
   const nextIdRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const addMessage = useCallback((text: string) => {
     const id = nextIdRef.current++;

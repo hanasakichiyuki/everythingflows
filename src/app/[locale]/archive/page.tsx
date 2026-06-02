@@ -5,15 +5,14 @@ import { AdminArchiveTimeline } from "@/components/archive/AdminArchiveTimeline"
 import { ContentCard } from "@/components/layout/ContentCard";
 import { createClient } from "@/lib/supabase/server-client";
 
-export const dynamic =
-  process.env.DATA_PROVIDER === "supabase" ? "force-dynamic" : undefined;
+export const dynamic = "auto";
 
 export default async function ArchivePage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const { locale } = params;
+  const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("archive");
   const archive = await getArchiveByYear(locale);

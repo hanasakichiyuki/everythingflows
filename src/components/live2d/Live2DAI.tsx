@@ -23,14 +23,28 @@ export function notifyMusicChange(songName: string) {
   );
 }
 
-/** 空闲触发阈值（毫秒） */
-const IDLE_THRESHOLD = 30000;
-/** 空闲冷却时间 */
-const IDLE_COOLDOWN = 60000;
-/** 滚动底部冷却 */
-const BOTTOM_COOLDOWN = 30000;
-/** 音乐切换冷却 */
-const MUSIC_COOLDOWN = 15000;
+/* ============================================================
+ *  状态机配置
+ * ============================================================ */
+
+/** 角色行为状态 */
+type CharState = "idle" | "sleepy" | "curious" | "excited" | "shy";
+
+interface StateConfig {
+  motion: string;
+  expression: string | null;
+  followMouse: boolean;
+  mouseSensitivity: number; // 1 = 正常, >1 = 增强
+  duration: number | null;  // null = 直到外部事件才退出
+}
+
+const STATE_CONFIG: Record<CharState, StateConfig> = {
+  idle:    { motion: "Scene1", expression: null, followMouse: true,  mouseSensitivity: 1,   duration: null },
+  sleepy:  { motion: "keshui", expression: null, followMouse: false, mouseSensitivity: 0,   duration: null },
+  curious: { motion: "haoqi",  expression: null, followMouse: true,  mouseSensitivity: 1.5, duration: 5000 },
+  excited: { motion: "haoqi",  expression: "cry", followMouse: true,  mouseSensitivity: 1.5, duration: 8000 },
+  shy:     { motion: "yaotou", expression: "angry", followMouse: false, mouseSensitivity: 0, duration: 6000 },
+};
 
 /** 从列表中随机选取一个不重复的值 */
 function pickNotRepeat<T>(list: T[], lastRef: React.MutableRefObject<T | null>): T {
@@ -41,11 +55,25 @@ function pickNotRepeat<T>(list: T[], lastRef: React.MutableRefObject<T | null>):
   return pick;
 }
 
-const motions = ["haoqi", "yaotou", "keshui", "Scene1"];
-const exps = ["cry", "angry"];
+/* ============================================================
+ *  组件
+ * ============================================================ */
+
+/** 空闲触发阈值（毫秒） */
+const IDLE_THRESHOLD = 15000;
+/** 空闲冷却时间 */
+const IDLE_COOLDOWN = 60000;
+/** 滚动底部冷却 */
+const BOTTOM_COOLDOWN = 30000;
+/** 音乐切换冷却 */
+const MUSIC_COOLDOWN = 15000;
+/** 点击冷却 */
 const CLICK_COOLDOWN = 400;
-const HOLD_INTERVAL = 2500;
-const EXPR_DURATION = 3000; // 表情持续 ms，到时间自动复位
+/** 连击窗口（毫秒内点击 N 次触发兴奋） */
+const COMBO_WINDOW = 5000;
+const COMBO_THRESHOLD = 2;
+/** 兴奋中点击触发害羞的概率 */
+const SHY_PROBABILITY = 0.7;
 
 export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
@@ -57,60 +85,171 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
   const lastIdleTrigger = useRef(0);
   const lastBottomTrigger = useRef(0);
   const lastMusicTrigger = useRef(0);
-  const idleTimer = useRef<ReturnType<typeof setInterval>>();
+  const idleTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastActivity = useRef(Date.now());
+  const lastClickTime = useRef(0);
 
-  // ------ 点击互动（伪拖动：按住触发，不动位置）------
+  // ------ 状态机 ------
   const modelCtrl = useRef<ModelController | null>(null);
-  const holdTimer = useRef<ReturnType<typeof setInterval>>();
-  const exprTimer = useRef<ReturnType<typeof setTimeout>>();
+  const currentState = useRef<CharState>("idle");
+  const stateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMotion = useRef<string | null>(null);
   const lastExpr = useRef<string | null>(null);
-  const lastClickRef = useRef(0);
+
+  // 连击计数
+  const clickTimestamps = useRef<number[]>([]);
+
+  /** 应用某个状态：停止旧动作 → 播放新 motion → 设表情 → 设超时 */
+  const applyState = useCallback((state: CharState) => {
+    const cfg = STATE_CONFIG[state];
+    const prevState = currentState.current;
+    currentState.current = state;
+
+    // 清除旧超时定时器
+    if (stateTimer.current) {
+      clearTimeout(stateTimer.current);
+      stateTimer.current = null;
+    }
+
+    // 停止所有旧动作
+    modelCtrl.current?.stopAllMotions();
+
+    // 进入 Sleepy 时：重置鼠标位置，让模型回到中心姿态
+    if (state === "sleepy") {
+      setMouseX(0);
+      setMouseY(0);
+    }
+
+    // 从 Sleepy 唤醒时：重置姿态参数和鼠标位置，消除动作残留
+    if (prevState === "sleepy" && state !== "sleepy") {
+      modelCtrl.current?.resetPose();
+      setMouseX(0);
+      setMouseY(0);
+    }
+
+    // 播放新 motion
+    modelCtrl.current?.startMotion(cfg.motion, 0);
+
+    // 设置表情
+    if (cfg.expression) {
+      modelCtrl.current?.setExpression(cfg.expression);
+    } else {
+      modelCtrl.current?.resetExpression();
+    }
+
+    // 如果有持续时间，到期后回 idle
+    if (cfg.duration) {
+      stateTimer.current = setTimeout(() => {
+        applyState("idle");
+      }, cfg.duration);
+    }
+  }, []);
 
   const handleControllerReady = useCallback((ctrl: ModelController) => {
     modelCtrl.current = ctrl;
-  }, []);
+    // 模型加载完成后进入 idle 状态
+    applyState("idle");
+  }, [applyState]);
+
+  /** 处理点击：根据当前状态决定行为 */
+  const handleClick = useCallback(() => {
+    const now = Date.now();
+    const state = currentState.current;
+
+    // 记录点击时间（清理过期）
+    clickTimestamps.current = clickTimestamps.current.filter(t => now - t < COMBO_WINDOW);
+    clickTimestamps.current.push(now);
+
+    // 连击检查：在任何状态下，5s 内点击 >= 3 次都触发兴奋
+    if (clickTimestamps.current.length >= COMBO_THRESHOLD) {
+      clickTimestamps.current = [];
+      applyState("excited");
+      return;
+    }
+
+    switch (state) {
+      case "sleepy":
+        // 从瞌睡唤醒 → 好奇
+        applyState("curious");
+        break;
+
+      case "idle":
+        applyState("curious");
+        break;
+
+      case "curious":
+        // 好奇状态中再次点击：重置 5s 超时
+        if (stateTimer.current) {
+          clearTimeout(stateTimer.current);
+          stateTimer.current = null;
+        }
+        modelCtrl.current?.stopAllMotions();
+        modelCtrl.current?.startMotion("haoqi", 0);
+        stateTimer.current = setTimeout(() => {
+          applyState("idle");
+        }, 5000);
+        break;
+
+      case "excited":
+        // 兴奋中点击：30% 概率害羞
+        if (Math.random() < SHY_PROBABILITY) {
+          applyState("shy");
+        } else {
+          // 否则重置兴奋超时
+          if (stateTimer.current) {
+            clearTimeout(stateTimer.current);
+            stateTimer.current = null;
+          }
+          modelCtrl.current?.stopAllMotions();
+          modelCtrl.current?.startMotion("haoqi", 0);
+          stateTimer.current = setTimeout(() => {
+            applyState("idle");
+          }, 8000);
+        }
+        break;
+
+      case "shy":
+        // 害羞中点击：无视，延长害羞时间
+        if (stateTimer.current) {
+          clearTimeout(stateTimer.current);
+          stateTimer.current = null;
+        }
+        modelCtrl.current?.stopAllMotions();
+        modelCtrl.current?.startMotion("yaotou", 0);
+        stateTimer.current = setTimeout(() => {
+          applyState("idle");
+        }, 6000);
+        break;
+    }
+  }, [applyState]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
     const now = Date.now();
-    if (now - lastClickRef.current < CLICK_COOLDOWN) return;
-    lastClickRef.current = now;
+    if (now - lastClickTime.current < CLICK_COOLDOWN) return;
+    lastClickTime.current = now;
+    lastActivity.current = now;
 
-    // 表情只在按下时设一次，3 秒后自动复位
-    if (exprTimer.current) clearTimeout(exprTimer.current);
-    modelCtrl.current?.setExpression(pickNotRepeat(exps, lastExpr));
-    exprTimer.current = setTimeout(() => modelCtrl.current?.resetExpression(), EXPR_DURATION);
-
-    modelCtrl.current?.stopAllMotions();
-    modelCtrl.current?.startMotion(pickNotRepeat(motions, lastMotion), 0);
-
-    // 持续按住时只切换动作，不再重复设表情
-    if (holdTimer.current) clearInterval(holdTimer.current);
-    holdTimer.current = setInterval(() => {
-      modelCtrl.current?.stopAllMotions();
-      modelCtrl.current?.startMotion(pickNotRepeat(motions, lastMotion), 0);
-    }, HOLD_INTERVAL);
-  }, [exps, motions, CLICK_COOLDOWN, HOLD_INTERVAL, EXPR_DURATION]);
-
-  const handlePointerUp = useCallback(() => {
-    modelCtrl.current?.resetExpression();
-    if (exprTimer.current) { clearTimeout(exprTimer.current); exprTimer.current = undefined; }
-    if (holdTimer.current) { clearInterval(holdTimer.current); holdTimer.current = undefined; }
-  }, []);
+    handleClick();
+  }, [handleClick]);
 
   // 组件卸载时清理定时器
   useEffect(() => {
     return () => {
-      if (exprTimer.current) { clearTimeout(exprTimer.current); exprTimer.current = undefined; }
-      if (holdTimer.current) { clearInterval(holdTimer.current); holdTimer.current = undefined; }
+      if (stateTimer.current) {
+        clearTimeout(stateTimer.current);
+        stateTimer.current = null;
+      }
+      if (idleTimer.current) {
+        clearInterval(idleTimer.current);
+        idleTimer.current = null;
+      }
     };
   }, []);
 
-  // 桌面端 / 移动端判断（用于 UI 适配，不再阻止渲染）
-  const [isDesktop, setIsDesktop] = useState(false);
+  // 桌面端 / 移动端判断（null=初始尚未检测，避免桌面端先以移动端尺寸渲染）
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
   useEffect(() => {
     const checkDesktop = () => setIsDesktop(window.innerWidth >= 768);
     checkDesktop();
@@ -118,18 +257,24 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
     return () => window.removeEventListener("resize", checkDesktop);
   }, []);
 
-  // ------ 鼠标 / 触摸追踪 ------
+  // ------ 鼠标 / 触摸追踪（受状态机控制）------
   useEffect(() => {
     if (!isDesktop) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       lastActivity.current = Date.now();
       if (!containerRef.current) return;
+
+      // 当前状态不允许跟随则跳过
+      const cfg = STATE_CONFIG[currentState.current];
+      if (!cfg.followMouse) return;
+
       const rect = containerRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height * 0.3;
-      const dx = (e.clientX - centerX) / (window.innerWidth / 2);
-      const dy = (e.clientY - centerY) / (window.innerHeight / 2);
+      const sensitivity = cfg.mouseSensitivity;
+      const dx = ((e.clientX - centerX) / (window.innerWidth / 2)) * sensitivity;
+      const dy = ((e.clientY - centerY) / (window.innerHeight / 2)) * sensitivity;
       setMouseX(dx);
       setMouseY(dy);
       setMouseProximity(1);
@@ -138,11 +283,16 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
     const handleTouchMove = (e: TouchEvent) => {
       lastActivity.current = Date.now();
       if (!containerRef.current || !e.touches[0]) return;
+
+      const cfg = STATE_CONFIG[currentState.current];
+      if (!cfg.followMouse) return;
+
       const rect = containerRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height * 0.3;
-      const dx = (e.touches[0].clientX - centerX) / (window.innerWidth / 2);
-      const dy = (e.touches[0].clientY - centerY) / (window.innerHeight / 2);
+      const sensitivity = cfg.mouseSensitivity;
+      const dx = ((e.touches[0].clientX - centerX) / (window.innerWidth / 2)) * sensitivity;
+      const dy = ((e.touches[0].clientY - centerY) / (window.innerHeight / 2)) * sensitivity;
       setMouseX(dx);
       setMouseY(dy);
       setMouseProximity(1);
@@ -156,7 +306,7 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
     };
   }, [isDesktop]);
 
-  // ------ 空闲检测 ------
+  // ------ 空闲检测 → Sleepy ------
   useEffect(() => {
     if (!isDesktop) return;
     idleTimer.current = setInterval(() => {
@@ -166,11 +316,17 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
         Date.now() - lastIdleTrigger.current > IDLE_COOLDOWN
       ) {
         lastIdleTrigger.current = Date.now();
+        applyState("sleepy");
         setMessage("还在看吗？");
       }
     }, 5000);
-    return () => clearInterval(idleTimer.current);
-  }, [isDesktop]);
+    return () => {
+      if (idleTimer.current) {
+        clearInterval(idleTimer.current);
+        idleTimer.current = null;
+      }
+    };
+  }, [isDesktop, applyState]);
 
   // ------ 深夜检测 ------
   useEffect(() => {
@@ -250,6 +406,8 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
   const containerW = isDesktop ? 280 : 180;
   const containerH = isDesktop ? 420 : 280;
 
+  if (isDesktop === null) return null;
+
   return (
     <div
       ref={containerRef}
@@ -272,14 +430,12 @@ export function Live2DAI({ sidebarCollapsed = false }: { sidebarCollapsed?: bool
             touchAction: "none",
             ...(isDesktop ? {} : {
               maskImage:
-                "linear-gradient(to bottom, black 0%, black 45%, transparent 100%)",
+                "linear-gradient(to bottom, black 0%, black 60%, transparent 100%)",
               WebkitMaskImage:
-                "linear-gradient(to bottom, black 0%, black 45%, transparent 100%)",
+                "linear-gradient(to bottom, black 0%, black 60%, transparent 100%)",
             }),
           }}
           onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
         >
           <Live2DCanvas
             isMobile={!isDesktop}

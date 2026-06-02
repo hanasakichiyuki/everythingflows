@@ -28,6 +28,8 @@ export interface ModelController {
   resetExpression: () => void;
   /** 终止当前所有动作 */
   stopAllMotions: () => void;
+  /** 重置模型姿态参数到默认（用于动作切换后消除残留姿态） */
+  resetPose: () => void;
 }
 
 const W_DESKTOP = 280;
@@ -208,6 +210,36 @@ export function Live2DCanvas({
             stopAllMotions: () => {
               (modelRef.current as { internalModel?: { motionManager?: { stopAllMotions?: () => void } } }).internalModel?.motionManager?.stopAllMotions?.();
             },
+            resetPose: () => {
+              // 重置所有 Pose 相关参数到默认值，消除动作残留
+              const m = (modelRef.current as { internalModel?: unknown }).internalModel;
+              if (!m) return;
+              const core = (m as { coreModel?: unknown }).coreModel as {
+                getParameterIds?: () => string[];
+                getParameterValueById: (id: string) => number;
+                setParameterValueById: (id: string, value: number) => void;
+              };
+
+              // 标准 Live2D 参数 ID 列表
+              const poseParams = [
+                "ParamAngleX", "ParamAngleY", "ParamAngleZ",
+                "ParamEyeLOpen", "ParamEyeROpen", "ParamEyeLSmile", "ParamEyeRSmile",
+                "ParamEyeBallX", "ParamEyeBallY",
+                "ParamMouthOpenY", "ParamMouthForm",
+                "ParamBodyAngleX", "ParamBodyAngleY", "ParamBodyAngleZ",
+                "ParamBreath", "ParamBrowLY", "ParamBrowRY",
+                "ParamBrowLX", "ParamBrowRX", "ParamBrowLAngle", "ParamBrowRAngle",
+                "ParamBrowLForm", "ParamBrowRForm",
+              ];
+
+              // 优先使用 getParameterIds 动态获取，否则使用预设列表
+              const ids = core.getParameterIds?.() ?? poseParams;
+              for (const id of ids) {
+                if (id.startsWith("ParamAngle") || id.startsWith("ParamEye") || id.startsWith("ParamMouth") || id.startsWith("ParamBody") || id.startsWith("ParamBrow") || id === "ParamBreath") {
+                  core.setParameterValueById(id, 0);
+                }
+              }
+            },
           });
         }
       } catch (err) {
@@ -266,7 +298,7 @@ export function Live2DCanvas({
       style={{
         width: isMobile ? W_MOBILE : W_DESKTOP,
         height: isMobile ? H_MOBILE : H_DESKTOP,
-        opacity: loaded ? (isMobile ? 0.35 : 1) : 0,
+        opacity: loaded ? (isMobile ? 0.8 : 1) : 0,
         transition: "opacity 1.5s ease-out",
       }}
     />

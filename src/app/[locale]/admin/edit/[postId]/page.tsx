@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function EditPostPage({
   params,
 }: {
-  params: { locale: string; postId: string };
+  params: Promise<{ locale: string; postId: string }>;
 }) {
-  const { locale, postId } = params;
+  const { locale, postId } = await params;
   setRequestLocale(locale);
 
   const supabase = await createClient();

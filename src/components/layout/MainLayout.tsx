@@ -3,37 +3,21 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Sidebar } from "./Sidebar";
-import { PageTransitionProvider, usePageTransition } from "./PageTransition";
+import { PageTransitionProvider, TransitionContent, GlobalLoadingOverlay, usePageTransition } from "./PageTransition";
 import { RightSidebarProvider } from "./RightSidebarContext";
 import { SearchModal } from "@/components/search/SearchModal";
 import type { SearchItem } from "@/components/search/SearchModal";
 import { siteConfig } from "@/config/site";
 import { motion, AnimatePresence } from "framer-motion";
 
-// 动态导入 Live2DAI，禁止 SSR（依赖 PIXI/window API）
 const Live2DAI = dynamic(
   () => import("@/components/live2d/Live2DAI").then((m) => m.Live2DAI),
   { ssr: false }
 );
 
-function TransitionContent({ children }: { children: React.ReactNode }) {
-  const { isTransitioning } = usePageTransition();
-
-  return (
-    <AnimatePresence mode="wait">
-      {!isTransitioning && (
-        <motion.div
-          key="page-content"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+function LoadingOverlayWrapper() {
+  const { isNavigating } = usePageTransition();
+  return <GlobalLoadingOverlay isVisible={isNavigating} />;
 }
 
 export function MainLayout({ children, searchItems }: { children: React.ReactNode; searchItems: SearchItem[] }) {
@@ -103,6 +87,9 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
       />
+
+      {/* Global Page Transition Loading Overlay */}
+      <LoadingOverlayWrapper />
     </PageTransitionProvider>
     </RightSidebarProvider>
   );

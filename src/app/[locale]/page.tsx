@@ -4,8 +4,7 @@ import { HomePageContent } from "@/components/layout/HomePageContent";
 import { MemoryFragment } from "@/types/memory";
 import { seedFragments } from "@/data/seed-fragments";
 
-export const dynamic =
-  process.env.DATA_PROVIDER === "supabase" ? "force-dynamic" : undefined;
+export const dynamic = "auto";
 
 async function getFragments(): Promise<MemoryFragment[]> {
   try {
@@ -39,9 +38,9 @@ async function getFragments(): Promise<MemoryFragment[]> {
 export default async function HomePage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const { locale } = params;
+  const { locale } = await params;
   setRequestLocale(locale);
   const posts = await listPosts(locale);
   const fragments = await getFragments();

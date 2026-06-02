@@ -38,7 +38,7 @@ export function RichTextEditor({ onChange, placeholder, supabaseMode, initialCon
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [uploading, setUploading] = useState(false);
   const initializedRef = useRef(false);
 

@@ -1,3 +1,5 @@
+"use client";
+
 import dynamic from "next/dynamic";
 import { MdxContent } from "@/components/mdx/MdxContent";
 import type { ContentFormat } from "@/types";

@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const { locale } = params;
+  const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("admin");
 

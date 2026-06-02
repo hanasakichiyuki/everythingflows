@@ -11,8 +11,7 @@ import { createClient } from "@/lib/supabase/server-client";
 import { EditPostButton } from "@/components/blog/EditPostButton";
 import { BackButton } from "@/components/blog/BackButton";
 
-export const dynamic =
-  process.env.DATA_PROVIDER === "supabase" ? "force-dynamic" : undefined;
+export const dynamic = "auto";
 
 export async function generateStaticParams() {
   if (process.env.DATA_PROVIDER === "supabase") return [];
@@ -23,9 +22,9 @@ export async function generateStaticParams() {
 export default async function BlogPostPage({
   params,
 }: {
-  params: { locale: string; slug: string };
+  params: Promise<{ locale: string; slug: string }>;
 }) {
-  const { locale, slug } = params;
+  const { locale, slug } = await params;
   setRequestLocale(locale);
 
   let post;
