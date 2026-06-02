@@ -29,20 +29,14 @@ export async function saveDraftAction(payload: PublishPostPayload) {
     return { ok: false as const, error: "未登录" };
   }
 
-  const result = await publishPost(
-    {
-      title: payload.title,
-      description: payload.description,
-      tags: payload.tags,
-      category: payload.category,
-      body: payload.body,
-      contentFormat: payload.contentFormat,
-      locale: payload.locale,
-      published: false,
-      slug: payload.slug,
-      id: payload.id,
-    }
-  );
+  // Don't pass `published` — upsertPost will preserve existing status for updates,
+  // or default to published for new posts.
+  const { published: _p, ...rest } = payload;
+
+  const result = await publishPost({
+    ...rest,
+    id: payload.id,
+  });
 
   if (result.ok) {
     revalidatePath("/", "layout");

@@ -248,22 +248,33 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
   const reading_time = computeReadingTime(input.body, contentFormat);
 
   let slug: string;
+  let published: boolean;
 
   if (input.id) {
     // For updates, keep existing slug unless explicitly provided
     if (input.slug?.trim()) {
       slug = input.slug.trim();
-    } else {
+      // Still need to fetch published status
       const { data: existing } = await supabase
         .from("posts")
-        .select("slug")
+        .select("published")
+        .eq("id", input.id)
+        .maybeSingle();
+      published = input.published !== undefined ? input.published : (existing?.published ?? false);
+    } else {
+      // Fetch both slug and published in one query
+      const { data: existing } = await supabase
+        .from("posts")
+        .select("slug, published")
         .eq("id", input.id)
         .maybeSingle();
       slug = existing?.slug || slugify(input.title);
+      published = input.published !== undefined ? input.published : (existing?.published ?? false);
     }
   } else {
     const baseSlug = input.slug?.trim() || slugify(input.title);
     slug = await uniqueSlug(supabase, baseSlug);
+    published = input.published !== false;
   }
 
   const row = {
@@ -276,7 +287,7 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     updated: now,
     tags: input.tags,
     category: input.category ?? null,
-    published: input.published !== false,
+    published,
     locale: input.locale,
     reading_time,
   };
