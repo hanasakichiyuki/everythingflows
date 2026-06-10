@@ -10,8 +10,8 @@ import type { SearchItem } from "@/components/search/SearchModal";
 import { siteConfig } from "@/config/site";
 import { motion, AnimatePresence } from "framer-motion";
 
-const Live2DAI = dynamic(
-  () => import("@/components/live2d/Live2DAI").then((m) => m.Live2DAI),
+const Live2DWidget = dynamic(
+  () => import("@/components/live2d/Live2DWidget").then((m) => m.Live2DWidget),
   { ssr: false }
 );
 
@@ -77,8 +77,8 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
           </footer>
         </main>
 
-        {/* Live2D AI 少女 — 栖息在页面左下角 */}
-        <Live2DAI sidebarCollapsed={sidebarCollapsed} />
+        {/* Live2D Widget — 外挂式独立模块 */}
+        <Live2DWidget sidebarCollapsed={sidebarCollapsed} />
       </div>
 
       {/* Search Modal */}

@@ -1,6 +1,6 @@
 # 万物流转 · Everything Flows
 
-个人站点 [everythingflows.net](https://everythingflows.net) — 博客为主，预留工具与 AI 扩展。
+个人站点 [flows.xin](https://flows.xin) — 博客为主，预留工具与 AI 扩展。
 
 仓库：[github.com/hanasakichiyuki/everythingflows](https://github.com/hanasakichiyuki/everythingflows)
 
@@ -63,7 +63,7 @@ ADMIN_SECRET=your-long-secret
 
 1. 导入 [GitHub 仓库](https://github.com/hanasakichiyuki/everythingflows)
 2. 环境变量：`.env.example` 中 Supabase 与 `ADMIN_SECRET` 全部填入
-3. `NEXT_PUBLIC_SITE_URL=https://everythingflows.net`
+3. `NEXT_PUBLIC_SITE_URL=https://flows.xin`
 4. 域名 CNAME 到 Vercel
 
 ## 目录结构

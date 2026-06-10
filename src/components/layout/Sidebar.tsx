@@ -6,12 +6,14 @@ import { usePathname } from "@/i18n/routing";
 import { siteConfig, navItems } from "@/config/site";
 import { NavIcon } from "./NavIcon";
 import { ThemeToggle } from "./ThemeToggle";
-import { MusicPlayer } from "./MusicPlayer";
+import dynamic from "next/dynamic";
 import { TransitionLink } from "./PageTransition";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/browser-client";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+
+const MusicPlayer = dynamic(() => import("./MusicPlayer").then((mod) => ({ default: mod.MusicPlayer })), { ssr: false });
 
 export function Sidebar({
   onSearchClick,

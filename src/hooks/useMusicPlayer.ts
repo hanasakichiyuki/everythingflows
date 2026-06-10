@@ -129,8 +129,8 @@ export function useMusicPlayer() {
 
     (async () => {
       try {
-        loadCss("https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css");
-        await loadScript("https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js");
+        loadCss("/libs/APlayer.min.css");
+        await loadScript("/libs/APlayer.min.js");
         if (cancelled || !containerRef.current || !window.APlayer) return;
 
         const APlayerClass = window.APlayer!;
