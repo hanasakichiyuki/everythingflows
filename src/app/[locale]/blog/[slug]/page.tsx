@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { getPost, listPostSlugs, getAdjacentPosts } from "@/lib/api/posts";
@@ -8,16 +9,60 @@ import { PostNavigation } from "@/components/blog/PostNavigation";
 import { GiscusComments } from "@/components/comments/GiscusComments";
 import { formatDate } from "@/lib/utils";
 import { ContentCard } from "@/components/layout/ContentCard";
-import { createClient } from "@/lib/supabase/server-client";
 import { EditPostButton } from "@/components/blog/EditPostButton";
 import { BackButton } from "@/components/blog/BackButton";
+import { siteConfig } from "@/config/site";
 
-export const dynamic = "force-dynamic";
+// ISR: blog content changes rarely; revalidate hourly and on publish/edit.
+export const revalidate = 3600;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  let post = null;
+  try {
+    post = await getPost(decodeURIComponent(slug));
+  } catch {
+    post = null;
+  }
+  if (!post) {
+    return { title: "未找到文章" };
+  }
+
+  // localePrefix is "never" → public URLs carry no locale segment.
+  const url = `${siteConfig.url}/blog/${post.slug}`;
+
+  return {
+    title: post.title,
+    description: post.description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: post.title,
+      description: post.description,
+      url,
+      type: "article",
+      publishedTime: post.date,
+      modifiedTime: post.updated ?? post.date,
+      tags: post.tags,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
+    },
+  };
+}
 
 export async function generateStaticParams() {
-  if (process.env.DATA_PROVIDER === "supabase") return [];
-  const slugs = await listPostSlugs("zh");
-  return slugs.map((slug) => ({ locale: "zh", slug }));
+  try {
+    const slugs = await listPostSlugs("zh");
+    return slugs.map((slug) => ({ locale: "zh", slug }));
+  } catch {
+    return [];
+  }
 }
 
 export default async function BlogPostPage({
@@ -44,11 +89,6 @@ export default async function BlogPostPage({
     notFound();
   }
   if (!post) notFound();
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const t = await getTranslations("blog");
 
@@ -85,7 +125,7 @@ export default async function BlogPostPage({
               </div>
             )}
             </div>
-          {user && <EditPostButton postId={post.id!} />}
+          <EditPostButton postId={post.id!} />
           </div>
         </header>
         <PostContent content={post.content} contentFormat={post.contentFormat} />

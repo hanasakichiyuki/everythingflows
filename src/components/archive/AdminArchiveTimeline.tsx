@@ -7,6 +7,7 @@ import { TransitionLink } from "@/components/layout/PageTransition";
 import { AdminPostListBar } from "@/components/admin/AdminPostListBar";
 import { deletePostAction, deletePostsAction } from "@/app/actions/posts";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/button";
 import type { PostMeta } from "@/types";
 
 type YearGroup = {
@@ -81,19 +82,13 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
       {/* Top-right manage button */}
       <div className="mb-6 flex items-center justify-end">
         {manageMode ? (
-          <button
-            onClick={exitManageMode}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
-          >
+          <Button variant="outline" size="sm" onClick={exitManageMode}>
             完成
-          </button>
+          </Button>
         ) : (
-          <button
-            onClick={enterManageMode}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-pink-100/50 hover:text-pink-500 dark:hover:bg-pink-900/20"
-          >
+          <Button variant="outline" size="sm" onClick={enterManageMode}>
             管理
-          </button>
+          </Button>
         )}
       </div>
 
@@ -228,18 +223,20 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                               {post.tags.length > 3 && <span className="text-muted/50">...</span>}
                             </div>
                           )}
-                          <button
+                          <Button
+                            variant="outline"
                             onClick={() => router.push(`/admin/edit/${post.id}`)}
-                            className="rounded border border-border px-2 py-0.5 text-xs transition-colors hover:bg-muted"
+                            className="h-auto rounded border px-2 py-0.5 text-xs"
                           >
                             编辑
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="destructive"
                             onClick={() => handleSingleDelete(post.id!)}
-                            className="rounded border border-red-500/30 px-2 py-0.5 text-xs text-red-500 transition-colors hover:bg-red-500/10"
+                            className="h-auto rounded border-red-500/30 px-2 py-0.5 text-xs"
                           >
                             删除
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </li>

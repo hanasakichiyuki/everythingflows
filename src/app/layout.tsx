@@ -23,6 +23,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh" suppressHydrationWarning className={`${GeistSans.className}`}>
+      <head>
+        {/* LXGW WenKai screen webfont — loaded at runtime from /public (not bundled). */}
+        <link
+          rel="stylesheet"
+          href="/fonts/lxgw-wenkai/lxgwwenkaiscreen.css"
+        />
+      </head>
       <body suppressHydrationWarning className="font-sans">{children}</body>
     </html>
   );

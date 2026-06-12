@@ -5,6 +5,7 @@ import { isSupabaseMode } from "@/lib/api/posts";
 import { getPostById } from "@/lib/api/posts";
 import { ContentCard } from "@/components/layout/ContentCard";
 import { createClient } from "@/lib/supabase/server-client";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +36,9 @@ export default async function EditPostPage({
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted">{user.email}</span>
           <form action="/api/auth/logout" method="POST">
-            <button className="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-pink-100/50 hover:text-pink-500 dark:hover:bg-pink-900/20">
+            <Button type="submit" variant="outline" size="sm">
               登出
-            </button>
+            </Button>
           </form>
         </div>
       </div>

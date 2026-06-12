@@ -30,18 +30,34 @@ function rowToPost(row: PostRow): Post {
   };
 }
 
-function rowToMeta(row: PostRow): PostMeta {
-  const post = rowToPost(row);
-  const { content: _c, ...meta } = post;
-  void _c;
-  return meta;
+/** Columns needed to build a PostMeta — excludes the heavy `body` field. */
+const META_COLUMNS =
+  "id,slug,title,description,date,updated,tags,category,published,reading_time,content_format,locale";
+
+type MetaRow = Omit<PostRow, "body" | "created_at">;
+
+function metaRowToMeta(row: MetaRow): PostMeta {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    date: row.date,
+    updated: row.updated ?? undefined,
+    tags: row.tags ?? [],
+    category: row.category ?? undefined,
+    published: row.published,
+    readingTime: row.reading_time,
+    contentFormat: row.content_format,
+    locale: row.locale,
+  };
 }
 
 export async function listAllPosts(locale?: string): Promise<PostMeta[]> {
   const supabase = getSupabaseAdmin();
   let query = supabase
     .from("posts")
-    .select("*")
+    .select(META_COLUMNS)
     .eq("published", true)
     .order("date", { ascending: false });
 
@@ -49,21 +65,21 @@ export async function listAllPosts(locale?: string): Promise<PostMeta[]> {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data as PostRow[]).map(rowToMeta);
+  return (data as unknown as MetaRow[]).map(metaRowToMeta);
 }
 
 export async function listAllPostsAdmin(locale?: string): Promise<PostMeta[]> {
   const supabase = getSupabaseAdmin();
   let query = supabase
     .from("posts")
-    .select("*")
+    .select(META_COLUMNS)
     .order("updated", { ascending: false });
 
   if (locale) query = query.eq("locale", locale);
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data as PostRow[]).map(rowToMeta);
+  return (data as unknown as MetaRow[]).map(metaRowToMeta);
 }
 
 export async function getPostById(id: string): Promise<Post | null> {
@@ -135,20 +151,40 @@ export async function getArchiveByYear(locale?: string) {
 }
 
 export async function getSearchIndex(locale?: string) {
-  const posts = await listAllPosts(locale);
-  return posts.map((p) => ({
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from("posts")
+    .select("slug,title,description,tags,category,date")
+    .eq("published", true)
+    .order("date", { ascending: false });
+
+  if (locale) query = query.eq("locale", locale);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((p) => ({
     slug: p.slug,
     title: p.title,
     description: p.description,
-    tags: p.tags,
-    category: p.category,
+    tags: p.tags ?? [],
+    category: p.category ?? undefined,
     date: p.date,
   }));
 }
 
 export async function listPostSlugs(locale?: string): Promise<string[]> {
-  const posts = await listAllPosts(locale);
-  return posts.map((p) => p.slug);
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from("posts")
+    .select("slug")
+    .eq("published", true)
+    .order("date", { ascending: false });
+
+  if (locale) query = query.eq("locale", locale);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((p) => p.slug as string);
 }
 
 export type UpsertPostInput = {

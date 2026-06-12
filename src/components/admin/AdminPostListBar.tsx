@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "@/i18n/routing";
 import { deletePostsAction } from "@/app/actions/posts";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   selectedIds: string[];
@@ -57,12 +58,9 @@ export function AdminPostListBar({
           全选
         </label>
         {selectedIds.length > 0 && (
-          <button
-            onClick={() => setConfirmOpen(true)}
-            className="rounded-lg border border-red-500/50 px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
-          >
+          <Button variant="destructive" size="sm" onClick={() => setConfirmOpen(true)}>
             删除选中 ({selectedIds.length})
-          </button>
+          </Button>
         )}
       </div>
 

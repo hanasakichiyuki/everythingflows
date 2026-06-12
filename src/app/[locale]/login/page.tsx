@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/browser-client";
 import { ContentCard } from "@/components/layout/ContentCard";
+import { Button } from "@/components/ui/button";
 
 function ErrorToast({ message, onDone }: { message: string; onDone: () => void }) {
   const [visible, setVisible] = useState(true);
@@ -98,13 +99,15 @@ export default function LoginPage() {
                 />
               </div>
               <div className="pt-2">
-                <button
+                <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-pink-500 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-pink-600 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+                  variant="ink"
+                  size="lg"
+                  className="w-full"
                 >
                   {loading ? "登录中..." : "登录"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

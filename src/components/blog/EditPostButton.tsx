@@ -1,9 +1,34 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Link } from "@/i18n/routing";
 import { Pencil } from "lucide-react";
+import { createClient } from "@/lib/supabase/browser-client";
 
+/**
+ * Renders an edit link only for logged-in users.
+ *
+ * The auth check runs client-side so the host post page stays statically
+ * cacheable (no cookie read on the server → no opt-out of ISR).
+ */
 export function EditPostButton({ postId }: { postId: string }) {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => listener?.subscription.unsubscribe();
+  }, []);
+
+  if (!isLoggedIn) return null;
+
   return (
     <Link
       href={`/admin/edit/${postId}`}

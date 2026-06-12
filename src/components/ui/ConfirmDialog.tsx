@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -43,20 +44,17 @@ export function ConfirmDialog({
             <h3 className="text-lg font-semibold text-foreground">{title}</h3>
             <p className="mt-2 text-sm text-muted">{message}</p>
             <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={onCancel}
-                disabled={loading}
-                className="rounded-lg border border-border px-4 py-2 text-sm transition-colors hover:bg-muted disabled:opacity-50"
-              >
+              <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>
                 {cancelText}
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
                 onClick={onConfirm}
                 disabled={loading}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                className="bg-red-600 text-white hover:bg-red-700"
               >
                 {loading ? "处理中…" : confirmText}
-              </button>
+              </Button>
             </div>
           </motion.div>
         </div>

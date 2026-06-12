@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/routing";
 import { publishPostAction, saveDraftAction, deletePostAction } from "@/app/actions/posts";
 import { RichTextEditor } from "./RichTextEditor";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/button";
 
 const AUTO_SAVE_INTERVAL = 30_000; // 30s
 
@@ -234,22 +235,23 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={saveDraft}
             disabled={!title.trim() || !content.trim() || saveStatus === "saving" || saveStatus === "publishing"}
-            className="rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-accent/10 disabled:opacity-50"
           >
             保存草稿
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ink"
+            size="lg"
             onClick={publish}
             disabled={!title.trim() || !content.trim() || saveStatus === "saving" || saveStatus === "publishing"}
-            className="rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-background disabled:opacity-50"
           >
             {saveStatus === "publishing" ? (isEditMode ? t("updating") : t("publishing")) : (isEditMode ? t("update") : t("publish"))}
-          </button>
+          </Button>
         </div>
         <div className="flex items-center gap-3">
           {statusLabel && (
@@ -258,13 +260,14 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
             </span>
           )}
           {isEditMode && (
-            <button
+            <Button
               type="button"
+              variant="destructive"
+              size="lg"
               onClick={() => setDeleteConfirmOpen(true)}
-              className="rounded-lg border border-red-500/50 px-4 py-2.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
             >
               删除文章
-            </button>
+            </Button>
           )}
         </div>
       </div>

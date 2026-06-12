@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ContentCard } from "@/components/layout/ContentCard";
+import { Button } from "@/components/ui/button";
 
 export default function Error({
   error,
@@ -25,12 +26,9 @@ export default function Error({
             {error.message}
           </pre>
         )}
-        <button
-          onClick={reset}
-          className="rounded-xl bg-pink-500 px-6 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-pink-600 active:scale-[0.98]"
-        >
+        <Button onClick={reset} variant="ink" size="lg">
           重试
-        </button>
+        </Button>
       </div>
     </ContentCard>
   );

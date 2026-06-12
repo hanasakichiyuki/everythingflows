@@ -1,19 +1,16 @@
-"use client";
-
-import dynamic from "next/dynamic";
 import { MdxContent } from "@/components/mdx/MdxContent";
+import { HtmlContent } from "./HtmlContent";
 import type { ContentFormat } from "@/types";
-
-const HtmlContent = dynamic(() => import("./HtmlContent").then((m) => ({ default: m.HtmlContent })), {
-  ssr: false,
-  loading: () => <div className="prose-blog" />,
-});
 
 type Props = {
   content: string;
   contentFormat?: ContentFormat;
 };
 
+/**
+ * Server component — renders the post body into the initial HTML.
+ * HTML posts are sanitized server-side; MDX posts use next-mdx-remote/rsc.
+ */
 export function PostContent({ content, contentFormat = "mdx" }: Props) {
   if (contentFormat === "html") {
     return <HtmlContent content={content} />;

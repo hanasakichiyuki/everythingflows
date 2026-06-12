@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +33,9 @@ export default async function DraftsPage({
     <ContentCard>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold">草稿箱</h1>
-        <Link
-          href={`/${locale}/admin`}
-          className="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent/10"
-        >
-          返回
-        </Link>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/${locale}/admin`}>返回</Link>
+        </Button>
       </div>
 
       {drafts.length === 0 ? (
