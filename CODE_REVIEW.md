@@ -49,6 +49,17 @@
 
 **下次建议接续**：P1-1 字体瘦身 → P1-2 头像/背景图优化 → P1-3 PageTransition → P1-4 公共读改 anon+RLS → P2 系列 → P3 目录重构。也可继续把保留的播放器/ThemeToggle 等统一进 Button 体系。
 
+### 2026-06-12 第二批：移动端崩溃重载修复（P2-4 Live2D 部分）
+
+**问题**：手机端页面卡住后反复自动刷新。根因是渲染进程 OOM 被系统杀掉后浏览器自动重载，形成死循环。
+
+**P2-4 ✅（Live2D 部分）移动端不加载引擎 + 贴图瘦身**
+- `lib/live2d/widget.ts`：`init()` 检测 `innerWidth < 768` 时直接 `return`，移动端完全不挂载 pixi/Live2D（之前 `isDesktop` 只 gate 台词，引擎照常加载）。
+- 贴图瘦身：原 `huohuo.8192/` 4 张 8192×8192 RGBA PNG（磁盘 47MB，上传 WebGL 后约 800MB 显存）。用 sharp lanczos3 重采样为 `huohuo.2048/`（磁盘 960KB，显存约 1/16）。
+- `huohuo.model3.json` 的 `Textures` 改指向 `huohuo.2048/`；`engine.ts` 的 `MODEL_PATH` 缓存参数 `?v=2`→`?v=3` 强制刷新。
+- 删除已无引用的 `huohuo.8192/`（git 历史可恢复）。
+- ⚠️ 仍待办：P2-4 其余项（移动端侧边栏默认收起、背景图移动端裁剪）未做。
+
 ---
 
 ## 1. 问题清单（按严重程度）

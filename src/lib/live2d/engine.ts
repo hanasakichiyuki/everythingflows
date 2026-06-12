@@ -24,7 +24,7 @@ const W_DESKTOP = 280;
 const H_DESKTOP = 420;
 const W_MOBILE = 180;
 const H_MOBILE = 280;
-const MODEL_PATH = "/avatar/live2d/huohuo/huohuo.model3.json?v=2";
+const MODEL_PATH = "/avatar/live2d/huohuo/huohuo.model3.json?v=3";
 const CUBISM4_SDK =
   "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js";
 

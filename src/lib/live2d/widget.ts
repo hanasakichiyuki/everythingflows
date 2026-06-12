@@ -201,6 +201,11 @@ export class Live2DWidget {
       // 检测桌面端
       this.isDesktop = window.innerWidth >= 768;
 
+      // 移动端不加载 Live2D 引擎：模型贴图为 8192×8192（上传 WebGL 后约 800MB 显存），
+      // 会撑爆手机内存预算，导致渲染进程被系统杀掉、页面反复自动重载。
+      // 桌面端显存充足，保留完整体验。
+      if (!this.isDesktop) return;
+
       // 阶段 1：创建 DOM 容器
       this.createDOM();
       await this.rafYield();
