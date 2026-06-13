@@ -309,7 +309,7 @@ export class Live2DWidget {
       position: fixed;
       bottom: 0;
       left: 0;
-      z-index: 5;
+      z-index: 21;
       pointer-events: none;
       user-select: none;
       contain: layout;

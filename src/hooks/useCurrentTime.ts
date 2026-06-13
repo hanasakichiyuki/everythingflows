@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 
 export function useCurrentTime() {
-  const [currentTime, setCurrentTime] = useState(new Date(0));
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    setCurrentTime(new Date());
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 60000);
 
     return () => clearInterval(timer);
   }, []);

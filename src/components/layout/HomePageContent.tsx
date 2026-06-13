@@ -39,7 +39,7 @@ const text = `或许鸟儿
 })(); */
 
 export function HomePageContent({ posts, fragments }: HomePageContentProps) {
-  const { day, month, year, weekday } = useCurrentTime();
+  const time = useCurrentTime();
 
   return (
     <div className="space-y-6">
@@ -74,71 +74,17 @@ export function HomePageContent({ posts, fragments }: HomePageContentProps) {
             >
               {text}
             </p>
-
-            {/* 逐字延迟动画（已注释）
-            <motion.p
-              className="
-    max-w-[320px]
-    text-[15px]
-    leading-[2.2]
-    tracking-[0.04em]
-    text-neutral-700/70
-    dark:text-neutral-300/65
-    font-light
-    whitespace-pre-line
-  "
-              style={{
-                fontFamily: '"LXGW WenKai Screen", serif',
-                textShadow: "0 0 20px rgba(255,255,255,0.05)",
-              }}
-              initial="hidden"
-              animate="show"
-              variants={{
-                show: {
-                  transition: {
-                    staggerChildren: 0.1,
-                  },
-                },
-              }}
-            >
-              {chars.map(({ char, delay }, index) => (
-                <motion.span
-                  key={index}
-                  variants={{
-                    hidden: {
-                      opacity: 0,
-                      filter: "blur(8px)",
-                    },
-                    show: {
-                      opacity: 1,
-                      filter: "blur(0px)",
-                    },
-                  }}
-                  transition={{
-                    delay,
-                    duration: 2.2,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  style={{
-                    display: char === "\n" ? "block" : "inline-block",
-                  }}
-                >
-                  {char === "\n" ? "" : char}
-                </motion.span>
-              ))}
-            </motion.p>
-            */}
           </div>
 
           <div className="anim-fade-up text-right">
             <div className="text-7xl font-bold text-foreground/90 dark:text-foreground">
-              {day}
+              {time.day}
             </div>
             <div className="mt-1 text-sm text-muted">
-              {month} {year}
+              {time.month} {time.year}
             </div>
             <div className="mt-0.5 text-xs text-muted">
-              {weekday}
+              {time.weekday}
             </div>
           </div>
         </div>

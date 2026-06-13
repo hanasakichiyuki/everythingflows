@@ -74,7 +74,7 @@ export function SearchModal({
         role="dialog"
         aria-modal="true"
         aria-label={t("placeholder")}
-        className="anim-fade-scale fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/20 bg-white/80 p-4 shadow-2xl backdrop-blur-xl dark:bg-gray-900/80 dark:border-white/10"
+        className="anim-fade-scale fixed left-4 right-4 top-4 z-50 md:left-1/2 md:right-auto md:top-1/2 md:w-full md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 rounded-2xl border border-white/20 bg-white/80 p-4 shadow-2xl backdrop-blur-xl dark:bg-gray-900/80 dark:border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
