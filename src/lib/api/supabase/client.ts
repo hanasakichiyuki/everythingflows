@@ -18,6 +18,7 @@ export type PostRow = {
 };
 
 let adminClient: SupabaseClient | null = null;
+let publicClient: SupabaseClient | null = null;
 
 /** Server-only client (service role). Used for reads/writes in RSC and API routes. */
 export function getSupabaseAdmin(): SupabaseClient {
@@ -36,4 +37,30 @@ export function getSupabaseAdmin(): SupabaseClient {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return adminClient;
+}
+
+/**
+ * Public read client (anon key). Subject to RLS — only sees published posts
+ * (see supabase/schema.sql "Public read published posts").
+ *
+ * Deliberately does NOT read request cookies (unlike server-client.ts), so it
+ * stays compatible with static/ISR rendering. Use for public reads only;
+ * anything needing drafts or writes must use getSupabaseAdmin().
+ */
+export function getSupabasePublic(): SupabaseClient {
+  if (publicClient) return publicClient;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. See .env.example"
+    );
+  }
+
+  publicClient = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return publicClient;
 }

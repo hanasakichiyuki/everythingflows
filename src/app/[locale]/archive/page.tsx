@@ -1,11 +1,11 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getArchiveByYear } from "@/lib/api/posts";
-import { ArchiveTimeline } from "@/components/archive/ArchiveTimeline";
-import { AdminArchiveTimeline } from "@/components/archive/AdminArchiveTimeline";
+import { ArchiveView } from "@/components/archive/ArchiveView";
 import { ContentCard } from "@/components/layout/ContentCard";
-import { createClient } from "@/lib/supabase/server-client";
 
-export const dynamic = "force-dynamic";
+// ISR：归档随发文变化；1h 兜底，发布/删除时由 server action revalidate。
+// 登录态切换（管理视图）已移到客户端 ArchiveView，故无需服务端读 cookie。
+export const revalidate = 3600;
 
 export default async function ArchivePage({
   params,
@@ -17,20 +17,13 @@ export default async function ArchivePage({
   const t = await getTranslations("archive");
   const archive = await getArchiveByYear(locale);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   return (
     <ContentCard>
       <h1 className="sr-only">{t("title")}</h1>
       {archive.length === 0 ? (
         <p className="text-muted">{t("empty")}</p>
-      ) : user ? (
-        <AdminArchiveTimeline archive={archive} postsLabel={t("posts")} />
       ) : (
-        <ArchiveTimeline archive={archive} postsLabel={t("posts")} />
+        <ArchiveView archive={archive} postsLabel={t("posts")} />
       )}
     </ContentCard>
   );

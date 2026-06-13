@@ -1,443 +1,104 @@
 # 万物流转 — 架构与性能审查报告
 
-> 审查日期：2026-06-12
-> 视角：资深前端架构师 + 性能优化专家
-> 技术栈：Next.js 15 (App Router) · React 19 · next-intl · Supabase · framer-motion · pixi.js/Live2D · next-mdx-remote
-
-整体工程质量不错（数据层抽象、Live2D 脱离 React 渲染、事件清理都做得很用心）。但在**首屏性能、SEO、渲染策略**上有几个系统性问题会明显拖累 LCP/FCP 和搜索收录。下面按严重程度排序。
+> 审查日期：2026-06-12 ｜ 技术栈：Next.js 15 (App Router) · React 19 · next-intl · Supabase · Live2D/pixi.js
+>
+> P0–P2 已全部落地，P3 按需做了「数据层收敛」。本文档已压缩：原始逐条代码级提案见 git 历史，这里只留**现状 + 关键决策/坑 + 有意未做项**，供后续开发接续。
 
 ---
 
-## 0. 进度记录（Changelog）
+## 1. 问题状态总览
 
-> 每次完成优化后更新此处，方便下次接续。状态：✅ 已完成 / 🚧 进行中 / ⬜ 未开始
-
-### 2026-06-12 第一批：P0 全部完成 + UI 组件库引入
-
-**P0-2 ✅ 移除全量正文拉取**（`src/lib/api/supabase/posts.ts`）
-- `listAllPosts` / `listAllPostsAdmin` 改为只 `select` 必要列（新增 `META_COLUMNS`，不含 `body`），加 `metaRowToMeta` 映射。
-- `getSearchIndex` / `listPostSlugs` 改为直接走精简列查询，不再经 `listAllPosts` 拉全量正文。
-
-**P0-3 ✅ 补齐 SEO**
-- `blog/[slug]/page.tsx` 新增 `generateMetadata`（标题/描述/canonical/OG article/Twitter card）。
-- 新增 `src/app/sitemap.ts`（遍历 `routing.locales`，**无 locale 前缀** URL，1h revalidate）与 `src/app/robots.ts`。
-- ⚠️ 关键点：`i18n/routing.ts` 用 `localePrefix: "never"`，公开 URL **不带** `/zh` 前缀，所有 canonical/sitemap 都按无前缀生成。
-
-**P0-4 ✅ 正文服务端渲染**
-- `HtmlContent` 改服务端组件：服务端 `DOMPurify.sanitize` + `dangerouslySetInnerHTML`；外链 target/rel 用 **add→sanitize→removeHook** 模式（避免 hook 在单例上累积）。
-- `PostContent` 去掉 `"use client"`，按 `contentFormat` 服务端分发。
-- 删除已无引用的 `HtmlContentClient.tsx`。
-
-**P0-1 ✅ ISR（去 force-dynamic）**
-- `blog/[slug]/page.tsx` 删除 `force-dynamic`，改 `export const revalidate = 3600`。
-- 把服务端 `supabase.auth.getUser()`（读 cookie，会强制动态）移除；`EditPostButton` 改为客户端自检登录态（`getSession` + `onAuthStateChange`）。
-- `generateStaticParams` 不再对 supabase 返回 `[]`，正常预渲染 slug。结果：该路由从 `ƒ Dynamic` → `● SSG, 1h`，预渲染 18 个文章页。
-- 发布/编辑/删除的 server action 已有 `revalidatePath`，失效链路完整。
-
-**P1-1 ✅（部分）字体 `@import` 链消除**
-- 删掉 `globals.css` 里的 `@import url('/fonts/...')`（webpack 构建期解析 public 资源会报错）。
-- 改为 `app/layout.tsx` 的 `<head>` 运行时 `<link rel="stylesheet">` 加载字体 CSS。
-- ⚠️ 仍待办：字体本身 5MB / 97 子集的**瘦身**（fonttools 精简子集）未做——P1-1 的核心收益还没拿到。
-
-**UI 组件库 ✅ 引入 shadcn/ui + 水墨按钮基建**
-- 装 `class-variance-authority` + `@radix-ui/react-slot`；新增 `components.json`（手动接入，未跑 init，未覆盖现有主题）。
-- 新增 `src/components/ui/button.tsx`：shadcn 风格 `Button`，variant = `default/outline/secondary/destructive/ghost/link/ink`，支持 `asChild`。
-- **水墨 `ink` variant**：素雅墨色描边 + 墨汁晕开 hover + 纯墨色单色 + 文楷 serif，视觉集中在 `globals.css` 的 `.btn-ink`（radial-gradient 伪元素晕染）。
-- **HeroUI 式丝滑手感**：回弹缓动 `cubic-bezier(0.34,1.56,0.64,1)` + `active:scale-[0.97]` + hover 浮起/软阴影 + 分通道过渡，全带 `prefers-reduced-motion` 降级。
-- 已迁移按钮：登录(ink)、错误页重试(ink)、PostEditor 发布(ink)/草稿/删除、admin 各页登出/草稿箱/返回、批量删除、归档管理/编辑/删除、ConfirmDialog。
-- **有意保留未迁移**（精心定制的微交互，套通用 Button 会倒退）：音乐播放器(Desktop/Mobile/PlaylistPanel)、ThemeToggle、SearchModal ✕、BackButton、AddFragmentModal(深色 zinc 主题)、global-error(独立 `<html>` 用内联样式)。
-
-**下次建议接续**：P1-1 字体瘦身 → P1-2 头像/背景图优化 → P1-3 PageTransition → P1-4 公共读改 anon+RLS → P2 系列 → P3 目录重构。也可继续把保留的播放器/ThemeToggle 等统一进 Button 体系。
-
-### 2026-06-12 第二批：移动端崩溃重载修复（P2-4 Live2D 部分）
-
-**问题**：手机端页面卡住后反复自动刷新。根因是渲染进程 OOM 被系统杀掉后浏览器自动重载，形成死循环。
-
-**P2-4 ✅（Live2D 部分）移动端不加载引擎 + 贴图瘦身**
-- `lib/live2d/widget.ts`：`init()` 检测 `innerWidth < 768` 时直接 `return`，移动端完全不挂载 pixi/Live2D（之前 `isDesktop` 只 gate 台词，引擎照常加载）。
-- 贴图瘦身：原 `huohuo.8192/` 4 张 8192×8192 RGBA PNG（磁盘 47MB，上传 WebGL 后约 800MB 显存）。用 sharp lanczos3 重采样为 `huohuo.2048/`（磁盘 960KB，显存约 1/16）。
-- `huohuo.model3.json` 的 `Textures` 改指向 `huohuo.2048/`；`engine.ts` 的 `MODEL_PATH` 缓存参数 `?v=2`→`?v=3` 强制刷新。
-- 删除已无引用的 `huohuo.8192/`（git 历史可恢复）。
-- ⚠️ 仍待办：P2-4 其余项（移动端侧边栏默认收起、背景图移动端裁剪）未做。
-
----
-
-## 1. 问题清单（按严重程度）
-
-| # | 严重度 | 状态 | 问题 | 主要影响 |
+| # | 严重度 | 状态 | 问题 | 落地要点 |
 |---|--------|------|------|----------|
-| P0-1 | 🔴 致命 | ✅ | 全站 `force-dynamic`，无 SSG/ISR，每次请求都打 DB | TTFB / LCP |
-| P0-2 | 🔴 致命 | ✅ | `LocaleLayout` 每个页面都拉取**全部文章正文**做搜索索引 | TTFB / 内存 / 带宽 |
-| P0-3 | 🔴 致命 | ✅ | 博客详情页缺 `generateMetadata`，无 sitemap/robots | SEO 几乎为零 |
-| P0-4 | 🔴 致命 | ✅ | `PostContent` 是 `"use client"` 却渲染 `next-mdx-remote/rsc` | 渲染路径错乱 / 正文不可被爬虫读取 |
-| P1-1 | 🟠 高 | 🚧 | LXGW 字体 97 个子集通过 CSS `@import` 链式加载 | FCP / 渲染阻塞 |
-| P1-2 | 🟠 高 | ⬜ | `avatar.png` 1.9MB 原图 + `priority` 加载 | LCP / 带宽 |
-| P1-3 | 🟠 高 | ⬜ | 自研 `PageTransition` 给每次跳转加 0.4s 动画 + 全屏遮罩 | INP / 感知性能 |
-| P1-4 | 🟠 高 | ⬜ | 公共读路径全部走 `SERVICE_ROLE_KEY`（绕过 RLS） | 安全 |
-| P2-1 | 🟡 中 | ⬜ | 数据获取串行 waterfall（首页、详情页重复全量拉取） | TTFB |
-| P2-2 | 🟡 中 | ⬜ | framer-motion `initial opacity:0` 铺满首屏关键内容 | FCP / 感知 LCP |
-| P2-3 | 🟡 中 | ⬜ | `html lang="zh"` 硬编码、根 layout 无 `viewport`/`themeColor` | a11y / 移动端 |
-| P2-4 | 🟡 中 | ⬜ | 移动端侧边栏默认展开、遮挡正文、背景图无优化 | 移动端体验 / CLS |
-| P3 | 🟢 低 | ⬜ | 目录结构（数据层双重抽象、组件按类型而非领域划分） | 维护性 |
+| P0-1 | 🔴 | ✅ | 全站 `force-dynamic`，无 SSG/ISR | 首页/archive/fragments/blog[slug] 全改 `revalidate=3600`；登录态判断客户端化（`EditPostButton`/`ArchiveView`）以解除 cookie 动态化 |
+| P0-2 | 🔴 | ✅ | 每页拉全部正文做搜索索引 | 列表/索引查询只 `select` 精简列（`META_COLUMNS`，不含 `body`），正文只在 `getPostBySlug` 取 |
+| P0-3 | 🔴 | ✅ | 详情页缺 metadata、无 sitemap/robots | `blog/[slug]` 加 `generateMetadata`；新增 `sitemap.ts`/`robots.ts`（**无 locale 前缀** URL） |
+| P0-4 | 🔴 | ✅ | 正文在 client 注入，爬虫读不到 | `HtmlContent`/`PostContent` 改服务端组件，服务端 sanitize + `dangerouslySetInnerHTML` |
+| P1-1 | 🟠 | ✅ⁱ | 字体 `@import` 链 + 97 子集阻塞渲染 | 去 `@import`，改 `layout.tsx` 异步加载字体 CSS（`media=print onload→all` + `<noscript>` 兜底）。ⁱ**子集瘦身有意未做**（见下） |
+| P1-2 | 🟠 | ✅ | 头像 1.9MB + 背景图未优化 | `avatar.png`→`avatar.webp`(192px/5.5KB)；`backgroud.jpg`→`background.webp`(~68KB) + `<head>` preload |
+| P1-3 | 🟠 | ✅ | 自研 PageTransition 每跳转加 0.4s 遮罩 | 删 `PageTransition`，换轻量 `RouteTransition`（纯 CSS 淡入、不拦链接）；链接全换回原生 `Link` 恢复 prefetch |
+| P1-4 | 🟠 | ✅ | 公共读走 service role 绕过 RLS | 新增 `getSupabasePublic()`(anon+RLS)，5 个公共读函数切过去；写/读草稿仍 service role |
+| P2-1 | 🟡 | ✅ | 数据 waterfall + 重复全量拉取 | 首页 `Promise.all` 并行；`getAdjacentPosts` 改两条 SQL 边界查询（不再拉全表 `findIndex`） |
+| P2-2 | 🟡 | ✅ | framer-motion `opacity:0` 盖首屏内容 | 改纯 CSS 入场动画；**framer-motion 已彻底移除**（见第二轮扫描），全站零 framer-motion |
+| P2-3 | 🟡 | ✅ⁱ | 缺 viewport/themeColor、`lang` 硬编码 | 加 `export const viewport`（themeColor+device-width）。ⁱ`<html lang="zh">` 仍硬编码（只有 zh，优先级低） |
+| P2-4 | 🟡 | ✅ | 移动端崩溃重载、侧栏遮正文 | Live2D 移动端不 `init()` 引擎 + 贴图 8192→2048；侧栏移动端默认收起 + 抽屉遮罩 |
+| P3 | 🟢 | ✅ⁱ | 数据层双重抽象 / 组件按类型划分 | 折叠 provider switch 为单一接缝、删 filesystem 死实现。ⁱ组件目录重组**有意未做**（纯审美、改动大、零收益） |
 
 ---
 
-## 2. 原因分析 + 3. 修改建议（合并，给代码级方案）
+## 2. 关键决策与坑（后续开发务必知晓）
 
-### 🔴 P0-1：全站 `force-dynamic`，放弃了 Next 的全部缓存能力
+**路由 / ISR**
+- `i18n/routing.ts` 用 `localePrefix: "never"`：公开 URL **不带 `/zh`**。所有 canonical/sitemap 按无前缀生成。
+- 公共页已 ISR（`revalidate=3600`）。**改数据必须配套 `revalidatePath`**，否则前台不刷新：
+  - 文章发/删走 server action（已含 `revalidatePath`）；
+  - 碎片增删改在 `api/fragments/route.ts`(POST) 与 `api/fragments/[id]/route.ts`(PATCH/DELETE) 成功后 `revalidatePath("/")` + `revalidatePath("/fragments")`。
+- 登录态判断一律**客户端化**（`browser-client` 自查），避免服务端读 cookie 把页面打回 `ƒ Dynamic`。模式见 `EditPostButton`、`components/archive/ArchiveView.tsx`。
+- 剩余 `force-dynamic`/动态路由（admin、blog/tag/[tag]、admin/edit/[postId]）均正确保留。
 
-`page.tsx`（首页）和 `blog/[slug]/page.tsx` 都写了：
+**数据层接缝（换库只改一处）**
+- 所有页面/动作经 `lib/api/posts.ts` 访问，不直接 import 具体实现。当前直接委托 `sbPosts.*`。
+- 换库：新增同签名实现模块 → 改 `posts.ts` 委托指向 + `provider.ts` 返回值。调用方零改动。
+- `api/upload`、`api/posts` 里 `getDataProvider()/isFilesystemMode()` 守卫现恒不触发，是**有意保留的接缝锚点**，勿删。
 
-```ts
-export const dynamic = "force-dynamic";
-```
+**权限分层**
+- 公共读 = `getSupabasePublic()`（anon key，受 RLS：posts `published=true`、fragments 人人可读）；不读 cookie 以保 ISR-safe。
+- 写 / 读草稿 = `getSupabaseAdmin()`（service role，绕 RLS）：`listAllPostsAdmin`/`getPostById`/`upsertPost`/`deletePost(s)`/`uniqueSlug`。
+- RLS 策略已在库端齐全（`supabase/schema.sql`、`003_create_fragments.sql`），构建时 anon key 能预渲染 18 个 slug 即为实证。
 
-**原因影响**：博客内容更新频率极低（手动发文），但每个访客的每次访问都触发一次完整的 Supabase 查询 + RSC 渲染。LCP 直接绑死在数据库往返上，且无法被 CDN 边缘缓存。
+**排序语义（勿混）**
+- `listAllPosts`（前台）按 `date` 降序；`listAllPostsAdmin`（后台）按 `updated` 降序 —— 后台关心刚编辑的浮到前面，已加注释，勿统一。
 
-**建议**：改用 ISR + 标签失效。博客是最典型的「构建时/增量静态」场景。
+**CSS 动画 / Tailwind purge（踩过的坑）**
+- `.anim-delay-1..5` **必须放在 `@layer` 之外**。class 名在 JSX 以 `` `anim-delay-${index+1}` `` 动态拼接，Tailwind 静态扫描检测不到，置于 `@layer components` 内会被 purge → stagger 失效（首页列表同步入场）。`@layer` 外素 CSS 不参与 purge。
+- 静态书写的 `.anim-fade-up`/`.anim-fade-scale`/`.route-fade` 在 `@layer` 内不受影响。
+- 所有入场动画均带 `prefers-reduced-motion` 降级。
 
-```ts
-// blog/[slug]/page.tsx —— 删掉 force-dynamic
-export const revalidate = 3600; // 兜底，1 小时
+**Live2D / 移动端**
+- 移动端崩溃重载根因：贴图 8192² RGBA 上传 WebGL 约 800MB 显存 → 渲染进程 OOM 被杀 → 浏览器自动重载死循环。
+- 修复：`widget.ts` `init()` 检测 `innerWidth<768` 直接 `return`（移动端完全不挂引擎）；贴图 sharp 重采样到 2048（显存约 1/16）；`engine.ts` `MODEL_PATH` 缓存参数 `?v=3` 强刷。
 
-export async function generateStaticParams() {
-  const slugs = await listPostSlugs("zh"); // supabase 也应预生成，别返回 []
-  return slugs.map((slug) => ({ locale: "zh", slug }));
-}
-```
-
-发文/改文时在 server action 里精确失效：
-
-```ts
-// app/actions/posts.ts publishPost 成功后
-import { revalidatePath, revalidateTag } from "next/cache";
-revalidatePath(`/zh/blog/${post.slug}`);
-revalidatePath("/zh");           // 首页最新文章
-revalidateTag("posts-list");
-```
-
-数据层加缓存标签：
-
-```ts
-// 给 Supabase fetch 包一层 unstable_cache 或在 fetch 上加 next: { tags: ['posts-list'] }
-```
-
-> 注意：`blog/[slug]/page.tsx` 里有 `supabase.auth.getUser()`（判断是否显示编辑按钮），这会让页面强制动态化。把「编辑按钮」拆成一个独立的 client 组件，自己在客户端查登录态，正文页就能保持静态。
+**导航遮罩（智能）**
+- `NavigationOverlay.tsx` 用 **capture-phase** 监听点击（Next `<Link>` 在 bubble 阶段 `preventDefault`，故不能查 `defaultPrevented`）；导航 >120ms 才弹吉祥物 → 预取命中的快页面不弹。
 
 ---
 
-### 🔴 P0-2：每个页面都拉取全部文章正文，只为了搜索框
+## 2b. 第二轮扫描修复（2026-06-12，CODE_REVIEW 之外的新发现）
 
-`LocaleLayout`（包裹**所有**页面）里：
+以新鲜视角全量扫描安全/性能/a11y，修复 CODE_REVIEW 未覆盖的问题：
 
-```ts
-const searchItems = await getSearchIndex(locale);
-```
+**🔴 安全（已修）**
+- **删除 `POST /api/posts` 越权写漏洞**：该 route 未鉴权却走 service role（绕 RLS），中间件 matcher 又排除 `/api`，任何匿名请求可发布/覆盖任意文章。前端发文实际走 server action（已鉴权），此 route 是无人调用的影子接口 → 直接删除。一并删除无用的 `api/comments` stub。README 中过时的「`POST /api/posts` Bearer」说明同步删除。
+- **fragments 写接口加白名单校验**：`type∈{image,text}`、`width∈{sm,md,lg}`、`height∈{short,medium,tall}`、`imageUrl` 必须是 `*.supabase.co`（杜绝任意外链写入）、text 类型非空校验。
+- **错误信息收敛**：fragments GET/POST/PATCH/DELETE 不再把 Postgres 原始 `error.message` 回传客户端，改通用中文文案 + `console.error` 服务端日志；`publishPost` catch 去掉 `JSON.stringify(e)` 泄露。
 
-链路：`getSearchIndex` → `listAllPosts` → `supabase.from("posts").select("*")` —— **`select("*")` 把每篇文章的 `body` 全字段拉出来**，map 成 meta 后把 `content` 丢掉。也就是说，访问「关于」「友链」任何页面，都会在服务端把全站正文读一遍再扔掉，然后把索引序列化进 HTML 给 `SearchModal`。
+**🟠 性能（已修）**
+- **彻底移除 framer-motion**：21 个文件（含全站常驻的 MainLayout/Sidebar/NavigationOverlay/ContentCard）仍 import framer-motion，使其进入每条路由的初始 bundle，而用法都是轻量 `whileHover`/淡入/`AnimatePresence`。全部替换为纯 CSS（`anim-*` 体系 + Tailwind hover/active），从 package.json 移除依赖（连带删 3 个包）。退场动画（exit）放弃——对博客 UI 无关紧要。
+  - globals.css 新增动画类：`anim-fade-in`/`anim-fade-in-slow`/`anim-fade-left`/`anim-pop-in`/`anim-slide-up`/`anim-bubble-in`/`anim-icon-rotate`，均带 `prefers-reduced-motion` 降级；`anim-delay` 补到 `-6`（Sidebar nav 6 项）。
+  - ThemeToggle 用 `key` 变化触发 CSS 重放替代 `AnimatePresence mode=wait`。
+  - PostCard、ArchiveTimeline 顺带转为服务端组件（去 `"use client"`）。
+- **删除 avatar.png（1.99MB 死资源）**：站点早已用 avatar.webp，零引用。
 
-**影响**：随文章增长，TTFB 线性恶化；HTML 体积变大；DB 读放大。
+**🟡 可访问性（顺手做）**
+- Toast 加 `role="alert"` + `aria-live` + 关闭按钮 `aria-label`。
+- SearchModal / ConfirmDialog / AddFragmentModal / FragmentDetailModal 加 `role="dialog"` `aria-modal`，后两者补 Esc 关闭。
+- MemoryCard 图片 alt 从英文占位 `"Memory fragment"` 改为内容 alt（无文字时空 alt，纯装饰）。
+- **修正 SearchModal 居中 bug**：`left-[40%]` 笔误（配 `-translate-x-1/2` 导致偏左）→ `left-1/2`。
 
-**建议**：
+**验证**：`tsc` 通过；`rm -rf .next && next build` 成功，所有页面预渲染正常，shared First Load JS 降至 103kB（不再含 framer-motion）；grep 构建 CSS 确认 7 个新动画类 + `anim-delay-1..6` 全部输出未被 purge。
 
-1. 数据库层只选需要的列：
-
-```ts
-export async function getSearchIndex(locale?: string) {
-  const supabase = getSupabaseAdmin();
-  let q = supabase
-    .from("posts")
-    .select("slug,title,description,tags,category,date") // ⛔ 不要 select("*")
-    .eq("published", true)
-    .order("date", { ascending: false });
-  if (locale) q = q.eq("locale", locale);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data;
-}
-```
-
-`listAllPosts`（列表/归档/相邻文章用）同理也不该 `select("*")`，正文只在 `getPostBySlug` 时取。
-
-2. 搜索索引不该在 layout 同步阻塞渲染。改为：搜索打开时再 `fetch('/api/search-index')` 懒加载，或用一个独立的、带长缓存的 route handler 提供。至少把它移出 layout 的关键路径。
+**仍未做（评估后保留）**：碎片图片 `<img>`→next/image 懒加载（图片密集页有收益，量中等，单列一批）；MemoryCard 整卡键盘可达（div+onClick）；Modal focus trap；fragments 页 `select("*")`→精简列；Live2D SDK 自托管。
 
 ---
 
-### 🔴 P0-3：SEO 基本为零
+## 3. 有意未做项（非遗漏，已评估）
 
-- 没有任何 `generateMetadata` → 所有博客详情页共用根 layout 的标题「万物流转」，**没有文章标题、描述、OG**。
-- 没有 `sitemap.ts` / `robots.ts`。
-- 正文通过客户端渲染（见 P0-4），爬虫拿不到内容。
-
-**建议**：
-
-```ts
-// blog/[slug]/page.tsx
-export async function generateMetadata({ params }): Promise<Metadata> {
-  const { slug } = await params;
-  const post = await getPost(decodeURIComponent(slug));
-  if (!post) return {};
-  return {
-    title: post.title,
-    description: post.description,
-    openGraph: {
-      title: post.title,
-      description: post.description,
-      type: "article",
-      publishedTime: post.date,
-      modifiedTime: post.updated,
-      tags: post.tags,
-    },
-    alternates: { canonical: `/zh/blog/${post.slug}` },
-  };
-}
-```
-
-新增 `src/app/sitemap.ts`：
-
-```ts
-import type { MetadataRoute } from "next";
-import { listPosts } from "@/lib/api/posts";
-import { siteConfig } from "@/config/site";
-
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const posts = await listPosts("zh");
-  const base = siteConfig.url;
-  return [
-    { url: `${base}/zh`, changeFrequency: "daily", priority: 1 },
-    ...posts.map((p) => ({
-      url: `${base}/zh/blog/${p.slug}`,
-      lastModified: p.updated ?? p.date,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    })),
-  ];
-}
-```
-
-新增 `src/app/robots.ts`：
-
-```ts
-import type { MetadataRoute } from "next";
-import { siteConfig } from "@/config/site";
-export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/admin", "/login", "/api"] },
-    sitemap: `${siteConfig.url}/sitemap.xml`,
-  };
-}
-```
-
-再补一个 JSON-LD（`Article` schema）注入到详情页，收录质量会进一步提升。
+- **字体子集瘦身**（P1-1 核心收益）：需装 Python/fonttools，投入产出不划算；已用异步加载 + `font-display:swap` 缓解阻塞，4.8MB/97 子集仍在。
+- **`<html lang>` 动态化**（P2-3 残留）：当前只有 zh，约零收益。
+- **组件目录按领域重组**（P3 另一半）：移动几十文件改 import，纯审美、易冲突，对持续开发无实质帮助。
 
 ---
 
-### 🔴 P0-4：正文渲染路径错乱——客户端组件里用了 RSC 版 MDX
+## 4. 资产清理备忘
 
-`PostContent.tsx` 顶部是 `"use client"`，却静态 import 了 `MdxContent`，而 `MdxContent` 用的是：
-
-```ts
-import { MDXRemote } from "next-mdx-remote/rsc"; // ← 服务端专用
-```
-
-把 RSC 版 `MDXRemote`（async server component）放进 client 边界，语义上是冲突的。当前能跑通，是因为 Supabase 模式下文章都是 `contentFormat: "html"`，走的是 `HtmlContent` 分支——而 `HtmlContent` 又是 `ssr:false` + `useEffect` 里 `innerHTML` 注入：
-
-```ts
-// HtmlContent.tsx
-ref.current.innerHTML = DOMPurify.sanitize(content);
-```
-
-**影响**：
-- **正文完全在客户端注入**，首屏 HTML 里没有文章内容 → 爬虫读不到（叠加 P0-3，SEO 雪上加霜）、LCP 元素（正文）延后到 JS 执行后。
-- MDX 路径实际是死代码，但保留着会误导维护。
-
-**建议**：正文应在**服务端**渲染。
-
-- HTML 文章：服务端 sanitize 后直接输出，去掉 `ssr:false` 和 `useEffect`：
-
-```ts
-// 服务端组件（去掉 "use client"）
-import DOMPurify from "isomorphic-dompurify";
-export function HtmlContent({ content }: { content: string }) {
-  const clean = DOMPurify.sanitize(content, { ADD_ATTR: ["target", "rel"] });
-  return <div className="prose-blog" dangerouslySetInnerHTML={{ __html: clean }} />;
-}
-```
-
-`target="_blank"` 在发布时就写进 HTML（`MdxContent` 已有 external-link 逻辑，搬到生成阶段即可），避免运行时再遍历 DOM。
-
-- MDX 文章：保留 `next-mdx-remote/rsc`，但让 `PostContent` 本身是**服务端组件**，按 `contentFormat` 分支渲染，不要包 `"use client"`。
-
-这样正文进入首屏 HTML，LCP/SEO 双赢。
-
----
-
-### 🟠 P1-1：LXGW 文楷 97 子集 + CSS `@import` 链
-
-`globals.css` 第一行：
-
-```css
-@import url('/fonts/lxgw-wenkai/style.css'); /* 它又 @import lxgwwenkaiscreen.css（106KB，97 个 @font-face）*/
-```
-
-**影响**：
-- `@import` 是**串行请求链**（globals → style.css → 主 css），且 `@import` 在 CSS 中是渲染阻塞的，拖慢 FCP。
-- 97 个 `woff2` 各 ~55KB（总计约 5MB），虽有 `unicode-range` 分片，但中文页面命中面广，会同时拉多个。
-
-**建议**：
-1. 去掉 `@import` 链，改用 `next/font/local` 管理，让 Next 注入 `<link rel="preload">` + 自动 `font-display`：
-
-```ts
-// app/fonts.ts
-import localFont from "next/font/local";
-export const lxgw = localFont({
-  src: [{ path: "../../public/fonts/lxgw-wenkai/files/...woff2", weight: "400" }],
-  display: "swap",
-  variable: "--font-lxgw",
-  preload: false, // 中文子集太多，别全 preload
-});
-```
-2. 文楷只用在首页那段引文和正文 `serif`。考虑**只对该段落生效**，并接受系统中文字体兜底（tailwind 里已有 `PingFang SC` fallback），首屏不必等文楷。
-3. 长期方案：用 `fonttools` 按站点实际用字做**单文件精简子集**，把 5MB 压到几十 KB。
-
----
-
-### 🟠 P1-2：1.9MB 头像原图 + `priority`
-
-`public/avatar/avatar.png` = **1995611 字节**，在 `Sidebar` 里 `fill + priority + sizes="96px"`。`priority` 会让它进入预加载，和 LCP 抢带宽。
-
-**建议**：
-- 头像显示尺寸仅 96px。预先压成 192px 的 webp（约 10–20KB）。`next/image` 虽会优化，但源图过大仍浪费 transform 资源。
-- `backgroud.jpg`（167KB）作为全屏 `background-image` 内联在 `MainLayout` 的 inline style，无法被 `next/image` 优化、也不会预加载。考虑用 `<Image fill priority>` 或在 `<head>` 加 `preload`，并提供移动端较小版本。
-
----
-
-### 🟠 P1-3：自研页面过渡给每次导航强加延迟
-
-`PageTransition` 拦截所有链接：`e.preventDefault()` → `router.push` → 显示全屏 loading 遮罩 → `AnimatePresence mode="wait"` 出场动画 0.4s。
-
-**影响**：
-- 每次跳转**至少多 0.4s** 的退出动画 + 遮罩，且 `document.body.style.overflow="hidden"`。这是典型的「为动画牺牲 INP/感知性能」。
-- 绕过了 Next `<Link>` 的预取与即时切换。
-
-**建议**：
-- 优先用 Next 原生 `loading.tsx`（Suspense streaming）替代手写遮罩，几乎零成本就有骨架/过渡。
-- 若一定要保留淡入，把退出动画砍到 ~0.15s 并去掉全屏遮罩；让 `<Link>` 保留 prefetch（别 `preventDefault`）。
-
----
-
-### 🟠 P1-4：公共读路径使用 Service Role Key
-
-`getSupabaseAdmin()` 用的是 `SUPABASE_SERVICE_ROLE_KEY`，**绕过所有 RLS**，却被用于 `listAllPosts` / `getPostBySlug` 等公共读取。
-
-**影响**：虽然 key 只在服务端，不会泄露给浏览器，但「所有读都用最高权限」放大了任何注入/逻辑漏洞的爆炸半径（比如某个未加 `.eq("published", true)` 的查询就会泄露草稿）。事实上 `listAllPostsAdmin` 就没有 published 过滤，和公共读共用同一个 admin client。
-
-**建议**：
-- 公共读用 **anon key + RLS**（`published = true` 策略），写/管理才用 service role。
-- 已有 `server-client.ts`（anon key）——公共读改走它，service role 只留给 server actions 和 admin 路由。
-
----
-
-### 🟡 P2-1：数据获取 waterfall + 重复全量拉取
-
-首页：
-```ts
-const posts = await listPosts(locale);    // 等待
-const fragments = await getFragments();   // 再等待 → 串行
-```
-详情页：`getPost` → 再 `getAdjacentPosts`（内部又 `listAllPosts` 拉全量）。叠加 layout 的 `getSearchIndex`（又一次全量），**一次详情页访问把全表正文拉了 2–3 遍**。
-
-**建议**：
-- 首页并行：`const [posts, fragments] = await Promise.all([listPosts(locale), getFragments()]);`
-- `getAdjacentPosts` 用 SQL 直接取前后一条（`order + limit 1 + gt/lt date`），而不是拉全表在内存里 `findIndex`。
-- 配合 P0-2，列表查询不取 body。
-
----
-
-### 🟡 P2-2：framer-motion 把关键首屏内容初始设为不可见
-
-首页大量 `initial={{ opacity: 0, y: 20 }}`，包括 H1 区块、最新文章、日期数字（LCP 候选）。Sidebar 还有 `staggerChildren` 逐项淡入。
-
-**影响**：内容要等 JS hydration + 动画才可见，**人为推迟感知 FCP/LCP**；首屏关键文本不应靠 JS 才出现。
-
-**建议**：
-- 首屏「首要内容」（H1、最新文章标题、引文）不要用 `initial opacity:0`。如需入场动画，用纯 CSS `@keyframes`（globals.css 已有 `slideDown`）或 `animate` 不带隐藏的 `initial`。
-- 装饰性元素再保留 motion。
-
----
-
-### 🟡 P2-3：根 layout 元信息缺失 / lang 硬编码
-
-`app/layout.tsx`：`<html lang="zh">` 写死；没有 `viewport` / `themeColor`。`metadataBase` 有了（好）。
-
-**建议**：
-```ts
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f4" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1b1e" },
-  ],
-  width: "device-width",
-  initialScale: 1,
-};
-```
-`lang` 用当前 locale（虽然现在只有 zh，但 i18n 框架在）。
-
----
-
-### 🟡 P2-4：移动端体验
-
-- `Sidebar` 默认 `collapsed=false`，在移动端是 `fixed w-[200px] z-20`，会**盖住正文**（main 在移动端 `ml-0`）。移动端应默认收起，或转为抽屉 + 遮罩。
-- 全屏背景图未做移动端裁剪。
-- Live2D 在移动端仍加载 pixi（虽然延迟）：`isDesktop = innerWidth>=768`，但 `Live2DWidget` 在移动端依然 `init()` 整个引擎。移动端建议直接不挂载。
-
----
-
-## 4. 推荐重构结构（P3：维护性）
-
-当前数据层是**双重抽象**：`lib/api/posts.ts`（provider switch）+ `lib/api/supabase/posts.ts` + `lib/content/posts.ts`。每个函数都重复 `switch(provider)`，且 filesystem 分支实际已废弃（线上是 supabase）。组件按「类型」（blog/layout/ui/mdx…）划分，领域逻辑分散。
-
-建议向**领域分层 + 单一数据源**收敛：
-
-```
-src/
-├─ app/                      # 路由（保持）
-│   ├─ sitemap.ts            # ✅ 新增
-│   ├─ robots.ts             # ✅ 新增
-│   └─ [locale]/blog/[slug]/
-│       └─ loading.tsx       # ✅ 用原生 streaming 替代手写遮罩
-│
-├─ features/                 # 按领域聚合（组件 + hooks + 类型 + 数据）
-│   ├─ posts/
-│   │   ├─ components/        PostContent / PostCard / PostNavigation
-│   │   ├─ queries.ts         ← 合并 provider，只保留 supabase；只选必要列
-│   │   └─ types.ts
-│   ├─ fragments/
-│   ├─ music/                 useMusicPlayer + DesktopPlayer + MobilePlayer
-│   └─ live2d/                engine / widget / Widget(bridge)
-│
-├─ components/ui/            # 纯展示通用件（Toast/ConfirmDialog/NavIcon）
-├─ components/layout/        # 真正的布局壳（Sidebar/MainLayout/RightSidebar）
-├─ lib/
-│   ├─ supabase/             # client(anon) / admin(service) / server / middleware
-│   └─ utils.ts
-└─ config/
-```
-
-要点：
-1. **砍掉 provider switch**：线上只用 supabase，把 `lib/api/posts.ts` 的 switch 折叠成直接调用；filesystem 代码若想保留做本地预览，单独放 `legacy/` 并明确文档化，别混在主路径里增加分支噪音。
-2. **查询职责单一**：列表查询不取 `body`；正文查询单独。相邻文章用 SQL 边界查询。
-3. **权限分层**：公共读 anon+RLS，写用 service role，物理隔离两个 client 的使用面。
-4. **正文回到服务端渲染**（P0-4），`PostContent` 不再是 client。
-
----
-
-## 5. 优先级落地建议
-
-按投入产出排序：
-
-1. **本周必做**：P0-2（去掉 `select("*")` + 移出 layout）、P0-3（metadata + sitemap + robots）、P0-4（正文服务端渲染）。这三项直接决定 SEO 存亡和 TTFB。
-2. **紧接着**：P0-1（ISR + 拆编辑按钮去掉 force-dynamic）、P1-1/P1-2（字体与头像）。这是 LCP/FCP 的大头。
-3. **打磨**：P1-3、P2 系列、P3 结构重构。
-
-建议从 **P0-3（SEO：metadata + sitemap + robots）** 或 **P0-2（去除全量正文拉取）** 开始落地——改动小、收益大、风险低。
+以下旧资源已删除引用但 git 历史可恢复，确认无需后可彻底清理：`huohuo.8192/`（已删）、`avatar.png`、`backgroud.jpg`、`lib/content/posts.ts`（filesystem 死实现，已删）。

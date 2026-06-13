@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 全屏背景图 —— 单张 webp，移动端与桌面共用 */
+.site-background {
+  background-image: url('/avatar/background.webp');
+}
+
 :root {
   --background: #f5f5f4;
   --foreground: #1a1a2e;
@@ -228,9 +233,128 @@ body::-webkit-scrollbar {
     animation: slideDown 0.3s ease-out forwards;
   }
 
+  /* 路由切换入场淡入 —— 轻量、不阻塞、不锁滚动。
+     注意：不使用 transform，避免创建 containing block 破坏 fixed 定位。 */
+  @keyframes routeFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .route-fade {
+    animation: routeFadeIn 0.22s ease-out both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .route-fade {
+      animation: none;
+    }
+  }
+
+  /*
+   * 首屏入场动画 —— 纯 CSS，替代 framer-motion 的 initial opacity:0。
+   * 关键区别：内容在 HTML 中始终存在且最终可见，动画只是入场修饰，
+   * 不依赖 JS hydration，故不推迟感知 FCP/LCP，爬虫也能读到文本。
+   */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .anim-fade-up {
+    animation: fadeInUp 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+  }
+  .anim-fade-scale {
+    animation: fadeInScale 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+  }
+
+  /* 纯淡入（替代 framer-motion 的 initial opacity:0 → animate opacity:1） */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .anim-fade-in {
+    animation: fadeIn 0.25s ease-out both;
+  }
+  .anim-fade-in-slow {
+    animation: fadeIn 0.35s ease-in-out both;
+  }
+
+  /* 淡入 + 左移入场（PostCard） */
+  @keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .anim-fade-left {
+    animation: fadeInLeft 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+  }
+
+  /* 弹入（小按钮 scale 0.8→1） */
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .anim-pop-in {
+    animation: popIn 0.2s ease-out both;
+  }
+
+  /* 从底部滑入（移动端播放器抽屉） */
+  @keyframes slideUpIn {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .anim-slide-up {
+    animation: slideUpIn 0.32s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+  }
+
+  /* 气泡入场（Live2D speech bubble / playlist 面板） */
+  @keyframes bubbleIn {
+    from { opacity: 0; transform: translateY(6px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .anim-bubble-in {
+    animation: bubbleIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* 主题图标旋转淡入（key 变化时重放，替代 ThemeToggle 的 AnimatePresence） */
+  @keyframes iconRotateIn {
+    from { opacity: 0; transform: rotate(-90deg); }
+    to { opacity: 1; transform: rotate(0); }
+  }
+  .anim-icon-rotate {
+    animation: iconRotateIn 0.3s ease-out both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anim-fade-up,
+    .anim-fade-scale,
+    .anim-fade-in,
+    .anim-fade-in-slow,
+    .anim-fade-left,
+    .anim-pop-in,
+    .anim-slide-up,
+    .anim-bubble-in,
+    .anim-icon-rotate {
+      animation: none;
+    }
+  }
+
   /* Spinning album cover with cute glow */
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
 }
+
+/*
+ * Stagger 延迟工具 —— 故意放在 @layer 之外。
+ * class 名在 JSX 中以 `anim-delay-${index+1}` 动态拼接，Tailwind 静态扫描
+ * 检测不到，若置于 @layer components 内会被 purge（实测最终 CSS 缺失，
+ * 导致列表项同步入场、stagger 失效）。@layer 外的规则不参与 purge，恒输出。
+ */
+.anim-delay-1 { animation-delay: 0.08s; }
+.anim-delay-2 { animation-delay: 0.16s; }
+.anim-delay-3 { animation-delay: 0.24s; }
+.anim-delay-4 { animation-delay: 0.32s; }
+.anim-delay-5 { animation-delay: 0.40s; }
+.anim-delay-6 { animation-delay: 0.48s; }

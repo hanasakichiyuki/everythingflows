@@ -3,13 +3,13 @@ import { listPosts } from "@/lib/api/posts";
 import { HomePageContent } from "@/components/layout/HomePageContent";
 import { MemoryFragment } from "@/types/memory";
 import { seedFragments } from "@/data/seed-fragments";
+import { getSupabasePublic } from "@/lib/api/supabase/client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 async function getFragments(): Promise<MemoryFragment[]> {
   try {
-    const { createClient } = await import("@/lib/supabase/server-client");
-    const supabase = await createClient();
+    const supabase = getSupabasePublic();
     const { data, error } = await supabase
       .from("fragments")
       .select("*")
@@ -42,8 +42,10 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const posts = await listPosts(locale);
-  const fragments = await getFragments();
+  const [posts, fragments] = await Promise.all([
+    listPosts(locale),
+    getFragments(),
+  ]);
 
   return <HomePageContent posts={posts} fragments={fragments} />;
 }

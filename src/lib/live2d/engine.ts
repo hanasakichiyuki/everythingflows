@@ -214,10 +214,6 @@ export class Live2DEngine {
     (this.model as { focus: (x: number, y: number) => void }).focus(focusX, focusY);
   }
 
-  /* ============================================================
-   *  ModelController
-   * ============================================================ */
-
   private createController(): ModelController {
     return {
       setExpression: (id: string) => {

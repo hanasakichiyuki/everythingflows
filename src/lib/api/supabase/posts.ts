@@ -1,6 +1,6 @@
 import readingTime from "reading-time";
 import type { ContentFormat, Post, PostMeta } from "@/types";
-import { getSupabaseAdmin, type PostRow } from "./client";
+import { getSupabaseAdmin, getSupabasePublic, type PostRow } from "./client";
 import { cleanupUnusedImages, deletePostImages, extractImageUrls } from "./storage";
 
 function stripHtml(html: string) {
@@ -54,7 +54,7 @@ function metaRowToMeta(row: MetaRow): PostMeta {
 }
 
 export async function listAllPosts(locale?: string): Promise<PostMeta[]> {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabasePublic();
   let query = supabase
     .from("posts")
     .select(META_COLUMNS)
@@ -65,21 +65,22 @@ export async function listAllPosts(locale?: string): Promise<PostMeta[]> {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data as unknown as MetaRow[]).map(metaRowToMeta);
+  return (data ?? []).map(metaRowToMeta);
 }
 
 export async function listAllPostsAdmin(locale?: string): Promise<PostMeta[]> {
   const supabase = getSupabaseAdmin();
+  // 管理后台按「最近更新」排序（updated），与公共读按「发布日期」（date）有意区分：
+  // 管理者关心刚编辑过的文章浮到前面，读者关心发布时间线。
   let query = supabase
     .from("posts")
     .select(META_COLUMNS)
     .order("updated", { ascending: false });
-
   if (locale) query = query.eq("locale", locale);
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data as unknown as MetaRow[]).map(metaRowToMeta);
+  return (data ?? []).map(metaRowToMeta);
 }
 
 export async function getPostById(id: string): Promise<Post | null> {
@@ -96,7 +97,7 @@ export async function getPostById(id: string): Promise<Post | null> {
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabasePublic();
   const { data, error } = await supabase
     .from("posts")
     .select("*")
@@ -119,12 +120,50 @@ export async function getAdjacentPosts(
   slug: string,
   locale?: string
 ): Promise<{ prev: PostMeta | null; next: PostMeta | null }> {
-  const posts = await listAllPosts(locale);
-  const idx = posts.findIndex((p) => p.slug === slug);
-  if (idx === -1) return { prev: null, next: null };
+  const supabase = getSupabasePublic();
+
+  // 先取当前文章的 date 作为边界（列表按 date 降序：prev = 更早一篇，next = 更晚一篇）
+  const { data: current, error: curErr } = await supabase
+    .from("posts")
+    .select("date")
+    .eq("slug", slug)
+    .eq("published", true)
+    .maybeSingle();
+  if (curErr) throw curErr;
+  if (!current) return { prev: null, next: null };
+
+  const baseDate = current.date;
+
+  const prevQuery = supabase
+    .from("posts")
+    .select(META_COLUMNS)
+    .eq("published", true)
+    .lt("date", baseDate)
+    .order("date", { ascending: false })
+    .limit(1);
+  const nextQuery = supabase
+    .from("posts")
+    .select(META_COLUMNS)
+    .eq("published", true)
+    .gt("date", baseDate)
+    .order("date", { ascending: true })
+    .limit(1);
+
+  // locale 过滤与列表保持一致
+  const prevQ = locale ? prevQuery.eq("locale", locale) : prevQuery;
+  const nextQ = locale ? nextQuery.eq("locale", locale) : nextQuery;
+
+  const [{ data: prevData, error: prevErr }, { data: nextData, error: nextErr }] =
+    await Promise.all([prevQ, nextQ]);
+  if (prevErr) throw prevErr;
+  if (nextErr) throw nextErr;
+
+  const prevRow = prevData?.[0];
+  const nextRow = nextData?.[0];
+
   return {
-    prev: idx + 1 < posts.length ? posts[idx + 1] : null,
-    next: idx - 1 >= 0 ? posts[idx - 1] : null,
+    prev: prevRow ? metaRowToMeta(prevRow) : null,
+    next: nextRow ? metaRowToMeta(nextRow) : null,
   };
 }
 
@@ -151,7 +190,7 @@ export async function getArchiveByYear(locale?: string) {
 }
 
 export async function getSearchIndex(locale?: string) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabasePublic();
   let query = supabase
     .from("posts")
     .select("slug,title,description,tags,category,date")
@@ -173,7 +212,7 @@ export async function getSearchIndex(locale?: string) {
 }
 
 export async function listPostSlugs(locale?: string): Promise<string[]> {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabasePublic();
   let query = supabase
     .from("posts")
     .select("slug")

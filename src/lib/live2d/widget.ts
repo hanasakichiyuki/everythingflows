@@ -45,6 +45,11 @@ const PAGE_SWITCH_COOLDOWN = 60000;
 const BEFORE_LEAVE_COOLDOWN = 30000;
 const SCREENSHOT_COOLDOWN = 30000;
 const DISPLAY_DURATION = 4500;
+// 新增触发冷却
+const RETURN_TAB_COOLDOWN = 60000;
+const COPY_COOLDOWN = 30000;
+const IDLE_FIDGET_COOLDOWN = 45000; // 待机小动作
+const PLAYFUL_COMBO_THRESHOLD = 4; // 连点到此 → 开心歪头 + 台词（不带道具）
 
 /* ============================================================
  *  类型
@@ -66,13 +71,13 @@ interface StateConfig {
 
 const LINES = {
   firstVisit: ["这里一直很安静。"],
-  welcomeBack: ["欢迎回来。"],
+  welcomeBack: ["欢迎回来。", "你回来了。"],
   longTimeNoSee: ["已经很久没见了。", "欢迎回来。"],
   stayLong: ["还在看吗？", "今天也睡不着？", "时间好像流得很慢。", "你已经停留很久了。"],
   idle: ["……睡着了吗？", "我还在。"],
-  fastScroll: ["慢一点。"],
+  fastScroll: ["慢一点。", "别那么急。"],
   bottom: ["已经没有更多内容了。", "河流已经流到尽头了吗？", "再往下，就什么都没有了。"],
-  top: ["又回到最初了。"],
+  top: ["又回到最初了。", "回到开头了。"],
   lateNight: ["凌晨的互联网很安静。", "这个时间，还有人在。", "又是深夜。"],
   consecutiveLateNight: ["你最近总是在凌晨出现。"],
   musicChange: ["这首很好听。", "我记得这段旋律。"],
@@ -84,6 +89,15 @@ const LINES = {
   slowLoad: ["网络有点慢。"],
   beforeLeave: ["晚安。", "下次见。"],
   screenshot: ["你在保存什么？"],
+  // —— 新增（均不依赖道具）——
+  morning: ["早安。", "新的一天开始了。"],
+  afternoon: ["午后的时光。", "下午好。"],
+  dusk: ["天快黑了。", "黄昏了。"],
+  returnTab: ["你回来了。", "去哪儿了？", "我等了一会儿。"],
+  copy: ["想留下这句话吗？", "把它带走吧。"],
+  petted: ["唔。", "别闹。", "嗯……"],
+  playfulMood: ["今天心情不错。", "嗯，挺好的。"],
+  tickle: ["好啦好啦。", "知道你在了。", "别戳了。"],
 };
 
 /* ============================================================
@@ -154,6 +168,10 @@ export class Live2DWidget {
   private lastPageSwitchTrigger = 0;
   private lastBeforeLeaveTrigger = 0;
   private lastScreenshotTrigger = 0;
+  private lastReturnTabTrigger = 0;
+  private lastCopyTrigger = 0;
+  private lastFidgetTrigger = 0;
+  private lastGreetedPeriod: string | null = null;
 
   // 连击
   private clickTimestamps: number[] = [];
@@ -163,6 +181,7 @@ export class Live2DWidget {
   private stayInterval: ReturnType<typeof setInterval> | null = null;
   private lateNightTimeout: ReturnType<typeof setTimeout> | null = null;
   private mouseProximityInterval: ReturnType<typeof setInterval> | null = null;
+  private idleFidgetInterval: ReturnType<typeof setInterval> | null = null;
   private pageSwitchTimer: ReturnType<typeof setTimeout> | null = null;
   private pageSwitchCount = 0;
 
@@ -249,6 +268,28 @@ export class Live2DWidget {
         from { opacity: 1; transform: translateY(0) scale(1); }
         to   { opacity: 0; transform: translateY(-4px) scale(0.96); }
       }
+      .live2d-bubble {
+        white-space: nowrap;
+        border-radius: 12px;
+        padding: 7px 14px;
+        font-size: 13px;
+        line-height: 1.5;
+        background: rgba(255, 255, 255, 0.92);
+        color: rgba(20, 20, 20, 0.9);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18), 0 1px 4px rgba(0, 0, 0, 0.08);
+        animation: live2d-bubble-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+      @media (prefers-color-scheme: dark) {
+        .live2d-bubble {
+          background: rgba(40, 40, 45, 0.92);
+          color: rgba(240, 240, 240, 0.92);
+          border-color: rgba(255, 255, 255, 0.08);
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -268,10 +309,10 @@ export class Live2DWidget {
       position: fixed;
       bottom: 0;
       left: 0;
-      z-index: 10;
+      z-index: 5;
       pointer-events: none;
       user-select: none;
-      contain: layout paint;
+      contain: layout;
       transform: translateZ(0);
     `;
     this.root = root;
@@ -422,6 +463,16 @@ export class Live2DWidget {
     window.addEventListener("keydown", onKeyDown);
     this.boundHandlers.set("keydown", onKeyDown);
 
+    // 切回标签页
+    const onVisibility = this.createVisibilityHandler();
+    document.addEventListener("visibilitychange", onVisibility);
+    this.boundHandlers.set("visibilitychange", onVisibility);
+
+    // 复制文本
+    const onCopy = this.createCopyHandler();
+    document.addEventListener("copy", onCopy);
+    this.boundHandlers.set("copy", onCopy);
+
     // 定时器
     this.startTimers();
   }
@@ -508,10 +559,33 @@ export class Live2DWidget {
       (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
 
       const now = Date.now();
-      if (now - this.lastClickTime < CLICK_COOLDOWN) return;
-      this.lastClickTime = now;
       this.lastActivity = now;
 
+      // 连击计数 —— 记录每一次点击（不受单击冷却限制，否则快速连点会被丢弃，永远凑不够数）
+      this.clickTimestamps = this.clickTimestamps.filter((t) => now - t < COMBO_WINDOW);
+      this.clickTimestamps.push(now);
+      const combo = this.clickTimestamps.length;
+
+      // 连点到高阈值 → 开心（歪头 + 台词，不带道具）
+      if (combo >= PLAYFUL_COMBO_THRESHOLD) {
+        this.clickTimestamps = [];
+        this.lastClickTime = now;
+        this.applyState("excited");
+        this.say(pickRandom(LINES.playfulMood));
+        return;
+      }
+      // 连点到中阈值 → excited（不清空计数，允许继续累积）
+      if (combo >= COMBO_THRESHOLD) {
+        this.lastClickTime = now;
+        this.applyState("excited");
+        // 偶尔抱怨一句"别戳了"
+        if (Math.random() < 0.4) this.say(pickRandom(LINES.tickle));
+        return;
+      }
+
+      // 单击 —— 受冷却限制，避免频繁切状态
+      if (now - this.lastClickTime < CLICK_COOLDOWN) return;
+      this.lastClickTime = now;
       this.handleClick();
     };
   }
@@ -642,6 +716,34 @@ export class Live2DWidget {
     };
   }
 
+  private createVisibilityHandler(): EventListener {
+    return () => {
+      if (!this.isDesktop) return;
+      // 从隐藏切回可见 → 回来了
+      if (document.visibilityState === "visible") {
+        this.lastActivity = Date.now();
+        const now = Date.now();
+        if (now - this.lastReturnTabTrigger > RETURN_TAB_COOLDOWN) {
+          this.lastReturnTabTrigger = now;
+          this.say(pickRandom(LINES.returnTab));
+        }
+      }
+    };
+  }
+
+  private createCopyHandler(): EventListener {
+    return () => {
+      if (!this.isDesktop) return;
+      const sel = window.getSelection?.()?.toString().trim();
+      if (!sel) return; // 只在真的复制了文本时反应
+      const now = Date.now();
+      if (now - this.lastCopyTrigger > COPY_COOLDOWN) {
+        this.lastCopyTrigger = now;
+        this.say(pickRandom(LINES.copy));
+      }
+    };
+  }
+
   /* ============================================================
    *  定时器
    * ============================================================ */
@@ -696,8 +798,48 @@ export class Live2DWidget {
       }
     }, 3000);
 
+    // 待机小动作：长时间无切换时偶尔做个小动作，让角色更生动。
+    // 待机小动作：长时间无切换时偶尔做个轻量小动作（不带道具），让角色更生动。
+    // 用 haoqi（歪头看看）/ yaotou（摇头），播完自动复位到默认待机。
+    this.idleFidgetInterval = setInterval(() => {
+      if (!this.isDesktop || this.destroyed) return;
+      // 只在 idle 状态触发，且避免与状态切换计时器打架
+      if (this.currentState !== "idle" || this.stateTimer) return;
+      const now = Date.now();
+      if (now - this.lastFidgetTrigger < IDLE_FIDGET_COOLDOWN) return;
+      // 低概率触发，避免太频繁
+      if (Math.random() < 0.25) {
+        this.lastFidgetTrigger = now;
+        const fidget = pickRandom(["haoqi", "yaotou"]);
+        this.modelCtrl?.stopAllMotions();
+        this.modelCtrl?.startMotion(fidget, 0);
+        // 3.5 秒后复位到默认待机（若期间没被其它状态接管）
+        this.stateTimer = setTimeout(() => {
+          this.stateTimer = null;
+          if (this.destroyed || this.currentState !== "idle") return;
+          this.modelCtrl?.stopAllMotions();
+          this.modelCtrl?.startMotion("Scene1", 0);
+        }, 3500);
+      }
+    }, 15000);
+
     // 深夜检测
     this.scheduleLateNightCheck();
+  }
+
+  /** 根据当前时段问候（早/午/黄昏），同一时段每会话至多一次、且有冷却 */
+  private maybeGreetByPeriod(): void {
+    if (!this.isDesktop) return;
+    const hour = new Date().getHours();
+    let period: string | null = null;
+    let lines: string[] | null = null;
+    if (hour >= 5 && hour < 11) { period = "morning"; lines = LINES.morning; }
+    else if (hour >= 11 && hour < 16) { period = "afternoon"; lines = LINES.afternoon; }
+    else if (hour >= 16 && hour < 19) { period = "dusk"; lines = LINES.dusk; }
+    if (!period || !lines) return; // 夜间交给 lateNight 逻辑
+    if (this.lastGreetedPeriod === period) return;
+    this.lastGreetedPeriod = period;
+    this.say(pickRandom(lines));
   }
 
   private scheduleLateNightCheck(): void {
@@ -792,16 +934,11 @@ export class Live2DWidget {
   }
 
   private handleClick(): void {
-    const now = Date.now();
     const state = this.currentState;
 
-    this.clickTimestamps = this.clickTimestamps.filter((t) => now - t < COMBO_WINDOW);
-    this.clickTimestamps.push(now);
-
-    if (this.clickTimestamps.length >= COMBO_THRESHOLD) {
-      this.clickTimestamps = [];
-      this.applyState("excited");
-      return;
+    // 轻触时偶尔有"被摸"的小反应（不切状态，只冒一句）
+    if (Math.random() < 0.3) {
+      this.say(pickRandom(LINES.petted));
     }
 
     switch (state) {
@@ -856,19 +993,6 @@ export class Live2DWidget {
     const el = document.createElement("div");
     el.className = "live2d-bubble";
     el.textContent = text;
-    el.style.cssText = `
-      white-space: nowrap;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.15);
-      padding: 7px 14px;
-      font-size: 13px;
-      line-height: 1.5;
-      color: rgba(0,0,0,0.85);
-      backdrop-filter: blur(12px);
-      animation: live2d-bubble-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      box-shadow: 0 4px 24px rgba(236, 72, 153, 0.08), 0 1px 4px rgba(0,0,0,0.04);
-    `;
 
     // 最多保留 3 条
     this.messages.push({ id, text, el });
@@ -915,7 +1039,13 @@ export class Live2DWidget {
         if (days > 3) {
           this.say(pickRandom(LINES.longTimeNoSee));
         } else {
-          this.say(pickRandom(LINES.welcomeBack));
+          // 回访：优先按时段问候，否则普通欢迎
+          const hour = new Date().getHours();
+          if (hour >= 5 && hour < 19) {
+            this.maybeGreetByPeriod();
+          } else {
+            this.say(pickRandom(LINES.welcomeBack));
+          }
         }
       }
     }, 3000);
@@ -942,6 +1072,7 @@ export class Live2DWidget {
     if (this.stayInterval) clearInterval(this.stayInterval);
     if (this.lateNightTimeout) clearTimeout(this.lateNightTimeout);
     if (this.mouseProximityInterval) clearInterval(this.mouseProximityInterval);
+    if (this.idleFidgetInterval) clearInterval(this.idleFidgetInterval);
     if (this.stateTimer) clearTimeout(this.stateTimer);
     if (this.messageTimer) clearTimeout(this.messageTimer);
     if (this.pageSwitchTimer) clearTimeout(this.pageSwitchTimer);
@@ -957,6 +1088,10 @@ export class Live2DWidget {
         window.removeEventListener(MUSIC_PAUSE_EVENT, handler);
       } else if (key === "routeChange") {
         window.removeEventListener(ROUTE_CHANGE_EVENT, handler);
+      } else if (key === "visibilitychange") {
+        document.removeEventListener("visibilitychange", handler);
+      } else if (key === "copy") {
+        document.removeEventListener("copy", handler);
       } else {
         window.removeEventListener(key, handler);
       }

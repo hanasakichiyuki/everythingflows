@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect} from "react";
-import { motion } from "framer-motion";
 import { MemoryFragment } from "@/types/memory";
 
 export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; onClick?: () => void }) {
@@ -28,11 +27,9 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
       : text;
 
     return (
-      <motion.div
-        whileHover={{ y: -2, scale: 1.005 }}
-        transition={{ duration: 0.4 }}
+      <div
         onClick={onClick}
-        className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-800/30 bg-zinc-900/30 shadow-lg backdrop-blur-sm transition-all duration-500 hover:border-zinc-700/40 hover:shadow-xl hover:shadow-zinc-900/20"
+        className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-800/30 bg-zinc-900/30 shadow-lg backdrop-blur-sm transition-all duration-500 hover:-translate-y-0.5 hover:scale-[1.005] hover:border-zinc-700/40 hover:shadow-xl hover:shadow-zinc-900/20"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/5 to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
         <div className="relative z-10 p-8 md:p-10">
@@ -46,16 +43,14 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
             month: "short",
           })}
         </span>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div
-      whileHover={{ y: -2, scale: 1.005 }}
-      transition={{ duration: 0.4 }}
+    <div
       onClick={onClick}
-      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-800/30 bg-zinc-900/30 shadow-lg backdrop-blur-sm transition-all duration-500 hover:border-zinc-700/40 hover:shadow-xl hover:shadow-zinc-900/20"
+      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-800/30 bg-zinc-900/30 shadow-lg backdrop-blur-sm transition-all duration-500 hover:-translate-y-0.5 hover:scale-[1.005] hover:border-zinc-700/40 hover:shadow-xl hover:shadow-zinc-900/20"
     >
       <div className="relative w-full overflow-hidden">
         {!loaded && (
@@ -63,7 +58,7 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
         )}
         <img
           src={fragment.imageUrl || ""}
-          alt={fragment.text || "Memory fragment"}
+          alt={fragment.text || ""}
           className={`w-full object-cover transition-opacity duration-1000 ${loaded ? "opacity-100" : "opacity-0"}`}
           onLoad={() => setLoaded(true)}
         />
@@ -79,6 +74,6 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
           month: "short",
         })}
       </span>
-    </motion.div>
+    </div>
   );
 }

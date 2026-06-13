@@ -1,20 +1,11 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { TransitionLink } from "@/components/layout/PageTransition";
+import { Link } from "@/i18n/routing";
 import { formatDate } from "@/lib/utils";
 import type { PostMeta } from "@/types";
 
 export function PostCard({ post }: { post: PostMeta }) {
   return (
-    <motion.article
-      className="group border-b border-border py-6 last:border-0"
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-      whileHover={{ x: 4 }}
-    >
-      <TransitionLink href={`/blog/${encodeURIComponent(post.slug)}`} className="block">
+    <article className="anim-fade-left group border-b border-border py-6 last:border-0 transition-transform duration-300 hover:translate-x-1">
+      <Link href={`/blog/${encodeURIComponent(post.slug)}`} className="block">
         <h2 className="text-lg font-semibold text-foreground transition-colors group-hover:text-pink-500">
           {post.title}
         </h2>
@@ -28,7 +19,7 @@ export function PostCard({ post }: { post: PostMeta }) {
             </span>
           ))}
         </div>
-      </TransitionLink>
-    </motion.article>
+      </Link>
+    </article>
   );
 }

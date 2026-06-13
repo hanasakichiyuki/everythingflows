@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { PlaylistPanel } from "./PlaylistPanel";
 import { type PlayMode, type UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
 
@@ -21,41 +20,28 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
   return (
     <>
       {/* Overlay */}
-      <AnimatePresence>
-        {showList && (
-          <motion.div
-            className="fixed inset-0 z-40 bg-black/20"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowList(false)}
-          />
-        )}
-      </AnimatePresence>
+      {showList && (
+        <div
+          className="anim-fade-in fixed inset-0 z-40 bg-black/20"
+          onClick={() => setShowList(false)}
+        />
+      )}
 
       {/* Playlist bottom sheet */}
-      <AnimatePresence>
-        {showList && (
-          <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          >
-            <div className="mx-auto max-w-lg">
-              <PlaylistPanel
-                songs={songs}
-                currentIndex={currentIndex}
-                loading={loading}
-                error={error}
-                onSelect={(i) => { playSong(i); setShowList(false); }}
-                onClose={() => setShowList(false)}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showList && (
+        <div className="anim-slide-up fixed inset-x-0 bottom-0 z-50 px-3 pb-3">
+          <div className="mx-auto max-w-lg">
+            <PlaylistPanel
+              songs={songs}
+              currentIndex={currentIndex}
+              loading={loading}
+              error={error}
+              onSelect={(i) => { playSong(i); setShowList(false); }}
+              onClose={() => setShowList(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Mini player bar */}
       <div

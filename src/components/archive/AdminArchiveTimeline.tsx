@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "@/i18n/routing";
-import { motion, AnimatePresence } from "framer-motion";
-import { TransitionLink } from "@/components/layout/PageTransition";
+import { useRouter, Link } from "@/i18n/routing";
 import { AdminPostListBar } from "@/components/admin/AdminPostListBar";
 import { deletePostAction, deletePostsAction } from "@/app/actions/posts";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -93,43 +91,23 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
       </div>
 
       {/* Batch delete bar — only in manage mode */}
-      <AnimatePresence>
-        {manageMode && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <AdminPostListBar
-              selectedIds={Array.from(selectedIds)}
-              totalCount={allPostIds.length}
-              onSelectAll={() => setSelectedIds(new Set(allPostIds))}
-              onDeselectAll={() => setSelectedIds(new Set())}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {manageMode && (
+        <div className="anim-fade-up overflow-hidden">
+          <AdminPostListBar
+            selectedIds={Array.from(selectedIds)}
+            totalCount={allPostIds.length}
+            onSelectAll={() => setSelectedIds(new Set(allPostIds))}
+            onDeselectAll={() => setSelectedIds(new Set())}
+          />
+        </div>
+      )}
 
-      <motion.div
-        className="space-y-10"
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: { opacity: 0 },
-          visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.08 },
-          },
-        }}
-      >
-        {archive.map(({ year, posts }) => (
-          <motion.section
+      <div className="space-y-10">
+        {archive.map(({ year, posts }, index) => (
+          <section
             key={year}
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } },
-            }}
+            className="anim-fade-up"
+            style={{ animationDelay: `${index * 0.08}s` }}
           >
             <div className="mb-4 flex items-center gap-4">
               <h2 className="text-2xl font-bold tracking-tight text-foreground/90">{year}</h2>
@@ -155,7 +133,7 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                     // Normal mode — original archive style
                     return (
                       <li key={post.slug}>
-                        <TransitionLink
+                        <Link
                           href={`/blog/${encodeURIComponent(post.slug)}`}
                           className="group relative grid grid-cols-[3.5rem_1fr_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
                         >
@@ -180,7 +158,7 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                               {post.tags.length > 3 && <span className="text-muted/50">...</span>}
                             </div>
                           )}
-                        </TransitionLink>
+                        </Link>
                       </li>
                     );
                   }
@@ -244,9 +222,9 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                 })}
               </ul>
             </div>
-          </motion.section>
+          </section>
         ))}
-      </motion.div>
+      </div>
 
       <ConfirmDialog
         open={deleteConfirmOpen}

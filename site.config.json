@@ -3,7 +3,7 @@
   "description": "传播我的虚弱",
   "url": "https://flows.xin",
   "author": "Everything Flows",
-  "avatar": "/avatar/avatar.png",
+  "avatar": "/avatar/avatar.webp",
   "locale": "zh",
   "social": [
     {
@@ -48,5 +48,5 @@
     "tools": true,
     "admin": true
   },
-  "backgroundImage": "/avatar/backgroud.jpg"
+  "backgroundImage": "/avatar/background.webp"
 }

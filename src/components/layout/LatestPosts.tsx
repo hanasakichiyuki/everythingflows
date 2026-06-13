@@ -1,7 +1,4 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { TransitionLink } from "./PageTransition";
+import { Link } from "@/i18n/routing";
 import type { PostMeta } from "@/types";
 
 interface LatestPostsProps {
@@ -19,26 +16,23 @@ export function LatestPosts({ posts }: LatestPostsProps) {
   const displayPosts = posts.slice(0, 5);
 
   return (
-    <motion.div
-      className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-6 shadow-lg dark:border-white/10 dark:bg-gray-900/50"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
+    <div
+      className="anim-fade-up relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-6 shadow-lg dark:border-white/10 dark:bg-gray-900/50"
     >
       <div className="absolute inset-0 rounded-2xl bg-white/10 dark:bg-gray-900/30 pointer-events-none" />
-      
+
       <div className="relative z-10 flex flex-1 flex-col">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground/90 dark:text-foreground">
             Latest Posts
             <span className="ml-2 text-pink-500">•</span>
           </h3>
-          <TransitionLink
+          <Link
             href="/archive"
             className="text-xs text-muted transition-colors hover:text-pink-500"
           >
             查看全部 →
-          </TransitionLink>
+          </Link>
         </div>
 
         <div className="relative flex flex-1 flex-col justify-evenly pl-8">
@@ -49,14 +43,11 @@ export function LatestPosts({ posts }: LatestPostsProps) {
           />
 
           {displayPosts.map((post, index) => (
-            <motion.article
+            <article
               key={post.slug}
-              className="group cursor-pointer"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 + index * 0.1, ease: [0.25, 0.1, 0.25, 1] }}
+              className={`anim-fade-up anim-delay-${index + 1} group cursor-pointer`}
             >
-              <TransitionLink
+              <Link
                 href={`/blog/${encodeURIComponent(post.slug)}`}
                 className="group relative grid grid-cols-[3rem_1fr_auto] items-center gap-x-3 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
               >
@@ -97,11 +88,11 @@ export function LatestPosts({ posts }: LatestPostsProps) {
                     )}
                   </div>
                 )}
-              </TransitionLink>
-            </motion.article>
+              </Link>
+            </article>
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

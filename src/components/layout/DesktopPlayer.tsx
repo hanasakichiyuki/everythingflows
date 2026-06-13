@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { PlaylistPanel } from "./PlaylistPanel";
 import { formatTime, type PlayMode, type UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
 
@@ -38,66 +37,48 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
   return (
     <>
       {/* Overlay: click anywhere to close expanded / playlist */}
-      <AnimatePresence>
-        {(isExpanded || showList) && (
-          <motion.div
-            className="fixed inset-0 z-40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeAll}
-          />
-        )}
-      </AnimatePresence>
+      {(isExpanded || showList) && (
+        <div
+          className="anim-fade-in fixed inset-0 z-40"
+          onClick={closeAll}
+        />
+      )}
 
       {/* Playlist popup (above overlay, below player) */}
-      <AnimatePresence>
-        {showList && (
-          <div
-            className="fixed z-50"
-            style={{
-              bottom: "calc(24px + 64px + 8px)",
-              left: "24px",
-              width: "480px",
-            }}
-          >
-            <PlaylistPanel
-              songs={songs}
-              currentIndex={currentIndex}
-              loading={loading}
-              error={error}
-              onSelect={(i) => { playSong(i); closeAll(); }}
-              onClose={closeAll}
-            />
-          </div>
-        )}
-      </AnimatePresence>
+      {showList && (
+        <div
+          className="fixed z-50"
+          style={{
+            bottom: "calc(24px + 64px + 8px)",
+            left: "24px",
+            width: "480px",
+          }}
+        >
+          <PlaylistPanel
+            songs={songs}
+            currentIndex={currentIndex}
+            loading={loading}
+            error={error}
+            onSelect={(i) => { playSong(i); closeAll(); }}
+            onClose={closeAll}
+          />
+        </div>
+      )}
 
       {/* Player capsule */}
       <div
-        className="music-player-btn fixed z-50"
+        className="music-player-btn fixed z-50 border border-white/[0.08] bg-white/[0.06] shadow-lg backdrop-blur-2xl dark:border-white/[0.06] dark:bg-black/[0.15]"
         style={{
           bottom: "24px",
           left: "24px",
           width: isExpanded ? "480px" : "64px",
           height: "64px",
+          borderRadius: "9999px",
           opacity: collapsed ? 0 : 1,
           pointerEvents: collapsed ? "none" : "auto",
           transition: "opacity 0.3s ease, width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)",
         }}
       >
-        {/* Glass capsule background */}
-        <motion.div
-          className="absolute border border-white/[0.08] bg-white/[0.06] shadow-lg backdrop-blur-2xl dark:border-white/[0.06] dark:bg-black/[0.15]"
-          style={{
-            top: "0",
-            left: "0",
-            height: "64px",
-            borderRadius: "9999px",
-          }}
-          animate={{ width: isExpanded ? "480px" : "64px" }}
-          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-        />
 
         {/* Album cover */}
         <button
@@ -138,15 +119,8 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
         </button>
 
         {/* Expanded controls */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              className="absolute inset-0 flex items-center gap-4 pl-20 pr-5"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            >
+        {isExpanded && (
+          <div className="anim-fade-left absolute inset-0 flex items-center gap-4 pl-20 pr-5">
               {/* Song info + progress */}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[11px] font-light tracking-wide text-black/80">
@@ -196,9 +170,8 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
                   <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z" />
                 </svg>
               </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+        )}
       </div>
 
       <style>{`

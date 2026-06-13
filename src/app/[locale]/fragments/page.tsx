@@ -1,13 +1,14 @@
 import { MemoryFragment } from "@/types/memory";
 import { MemoryWall } from "@/components/memory/MemoryWall";
 import { seedFragments } from "@/data/seed-fragments";
+import { getSupabasePublic } from "@/lib/api/supabase/client";
 
-export const dynamic = "force-dynamic";
+// ISR：碎碎念变更频率低；1h 兜底，增删改时由 API 路由精确 revalidate。
+export const revalidate = 3600;
 
 async function getFragments(): Promise<MemoryFragment[]> {
   try {
-    const { createClient } = await import("@/lib/supabase/server-client");
-    const supabase = await createClient();
+    const supabase = getSupabasePublic();
     const { data, error } = await supabase
       .from("fragments")
       .select("*")

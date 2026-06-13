@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 export async function PATCH(
   request: Request,
@@ -27,8 +28,12 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[fragments] PATCH error:", error);
+    return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
+
+  revalidatePath("/");
+  revalidatePath("/fragments");
 
   return NextResponse.json({ data });
 }
@@ -54,8 +59,12 @@ export async function DELETE(
     .eq("user_id", user.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[fragments] DELETE error:", error);
+    return NextResponse.json({ error: "删除失败" }, { status: 500 });
   }
+
+  revalidatePath("/");
+  revalidatePath("/fragments");
 
   return NextResponse.json({ ok: true });
 }

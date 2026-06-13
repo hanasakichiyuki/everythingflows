@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { MemoryFragment } from "@/types/memory";
 
 interface FragmentDetailModalProps {
@@ -17,6 +16,14 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
   const [saving, setSaving] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageAspect, setImageAspect] = useState(1);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   // 根据内容决定弹窗宽度
   const getModalWidth = () => {
@@ -97,50 +104,35 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md"
+    <div
+      className="anim-fade-in-slow fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="碎片详情"
     >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 20 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-        className={`relative w-[90vw] max-h-[90vh] ${modalWidth} overflow-auto rounded-3xl border border-zinc-800/40 bg-zinc-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl`}
+      <div
+        className={`anim-fade-scale relative w-[90vw] max-h-[90vh] ${modalWidth} overflow-auto rounded-3xl border border-zinc-800/40 bg-zinc-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3, duration: 0.3 }}
-          whileHover={{ scale: 1.1, rotate: 90 }}
-          whileTap={{ scale: 0.9 }}
+        <button
           onClick={onClose}
-          className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/60 text-zinc-400 transition-colors hover:bg-zinc-700/60 hover:text-zinc-200"
+          className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/60 text-zinc-400 transition-all duration-200 hover:rotate-90 hover:scale-110 hover:bg-zinc-700/60 hover:text-zinc-200 active:scale-90"
           aria-label="关闭"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
           </svg>
-        </motion.button>
+        </button>
 
         {/* Content */}
         {fragment.type === "image" ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="relative flex flex-col"
-          >
+          <div className="anim-fade-in relative flex flex-col">
             <div className="relative flex items-center justify-center p-6">
               <img
                 src={fragment.imageUrl || ""}
-                alt={fragment.text || "Memory fragment"}
+                alt={fragment.text || ""}
                 className="max-h-[65vh] w-auto rounded-xl object-contain shadow-lg"
                 onLoad={(e) => {
                   const img = e.target as HTMLImageElement;
@@ -150,12 +142,7 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
               />
             </div>
             {fragment.text && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
-                className="px-8 pb-6"
-              >
+              <div className="px-8 pb-6">
                 {isEditing ? (
                   <textarea
                     value={editText}
@@ -168,41 +155,23 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
                     {fragment.text}
                   </p>
                 )}
-              </motion.div>
+              </div>
             )}
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="relative overflow-hidden"
-          >
+          <div className="anim-fade-in relative overflow-hidden">
             {/* Decorative background */}
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/30 via-transparent to-zinc-800/10" />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-              className="absolute left-0 top-0 h-40 w-40 rounded-full bg-zinc-700/10 blur-3xl"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="absolute right-0 bottom-0 h-56 w-56 rounded-full bg-zinc-700/10 blur-3xl"
-            />
-            
+            <div className="absolute left-0 top-0 h-40 w-40 rounded-full bg-zinc-700/10 blur-3xl" />
+            <div className="absolute right-0 bottom-0 h-56 w-56 rounded-full bg-zinc-700/10 blur-3xl" />
+
             {/* Quote decoration */}
             <div className="relative px-10 pt-16 pb-10 md:px-14 md:pt-20 md:pb-12">
-              <motion.span
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.35, duration: 0.6 }}
+              <span
                 className={`absolute text-7xl font-serif leading-none text-zinc-700/25 md:text-8xl ${isCentered ? "left-1/2 -translate-x-1/2 top-8" : "left-10 top-8 md:left-14 md:top-12"}`}
               >
-              </motion.span>
-              
+              </span>
+
               {isEditing ? (
                 <textarea
                   value={editText}
@@ -211,97 +180,69 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
                   rows={8}
                 />
               ) : (
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-                  className={isCentered ? "text-center" : ""}
-                >
+                <div className={isCentered ? "text-center" : ""}>
                   <span
                     className="inline-block whitespace-pre-wrap font-light leading-[2] tracking-wide font-serif text-zinc-200 text-left text-xl md:text-2xl"
                     style={{ display: isCentered ? 'table' : undefined }}
                   >
                     {fragment.text}
                   </span>
-                </motion.div>
+                </div>
               )}
             </div>
-            
+
             {/* Bottom decoration */}
-            <motion.div
-              initial={{ opacity: 0, scaleX: 0 }}
-              animate={{ opacity: 1, scaleX: 1 }}
-              transition={{ delay: 0.6, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-              className="relative flex items-center justify-center pb-10"
-            >
+            <div className="relative flex items-center justify-center pb-10">
               <div className="h-px w-20 bg-gradient-to-r from-transparent via-zinc-500/40 to-transparent" />
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
 
         {/* Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.4 }}
-          className="flex items-center justify-between border-t border-zinc-800/40 px-8 py-5"
-        >
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.3 }}
-            className="text-xs tracking-wider text-zinc-500"
-          >
+        <div className="flex items-center justify-between border-t border-zinc-800/40 px-8 py-5">
+          <span className="text-xs tracking-wider text-zinc-500">
             {new Date(fragment.createdAt).toLocaleDateString("zh-CN", {
               year: "numeric",
               month: "long",
               day: "numeric",
             })}
-          </motion.span>
+          </span>
           <div className="flex gap-3">
             {isEditing ? (
               <>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <button
                   onClick={() => { setIsEditing(false); setEditText(fragment.text || ""); }}
-                  className="rounded-xl border border-zinc-700/50 px-5 py-2 text-xs tracking-wide text-zinc-400 transition-all hover:border-zinc-600 hover:text-zinc-200"
+                  className="rounded-xl border border-zinc-700/50 px-5 py-2 text-xs tracking-wide text-zinc-400 transition-all hover:scale-105 hover:border-zinc-600 hover:text-zinc-200 active:scale-95"
                 >
                   取消
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                </button>
+                <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="rounded-xl bg-zinc-700/60 px-5 py-2 text-xs tracking-wide text-zinc-200 transition-all hover:bg-zinc-600/60 disabled:opacity-40"
+                  className="rounded-xl bg-zinc-700/60 px-5 py-2 text-xs tracking-wide text-zinc-200 transition-all hover:scale-105 hover:bg-zinc-600/60 active:scale-95 disabled:opacity-40"
                 >
                   {saving ? "保存中..." : "保存"}
-                </motion.button>
+                </button>
               </>
             ) : (
               <>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <button
                   onClick={() => setIsEditing(true)}
-                  className="rounded-xl border border-zinc-700/50 px-5 py-2 text-xs tracking-wide text-zinc-400 transition-all hover:border-zinc-600 hover:text-zinc-200"
+                  className="rounded-xl border border-zinc-700/50 px-5 py-2 text-xs tracking-wide text-zinc-400 transition-all hover:scale-105 hover:border-zinc-600 hover:text-zinc-200 active:scale-95"
                 >
                   编辑
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                </button>
+                <button
                   onClick={handleDelete}
-                  className="rounded-xl border border-red-900/40 px-5 py-2 text-xs tracking-wide text-red-400/80 transition-all hover:border-red-800/60 hover:bg-red-900/20 hover:text-red-300"
+                  className="rounded-xl border border-red-900/40 px-5 py-2 text-xs tracking-wide text-red-400/80 transition-all hover:scale-105 hover:border-red-800/60 hover:bg-red-900/20 hover:text-red-300 active:scale-95"
                 >
                   删除
-                </motion.button>
+                </button>
               </>
             )}
           </div>
-        </motion.div>
-      </motion.div>
-    </motion.div>
+        </div>
+      </div>
+    </div>
   );
 }

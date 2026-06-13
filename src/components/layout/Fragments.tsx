@@ -1,7 +1,4 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { TransitionLink } from "./PageTransition";
+import { Link } from "@/i18n/routing";
 import type { MemoryFragment } from "@/types/memory";
 
 interface FragmentsProps {
@@ -12,39 +9,33 @@ export function Fragments({ fragments }: FragmentsProps) {
   const displayFragments = fragments.slice(0, 4);
 
   return (
-    <motion.div
-      className="relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-6 shadow-lg dark:border-white/10 dark:bg-gray-900/50"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+    <div
+      className="anim-fade-up relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-6 shadow-lg dark:border-white/10 dark:bg-gray-900/50"
+      style={{ animationDelay: "0.16s" }}
     >
       <div className="absolute inset-0 rounded-2xl bg-white/10 dark:bg-gray-900/30 pointer-events-none" />
-      
+
       <div className="relative z-10">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground/90 dark:text-foreground">
             Fragments
             <span className="ml-2 text-pink-500">•</span>
           </h3>
-          <TransitionLink
+          <Link
             href="/fragments"
             className="text-xs text-muted transition-colors hover:text-pink-500"
           >
             查看全部 →
-          </TransitionLink>
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           {displayFragments.map((fragment, index) => (
-            <motion.div
+            <div
               key={fragment.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.3 + index * 0.08, ease: [0.25, 0.1, 0.25, 1] }}
-              whileHover={{ y: -2, scale: 1.02 }}
-              className="group cursor-pointer"
+              className={`anim-fade-scale anim-delay-${index + 1} group cursor-pointer transition-transform duration-300 hover:-translate-y-0.5`}
             >
-              <TransitionLink href={`/fragments`} className="block">
+              <Link href={`/fragments`} className="block">
                 {fragment.type === "image" ? (
                   <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-800/30 bg-zinc-900/30">
                     <img
@@ -74,11 +65,11 @@ export function Fragments({ fragments }: FragmentsProps) {
                     </span>
                   </div>
                 )}
-              </TransitionLink>
-            </motion.div>
+              </Link>
+            </div>
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
 import { MemoryFragment } from "@/types/memory";
 import { Toast } from "@/components/ui/Toast";
 
@@ -26,6 +25,14 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
       return () => clearTimeout(timer);
     }
   }, [error]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const processFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
@@ -138,22 +145,18 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      <div
+        className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
         onClick={onClose}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-        className={`relative w-full max-w-md rounded-2xl border p-6 shadow-2xl backdrop-blur-md transition-all duration-300 ${
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="添加碎片"
+        className={`anim-fade-scale relative w-full max-w-md rounded-2xl border p-6 shadow-2xl transition-all duration-300 ${
           isDragging
             ? "border-zinc-500/80 bg-zinc-800/90 shadow-zinc-500/20"
             : "border-zinc-800/60 bg-zinc-900/80"
@@ -235,8 +238,8 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
             {uploading ? "保存中..." : "保存"}
           </button>
         </div>
-      </motion.div>
-      </motion.div>
+      </div>
+      </div>
       <Toast
         message={error || ""}
         isVisible={!!error}

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import type { Song } from "@/hooks/useMusicPlayer";
 
 type PlaylistPanelProps = {
@@ -21,13 +20,7 @@ export function PlaylistPanel({
   onClose,
 }: PlaylistPanelProps) {
   return (
-    <motion.div
-      className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.06] shadow-xl backdrop-blur-2xl dark:border-white/[0.04] dark:bg-black/[0.2]"
-      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-      transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-    >
+    <div className="anim-bubble-in overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.06] shadow-xl backdrop-blur-2xl dark:border-white/[0.04] dark:bg-black/[0.2]">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
         <p className="text-[11px] font-light tracking-wider text-black/80">
@@ -84,6 +77,6 @@ export function PlaylistPanel({
           <p className="py-4 text-center text-[11px] text-black/35">No songs available</p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
