@@ -592,12 +592,11 @@ export class Live2DWidget {
 
   private createResizeHandler(): EventListener {
     return () => {
-      const wasDesktop = this.isDesktop;
       this.isDesktop = window.innerWidth >= 768;
       this.updateLayout();
 
-      if (wasDesktop !== this.isDesktop) {
-        this.engine?.resize(!this.isDesktop);
+      if (this.root) {
+        this.root.style.display = this.isDesktop ? "" : "none";
       }
     };
   }
