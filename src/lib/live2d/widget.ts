@@ -574,10 +574,10 @@ export class Live2DWidget {
         this.say(pickRandom(LINES.playfulMood));
         return;
       }
-      // 连点到中阈值 → excited（不清空计数，允许继续累积）
+      // 连点到中阈值 → 摇头（不清空计数，允许继续累积）
       if (combo >= COMBO_THRESHOLD) {
         this.lastClickTime = now;
-        this.applyState("excited");
+        this.applyState("shy");
         // 偶尔抱怨一句"别戳了"
         if (Math.random() < 0.4) this.say(pickRandom(LINES.tickle));
         return;
