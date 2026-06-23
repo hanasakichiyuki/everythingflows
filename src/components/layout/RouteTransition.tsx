@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname } from "@/i18n/routing";
+import { usePathname } from "@/i18n/navigation";
 
 /**
  * 轻量路由过渡 —— 替代原自研 PageTransition。

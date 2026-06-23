@@ -1,0 +1,106 @@
+{
+  "$schema": "./src/lib/services/ai/ai-models.schema.json",
+  "models": [
+    {
+      "id": "opencode-deepseek-chat",
+      "name": "Opencode DeepSeek Chat",
+      "provider": "openai",
+      "modelId": "deepseek-v4-flash",
+      "isFree": true,
+      "description": "opencode go提供的DeepSeek 对话模型",
+      "maxOutputTokens": 8192,
+      "apiKeyEnv": "OEPNCODE_API_KEY",
+      "baseUrlEnv": "OPENCODE_BASE_URL",
+      "api": "chat"
+    },
+    {
+      "id": "glm-4.7-flash",
+      "name": "GLM-4.7 Flash",
+      "provider": "openai",
+      "modelId": "glm-4.7-flash",
+      "isFree": true,
+      "description": "智谱 GLM 免费快速模型",
+      "maxOutputTokens": 4096,
+      "apiKeyEnv": "ZHIPU_API_KEY",
+      "baseUrlEnv": "ZHIPU_BASE_URL",
+      "api": "chat"
+    },
+    {
+      
+      "id": "gemini-2.0-flash",
+      "name": "Gemini 2.0 Flash",
+      "provider": "google",
+      "modelId": "gemini-2.0-flash",
+      "isFree": true,
+      "description": "Google 免费快速模型，适合日常对话",
+      "maxOutputTokens": 8192,
+      "apiKeyEnv": "GOOGLE_GENERATIVE_AI_API_KEY"
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "name": "Gemini 2.5 Flash",
+      "provider": "google",
+      "modelId": "gemini-2.5-flash",
+      "isFree": true,
+      "description": "Google 最新免费模型，推理能力更强",
+      "maxOutputTokens": 8192,
+      "apiKeyEnv": "GOOGLE_GENERATIVE_AI_API_KEY"
+    },
+    {
+      "id": "gpt-4o-mini",
+      "name": "GPT-4o mini",
+      "provider": "openai",
+      "modelId": "gpt-4o-mini",
+      "isFree": false,
+      "description": "OpenAI 高性价比模型",
+      "maxOutputTokens": 16384,
+      "apiKeyEnv": "OPENAI_API_KEY",
+      "baseUrlEnv": "OPENAI_BASE_URL"
+    },
+    {
+      "id": "gpt-4o",
+      "name": "GPT-4o",
+      "provider": "openai",
+      "modelId": "gpt-4o",
+      "isFree": false,
+      "description": "OpenAI 旗舰模型",
+      "maxOutputTokens": 16384,
+      "apiKeyEnv": "OPENAI_API_KEY",
+      "baseUrlEnv": "OPENAI_BASE_URL"
+    },
+    {
+      "id": "claude-3.5-haiku",
+      "name": "Claude 3.5 Haiku",
+      "provider": "anthropic",
+      "modelId": "claude-3-5-haiku-20241022",
+      "isFree": false,
+      "description": "Anthropic 快速模型",
+      "maxOutputTokens": 8192,
+      "apiKeyEnv": "ANTHROPIC_API_KEY",
+      "baseUrlEnv": "ANTHROPIC_BASE_URL"
+    },
+    {
+      "id": "claude-sonnet-4",
+      "name": "Claude Sonnet 4",
+      "provider": "anthropic",
+      "modelId": "claude-sonnet-4-20250514",
+      "isFree": false,
+      "description": "Anthropic 最新模型",
+      "maxOutputTokens": 16384,
+      "apiKeyEnv": "ANTHROPIC_API_KEY",
+      "baseUrlEnv": "ANTHROPIC_BASE_URL"
+    },
+    {
+      "id": "deepseek-chat",
+      "name": "DeepSeek Chat",
+      "provider": "openai",
+      "modelId": "deepseek-chat",
+      "isFree": false,
+      "description": "DeepSeek 对话模型，通过 OpenAI 兼容接口",
+      "maxOutputTokens": 8192,
+      "apiKeyEnv": "DEEPSEEK_API_KEY",
+      "baseUrlEnv": "DEEPSEEK_BASE_URL",
+      "api": "chat"
+    }
+  ]
+}

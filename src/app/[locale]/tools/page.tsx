@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { futureTools } from "@/config/site";
 import { ContentCard } from "@/components/layout/ContentCard";
 

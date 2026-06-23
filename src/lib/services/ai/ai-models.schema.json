@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AI Models Config",
+  "description": "AI 模型注册表配置。加新模型只需在此添加条目并在 .env 设置对应 apiKeyEnv/baseUrlEnv 环境变量。",
+  "type": "object",
+  "required": ["models"],
+  "properties": {
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "provider", "modelId", "isFree", "description", "apiKeyEnv"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "站内唯一模型 id，会存入数据库 model_id 列。改名会让旧对话显示不出模型名。"
+          },
+          "name": {
+            "type": "string",
+            "description": "ModelPicker 中显示的名称"
+          },
+          "provider": {
+            "type": "string",
+            "enum": ["google", "openai", "anthropic"],
+            "description": "决定使用哪个 AI SDK。OpenAI 兼容端点（DeepSeek/GLM/OpenRouter 等）统一用 'openai'。注：'custom' 已废弃，等价于 'openai'。"
+          },
+          "modelId": {
+            "type": "string",
+            "description": "provider 侧的真实模型 id（如 gemini-2.0-flash、gpt-4o-mini、deepseek-chat、glm-4-flash）"
+          },
+          "isFree": {
+            "type": "boolean",
+            "description": "true = 匿名用户可用。至少需要一个 isFree=true 且 apiKeyEnv 已配置的模型，否则 /chat 对匿名关闭。"
+          },
+          "description": {
+            "type": "string",
+            "description": "ModelPicker 下方的说明文字"
+          },
+          "maxOutputTokens": {
+            "type": "integer",
+            "description": "可选，输出 token 上限"
+          },
+          "apiKeyEnv": {
+            "type": "string",
+            "description": "读取 API Key 的环境变量名。每个模型可独立指定，实现多 provider 并存。"
+          },
+          "baseUrlEnv": {
+            "type": "string",
+            "description": "可选，读取 Base URL 的环境变量名。OpenAI 兼容端点必填（除非用官方默认）。"
+          },
+          "api": {
+            "type": "string",
+            "enum": ["responses", "chat"],
+            "description": "仅 provider=\"openai\" 生效。默认 \"responses\"（OpenAI 官方 Responses API，走 /responses 端点）。第三方 OpenAI 兼容端点（DeepSeek/GLM/OpenRouter 等）必须设为 \"chat\"（走 /chat/completions 端点）。"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

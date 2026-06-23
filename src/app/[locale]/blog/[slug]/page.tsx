@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { getPost, listPostSlugs, getAdjacentPosts } from "@/lib/api/posts";
 import type { PostMeta } from "@/types";
 import { PostContent } from "@/components/blog/PostContent";

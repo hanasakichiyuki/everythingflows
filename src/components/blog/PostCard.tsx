@@ -1,4 +1,4 @@
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { formatDate } from "@/lib/utils";
 import type { PostMeta } from "@/types";
 

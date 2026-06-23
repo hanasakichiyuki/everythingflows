@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "@/i18n/routing";
+import { useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/browser-client";
 import { ContentCard } from "@/components/layout/ContentCard";
 import { Button } from "@/components/ui/button";

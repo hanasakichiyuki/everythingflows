@@ -5,11 +5,14 @@ import { updateSession } from "./lib/supabase/middleware";
 
 const intlMiddleware = createMiddleware(routing);
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { response: supabaseResponse, session } = await updateSession(request);
 
-  // Protect /admin routes
-  if (request.nextUrl.pathname.includes("/admin")) {
+  // Protect /admin routes only.
+  // /chat is open to anonymous users (limited to free models server-side).
+  const path = request.nextUrl.pathname;
+  const isProtected = path.includes("/admin");
+  if (isProtected) {
     if (!session) {
       const loginUrl = new URL("/login", request.url);
       const redirectResponse = NextResponse.redirect(loginUrl);

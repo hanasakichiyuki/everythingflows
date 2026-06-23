@@ -44,6 +44,8 @@ export interface SiteConfig {
   url: string;
   author: string;
   avatar: string;
+  /** AI 聊天头像（/chat 页面 AI 消息左侧显示），放 public/ 下 */
+  aiAvatar: string;
   locale: string;
   social: SiteLink[];
   links: SiteLink[];

@@ -9,6 +9,7 @@ import {
   Lock,
   PanelLeftClose,
   Sparkles,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -39,6 +40,7 @@ const icons: Record<string, LucideIcon | typeof GitHubIcon> = {
   bilibili: BilibiliIcon as unknown as LucideIcon,
   qq: QQIcon as unknown as LucideIcon,
   sparkles: Sparkles,
+  "message-circle": MessageCircle,
 };
 
 export function NavIcon({ name, className }: { name: string; className?: string }) {

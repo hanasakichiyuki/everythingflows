@@ -1,3 +1,5 @@
+@import "highlight.js/styles/github-dark.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -325,6 +327,20 @@ body::-webkit-scrollbar {
     animation: iconRotateIn 0.3s ease-out both;
   }
 
+  /* AI 思考指示器 —— 柔和呼吸式脉动，无气泡 */
+  @keyframes thinkingPulse {
+    0%, 100% { opacity: 0.25; transform: translateY(0); }
+    40%      { opacity: 1;    transform: translateY(-3px); }
+    60%      { opacity: 1;    transform: translateY(-3px); }
+  }
+  .thinking-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background-color: currentColor;
+    animation: thinkingPulse 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .anim-fade-up,
     .anim-fade-scale,
@@ -334,7 +350,8 @@ body::-webkit-scrollbar {
     .anim-pop-in,
     .anim-slide-up,
     .anim-bubble-in,
-    .anim-icon-rotate {
+    .anim-icon-rotate,
+    .thinking-dot {
       animation: none;
     }
   }

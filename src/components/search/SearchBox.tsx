@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Fuse from "fuse.js";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { Search } from "lucide-react";
 
 export interface SearchItem {

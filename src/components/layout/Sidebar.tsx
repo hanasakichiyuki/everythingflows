@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { usePathname, Link } from "@/i18n/routing";
+import { usePathname, Link } from "@/i18n/navigation";
 import { siteConfig, navItems } from "@/config/site";
 import { NavIcon } from "./NavIcon";
 import { ThemeToggle } from "./ThemeToggle";

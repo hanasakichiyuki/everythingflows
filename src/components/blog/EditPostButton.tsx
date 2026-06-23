@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser-client";
 

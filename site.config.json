@@ -4,6 +4,7 @@
   "url": "https://flows.xin",
   "author": "Everything Flows",
   "avatar": "/avatar/avatar.webp",
+  "aiAvatar": "/avatar/ai-avatar.webp",
   "locale": "zh",
   "social": [
     {
@@ -46,7 +47,8 @@
   },
   "features": {
     "tools": true,
-    "admin": true
+    "admin": true,
+    "chat": true
   },
   "backgroundImage": "/avatar/background.webp"
 }

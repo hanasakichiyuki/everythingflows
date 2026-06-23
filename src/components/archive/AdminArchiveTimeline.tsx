@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, Link } from "@/i18n/routing";
+import { useRouter, Link } from "@/i18n/navigation";
 import { AdminPostListBar } from "@/components/admin/AdminPostListBar";
 import { deletePostAction, deletePostsAction } from "@/app/actions/posts";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";

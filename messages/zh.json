@@ -6,6 +6,7 @@
     "search": "搜索",
     "links": "Links",
     "fragments": "碎片",
+    "chat": "AI 对话",
     "blog": "博客",
     "tools": "工具",
     "admin": "写作",
@@ -76,5 +77,22 @@
     "title": "工具箱",
     "coming": "即将上线",
     "fortune": "算命"
+  },
+  "chat": {
+    "title": "AI 对话",
+    "newConversation": "新对话",
+    "empty": "开始新的对话",
+    "loginRequired": "需要登录",
+    "loginHint": "登录后即可使用 AI 对话功能，你的对话历史将被保存。",
+    "thinking": "正在思考...",
+    "inputPlaceholder": "输入消息... (Enter 发送, Shift+Enter 换行)",
+    "send": "发送",
+    "stop": "停止生成",
+    "regenerate": "重新生成",
+    "copy": "复制",
+    "copied": "已复制",
+    "free": "免费",
+    "noModelConfigured": "尚未配置任何 AI 模型，请在环境变量中设置 API Key",
+    "selectModel": "选择模型"
   }
 }

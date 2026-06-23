@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "@/i18n/routing";
+import { usePathname } from "@/i18n/navigation";
 
 /**
  * 智能导航遮罩 —— 还原吉祥物 loading，但不牺牲性能。

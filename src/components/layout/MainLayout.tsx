@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { usePathname } from "@/i18n/routing";
+import { usePathname } from "@/i18n/navigation";
 import { Sidebar } from "./Sidebar";
 import { RouteTransition } from "./RouteTransition";
 import { NavigationOverlay } from "./NavigationOverlay";

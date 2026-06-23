@@ -12,6 +12,10 @@ const nextConfig = {
       { protocol: "https", hostname: "**.supabase.co" },
     ],
   },
+  experimental: {
+    // 开发环境（next dev），先改为false方便vibe coding
+    turbopackFileSystemCacheForDev: false,
+  },
 };
 
 export default withNextIntl(nextConfig);

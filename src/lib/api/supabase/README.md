@@ -20,7 +20,7 @@
 
 ## Writes
 
-- **Server Action**: `publishPostAction` from `/admin`（经 middleware 校验登录态）。这是唯一的写入入口。
+- **Server Action**: `publishPostAction` from `/admin`（经 proxy 校验登录态）。这是唯一的写入入口。
 - 不再提供 `POST /api/posts` REST 接口：它未鉴权且走 service role，是越权写风险，已删除。写操作一律走 server action。
 
 Service role is used server-side only; never expose it to the browser.
