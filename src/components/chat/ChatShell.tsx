@@ -114,7 +114,6 @@ export function ChatShell({ initialConversationId }: ChatShellProps) {
             canSwitchModel={true}
             onToggleSidebar={onToggleList}
             onSwitchModel={onSwitchModel}
-            onNew={onNew}
             onSessionError={onSessionError}
             onMessagesChange={onMessagesChange}
             pendingMessage={pendingMessage}

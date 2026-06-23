@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useMemo, useCallback, useState, useEffect } from "react";
-import { PanelLeft, Plus, Sparkles } from "lucide-react";
+import { PanelLeft, Sparkles } from "lucide-react";
 import { MessageList } from "./MessageList";
 import { ChatComposer } from "./ChatComposer";
 import { ModelPicker } from "./ModelPicker";
@@ -19,7 +19,6 @@ interface ChatPanelProps {
   canSwitchModel: boolean;
   onToggleSidebar: () => void;
   onSwitchModel: (modelId: string) => void;
-  onNew?: () => void;
   onSessionError: (message: string) => void;
   onMessagesChange?: (messages: Message[]) => void;
   pendingMessage?: string | null;
@@ -46,7 +45,6 @@ export function ChatPanel({
   canSwitchModel,
   onToggleSidebar,
   onSwitchModel,
-  onNew,
   onSessionError,
   onMessagesChange,
   pendingMessage,
@@ -181,16 +179,6 @@ export function ChatPanel({
             {conversation.title}
           </h1>
         </div>
-
-        {onNew && (
-          <button
-            onClick={onNew}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-muted/30 hover:text-foreground"
-            title="新建对话"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        )}
 
         <ModelPicker
           models={models}
