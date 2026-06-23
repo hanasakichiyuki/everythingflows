@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, memo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -71,7 +71,7 @@ function normalizeMarkdown(raw: string): string {
     .trim();
 }
 
-export function MarkdownContent({ content }: { content: string }) {
+export const MarkdownContent = memo(function MarkdownContent({ content }: { content: string }) {
   const normalized = normalizeMarkdown(content);
   return (
     <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-pre:bg-transparent prose-pre:m-0 prose-pre:p-0 prose-code:before:content-none prose-code:after:content-none prose-p:my-1 prose-p:first:mt-0 prose-p:last:mb-0 prose-p:font-medium prose-p:leading-6 prose-li:my-0.5 prose-li:font-medium prose-strong:font-bold prose-headings:font-bold prose-headings:my-2 prose-headings:first:mt-0">
@@ -114,4 +114,4 @@ export function MarkdownContent({ content }: { content: string }) {
       </ReactMarkdown>
     </div>
   );
-}
+});

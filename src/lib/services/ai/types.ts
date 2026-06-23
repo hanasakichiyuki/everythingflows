@@ -15,6 +15,8 @@ export interface ModelConfig {
   isFree: boolean;
   description: string;
   maxOutputTokens?: number;
+  /** 输入上下文窗口大小（token 上限）。用于短期记忆裁剪决策，未配置时按 32768 兜底。 */
+  contextWindow?: number;
   /** 读取 API Key 的环境变量名（每个模型独立指定，实现多 provider 并存） */
   apiKeyEnv: string;
   /** 读取 Base URL 的环境变量名（可选，OpenAI 兼容端点用） */
@@ -29,6 +31,7 @@ export interface AIConfig {
   apiKey: string;
   baseURL?: string;
   maxOutputTokens?: number;
+  contextWindow?: number;
   api?: OpenAIApiMode;
 }
 

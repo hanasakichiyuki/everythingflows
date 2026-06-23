@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import { Check, Copy, RotateCcw } from "lucide-react";
 import { MarkdownContent } from "./MarkdownContent";
 import { siteConfig } from "@/config/site";
@@ -12,14 +12,16 @@ interface MessageItemProps {
   modelName?: string | null;
   onRegenerate?: () => void;
   isLastAssistant?: boolean;
+  isStreaming?: boolean;
 }
 
-export function MessageItem({
+function MessageItemImpl({
   role,
   content,
   modelName,
   onRegenerate,
   isLastAssistant,
+  isStreaming,
 }: MessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isUser = role === "user";
@@ -115,7 +117,7 @@ export function MessageItem({
                 <Copy className="h-3.5 w-3.5" />
               )}
             </button>
-            {!isUser && onRegenerate && isLastAssistant && (
+            {!isUser && onRegenerate && isLastAssistant && !isStreaming && (
               <button
                 onClick={onRegenerate}
                 className="flex items-center gap-1 text-xs transition-colors hover:text-foreground"
@@ -133,3 +135,5 @@ export function MessageItem({
     </div>
   );
 }
+
+export const MessageItem = memo(MessageItemImpl);

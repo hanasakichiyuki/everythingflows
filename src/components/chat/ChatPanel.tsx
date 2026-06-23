@@ -59,6 +59,7 @@ export function ChatPanel({
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
+        credentials: "include",
         body: { conversationId: conversation.id, modelId: conversation.modelId },
       }),
     [conversation.id, conversation.modelId],

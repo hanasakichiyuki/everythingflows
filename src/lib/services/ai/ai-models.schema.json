@@ -40,6 +40,10 @@
             "type": "integer",
             "description": "可选，输出 token 上限"
           },
+          "contextWindow": {
+            "type": "integer",
+            "description": "输入上下文窗口大小（token 上限）。用于短期记忆裁剪决策。未配置时按 32768 兜底。"
+          },
           "apiKeyEnv": {
             "type": "string",
             "description": "读取 API Key 的环境变量名。每个模型可独立指定，实现多 provider 并存。"

@@ -67,6 +67,7 @@ export function resolveModelConfig(id: string): {
       apiKey,
       baseURL,
       maxOutputTokens: model.maxOutputTokens,
+      contextWindow: model.contextWindow,
       api: model.api,
     },
   };

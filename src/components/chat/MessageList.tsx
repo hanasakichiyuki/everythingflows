@@ -19,6 +19,8 @@ export function MessageList({ messages, isStreaming, onRegenerate, showWelcome }
   const prevCountRef = useRef(0);
   const userNearBottomRef = useRef(true);
 
+  const isMountedRef = useRef(false);
+
   const scrollToBottom = () => {
     const el = containerRef.current;
     if (!el) return;
@@ -37,10 +39,16 @@ export function MessageList({ messages, isStreaming, onRegenerate, showWelcome }
         scrollToBottom();
         requestAnimationFrame(scrollToBottom);
       });
-    } else if (userNearBottomRef.current) {
+    } else if (isMountedRef.current && userNearBottomRef.current) {
+      // 流式增长且用户在底部附近：跟随（跳过初始挂载，避免页面进入时跳动）
       requestAnimationFrame(scrollToBottom);
     }
   }, [messages]);
+
+  // 标记组件已完成挂载，之后的效果才允许触发滚动
+  useEffect(() => {
+    isMountedRef.current = true;
+  }, []);
 
   // 监听用户滚动，判断是否在底部附近（用于决定流式时是否跟随）
   useEffect(() => {
@@ -60,7 +68,7 @@ export function MessageList({ messages, isStreaming, onRegenerate, showWelcome }
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      if (userNearBottomRef.current) {
+      if (isMountedRef.current && userNearBottomRef.current) {
         scrollToBottom();
       }
     });
@@ -104,8 +112,9 @@ export function MessageList({ messages, isStreaming, onRegenerate, showWelcome }
               role={msg.role}
               content={msg.content}
               modelName={msg.modelId}
-              onRegenerate={!isStreaming ? onRegenerate : undefined}
+              onRegenerate={onRegenerate}
               isLastAssistant={msg.id === lastAssistantId}
+              isStreaming={isStreaming}
             />
           ))}
           {isStreaming && (messages.length === 0 || messages[messages.length - 1].role !== "assistant") && <ThinkingDots />}

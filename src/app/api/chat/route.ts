@@ -6,6 +6,8 @@ import {
   getAvailableModels,
   isModelConfigured,
 } from "@/lib/services/ai";
+import { buildContextWithMemory } from "@/lib/services/ai/memory";
+import { getRedis } from "@/lib/upstash/client";
 
 // 确保路由始终动态执行（POST 本身就是动态的，但显式声明避免边缘情况）
 export const dynamic = "force-dynamic";
@@ -62,9 +64,12 @@ function json(error: string, status: number): Response {
   });
 }
 
-/** 匿名用户的轻量防护：单条消息字符上限、对话轮数上限 */
+/** 匿名用户的轻量防护：单条消息字符上限、单次请求消息数组上限（防御性） */
 const ANON_MAX_MESSAGE_CHARS = 4000;
-const ANON_MAX_MESSAGES = 20;
+const ANON_MAX_MESSAGES_PER_REQUEST = 100;
+
+/** 匿名用户每日请求上限（按 IP + UTC 日期计数） */
+const ANON_DAILY_LIMIT = 30;
 
 function clientIp(req: Request): string {
   const xf = req.headers.get("x-forwarded-for");
@@ -74,35 +79,58 @@ function clientIp(req: Request): string {
   return "unknown";
 }
 
-// 极简内存速率限制：每 IP 每分钟最多 60 次请求
-// 注意：仅适用于单实例部署；多实例 / serverless 下各实例独立计数，无法做到全局速率限制。
-// 生产环境需要分布式速率限制时，建议使用 Upstash Redis 或 Vercel KV。
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 60;
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function rateLimitCheck(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    // 删除过期条目，防止 Map 无限增长
-    if (entry) rateLimitMap.delete(ip);
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-  entry.count += 1;
-  return entry.count <= RATE_LIMIT_MAX;
+/** 当天 UTC 日期字符串（YYYY-MM-DD），用于日限 key */
+function todayUtcKey(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
-// 定期清理过期条目，防止长期运行的服务器出现内存泄漏
+/** 当天剩余秒数（到 UTC 次日 00:00），用于 TTL */
+function secondsUntilDayEnd(): number {
+  const now = new Date();
+  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  return Math.max(1, Math.floor((tomorrow.getTime() - now.getTime()) / 1000));
+}
+
+// 匿名用户每日请求计数（进程内降级，Upstash 不可用时使用）
+const dailyCountMap = new Map<string, { count: number; date: string }>();
+
+/** 匿名用户日限检查：Upstash 优先（分布式），降级进程内 Map（单实例） */
+async function checkAnonDailyLimit(ip: string): Promise<{ allowed: boolean; count: number; limit: number }> {
+  const dateKey = todayUtcKey();
+
+  const redis = getRedis();
+  if (redis) {
+    try {
+      const redisKey = `chat:daily:${ip}:${dateKey}`;
+      const count = await redis.incr(redisKey);
+      if (count === 1) {
+        await redis.expire(redisKey, secondsUntilDayEnd());
+      }
+      return { allowed: count <= ANON_DAILY_LIMIT, count, limit: ANON_DAILY_LIMIT };
+    } catch (e) {
+      console.error("[chat] redis daily count failed, fallback to in-memory:", e);
+    }
+  }
+
+  // 降级：进程内 Map
+  const entry = dailyCountMap.get(ip);
+  if (!entry || entry.date !== dateKey) {
+    dailyCountMap.set(ip, { count: 1, date: dateKey });
+    return { allowed: true, count: 1, limit: ANON_DAILY_LIMIT };
+  }
+  entry.count += 1;
+  return { allowed: entry.count <= ANON_DAILY_LIMIT, count: entry.count, limit: ANON_DAILY_LIMIT };
+}
+
+// 定期清理进程内 dailyCountMap 的跨日旧条目，防止长期运行内存泄漏
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 每 5 分钟
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 if (cleanupTimer === null) {
   cleanupTimer = setInterval(() => {
-    const now = Date.now();
-    for (const [ip, entry] of rateLimitMap) {
-      if (now > entry.resetAt) {
-        rateLimitMap.delete(ip);
+    const today = todayUtcKey();
+    for (const [ip, entry] of dailyCountMap) {
+      if (entry.date !== today) {
+        dailyCountMap.delete(ip);
       }
     }
   }, CLEANUP_INTERVAL_MS);
@@ -140,14 +168,6 @@ export async function POST(req: Request) {
   const user = await getUser();
   const isAnonymous = !user;
 
-  // 匿名用户速率限制
-  if (isAnonymous) {
-    const ip = clientIp(req);
-    if (!rateLimitCheck(ip)) {
-      return json("请求过于频繁，请稍后再试", 429);
-    }
-  }
-
   let body: {
     messages: IncomingMessage[];
     conversationId?: string;
@@ -171,8 +191,21 @@ export async function POST(req: Request) {
 
   // 匿名用户条数与长度上限
   if (isAnonymous) {
-    if (messages.length > ANON_MAX_MESSAGES) {
-      return json(`匿名用户最多发送 ${ANON_MAX_MESSAGES} 条消息，请登录后再试`, 400);
+    // 每日请求上限（按 IP + UTC 日期）
+    const ip = clientIp(req);
+    const daily = await checkAnonDailyLimit(ip);
+    if (!daily.allowed) {
+      return json(
+        `匿名用户每日最多发送 ${daily.limit} 条消息，今日已用 ${daily.count} 次，请登录后继续使用`,
+        429
+      );
+    }
+    // 单次请求消息数组防御性上限
+    if (messages.length > ANON_MAX_MESSAGES_PER_REQUEST) {
+      return json(
+        `单次请求消息数过多，请登录后再试`,
+        400
+      );
     }
     for (const m of messages) {
       const text = extractText(m);
@@ -230,7 +263,51 @@ export async function POST(req: Request) {
     });
   }
 
-  const systemMessage = systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+  const baseSystemMessage = systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+
+  // 取所有候选模型中最小的 contextWindow 作为裁剪依据，
+  // 确保即使 fallback 到小窗口模型也不会超限。
+  let minContextWindow: number | undefined;
+  for (const cid of candidateIds) {
+    try {
+      const cw = getModel(cid).config.contextWindow;
+      if (cw && (minContextWindow === undefined || cw < minContextWindow)) {
+        minContextWindow = cw;
+      }
+    } catch {}
+  }
+
+  // 短期记忆：超阈值时摘要早期消息，保留最近 8 条原文。
+  // 仅登录用户（有 conversationId 且服务端可持久化）走摘要缓存；匿名用户纯滑窗。
+  const memoryConversationId = user ? conversationId : undefined;
+
+  console.log("[chat] input:", {
+    user: isAnonymous ? "anon" : user.id,
+    conversationId: conversationId ?? "(none)",
+    requestedModelId: body.modelId,
+    resolvedModelId,
+    candidates: candidateIds,
+    minContextWindow,
+    incomingMsgCount: messages.length,
+    apiMsgCount: apiMessages.length,
+    lastUserMsg: apiMessages[apiMessages.length - 1]?.content?.slice(0, 80),
+  });
+
+  const { messages: ctxMessages, system: ctxSystem, summarized } =
+    await buildContextWithMemory(
+      apiMessages,
+      minContextWindow,
+      baseSystemMessage,
+      memoryConversationId
+    );
+
+  console.log("[chat] memory:", {
+    summarized,
+    beforeCount: apiMessages.length,
+    afterCount: ctxMessages.length,
+    systemLen: ctxSystem.length,
+    systemHadSummary: ctxSystem.includes("以下为之前对话的摘要"),
+  });
 
   // 顺序尝试候选模型：用首个 chunk 探测成败，失败（error part）则切下一个。
   // 不做预检，只在真实请求产出首 chunk 后判断。
@@ -251,13 +328,26 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model,
-      messages: apiMessages,
-      system: systemMessage,
+      messages: ctxMessages,
+      system: ctxSystem,
       onError: ({ error }) => {
         console.error(`[chat] streamText error (${candidateId}):`, error);
         lastError = error;
       },
-      onFinish: async ({ text }) => {
+      onFinish: async ({ text, usage, finishReason }) => {
+        console.log("[chat] output:", {
+          model: candidateId,
+          finishReason,
+          outputChars: text.length,
+          outputPreview: text.slice(0, 120),
+          usage: usage
+            ? {
+                inputTokens: usage.inputTokens,
+                outputTokens: usage.outputTokens,
+                totalTokens: usage.totalTokens,
+              }
+            : "(unavailable)",
+        });
         // 仅登录用户保存助手回复，记录实际生成所用模型
         if (user && conversationId && text) {
           try {
