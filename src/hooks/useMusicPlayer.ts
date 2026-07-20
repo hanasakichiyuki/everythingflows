@@ -21,7 +21,7 @@ export type APlayerInstance = {
   pause: () => void;
   toggle: () => void;
   on: (event: string, handler: (...args: unknown[]) => void) => void;
-  audio: { currentTime: number; duration: number };
+  audio: HTMLAudioElement;
   list: {
     audios: Array<{ name: string; artist: string; cover: string }>;
     index: number;
@@ -31,9 +31,25 @@ export type APlayerInstance = {
   mode?: "order" | "random" | "loop";
 };
 
+function safelyDestroyPlayer(player: APlayerInstance) {
+  // APlayer 1.10.1 schedules skipForward after a media error. Clearing src in
+  // destroy() can emit that error after its DOM has already been removed,
+  // causing an asynchronous `undefined.classList` exception.
+  const suppressTeardownError = (event: Event) => {
+    event.stopImmediatePropagation();
+  };
+  player.audio.addEventListener("error", suppressTeardownError, {
+    capture: true,
+    once: true,
+  });
+  player.destroy();
+}
+
 export function useMusicPlayer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<APlayerInstance | null>(null);
+  const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playlistKeyRef = useRef("");
   const playHistoryRef = useRef<number[]>([]);
   const volumeBeforeMute = useRef(0.8);
 
@@ -54,6 +70,20 @@ export function useMusicPlayer() {
   const { music } = siteConfig;
 
   useEffect(() => { setIsMounted(true); }, []);
+
+  const scheduleDestroy = useCallback((player: APlayerInstance) => {
+    if (destroyTimerRef.current) {
+      clearTimeout(destroyTimerRef.current);
+    }
+    destroyTimerRef.current = setTimeout(() => {
+      if (playerRef.current === player) {
+        safelyDestroyPlayer(player);
+        playerRef.current = null;
+        playlistKeyRef.current = "";
+      }
+      destroyTimerRef.current = null;
+    }, 100);
+  }, []);
 
   // -------- Fetch playlist --------
   useEffect(() => {
@@ -101,9 +131,21 @@ export function useMusicPlayer() {
   useEffect(() => {
     if (!music.enabled || songs.length === 0) return;
 
+    if (destroyTimerRef.current) {
+      clearTimeout(destroyTimerRef.current);
+      destroyTimerRef.current = null;
+    }
+
+    const playlistKey = songs.map((song) => song.url).join("\n");
+    if (playerRef.current && playlistKeyRef.current === playlistKey) {
+      const existingPlayer = playerRef.current;
+      return () => scheduleDestroy(existingPlayer);
+    }
+
     if (playerRef.current) {
-      playerRef.current.destroy();
+      safelyDestroyPlayer(playerRef.current);
       playerRef.current = null;
+      playlistKeyRef.current = "";
     }
 
     const loadScript = (src: string) =>
@@ -150,7 +192,22 @@ export function useMusicPlayer() {
           lrcType: 0,
         });
 
+        const playerContainer = containerRef.current;
+        const switchAudio = ap.list.switch.bind(ap.list);
+        ap.list.switch = (index: number) => {
+          // APlayer keeps a two-second "skip failed track" timeout alive after
+          // destroy(). Ignore that stale callback once React removed its list.
+          if (
+            !playerContainer.isConnected ||
+            !playerContainer.querySelectorAll(".aplayer-list li")[index]
+          ) {
+            return;
+          }
+          switchAudio(index);
+        };
+
         playerRef.current = ap;
+        playlistKeyRef.current = playlistKey;
         ap.volume(volume, false);
 
         ap.on("play", () => setIsPlaying(true));
@@ -201,11 +258,12 @@ export function useMusicPlayer() {
 
     return () => {
       cancelled = true;
-      playerRef.current?.destroy();
-      playerRef.current = null;
+      if (playerRef.current) {
+        scheduleDestroy(playerRef.current);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [music.enabled, songs]);
+  }, [music.enabled, scheduleDestroy, songs]);
 
   // -------- Playback controls --------
   const setSongInfo = useCallback(
