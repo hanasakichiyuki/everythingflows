@@ -46,6 +46,7 @@ export function Sidebar({
 
   return (
     <aside
+      aria-label="站点侧边栏"
       className={`fixed left-0 top-0 z-20 flex h-screen w-[200px] shrink-0 flex-col border-r border-white/40 bg-white/60 px-4 py-6 transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] dark:border-white/10 dark:bg-gray-900/50 ${collapsed ? "-translate-x-full" : "translate-x-0"}`}
     >
       {/* Top bar: ThemeToggle + Search + Collapse */}
@@ -55,7 +56,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onSearchClick}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-white/10"
             aria-label="搜索"
           >
             <NavIcon name="search" className="h-4 w-4" />
@@ -63,7 +64,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onCollapseClick}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-white/10"
             aria-label="收起侧边栏"
           >
             <NavIcon name="panel-left-close" className="h-4 w-4" />
@@ -82,7 +83,7 @@ export function Sidebar({
             sizes="96px"
           />
         </div>
-        <h1 className="text-lg font-bold tracking-tight text-foreground/90 dark:text-foreground">{siteConfig.name}</h1>
+        <p className="text-lg font-bold tracking-tight text-foreground/90 dark:text-foreground">{siteConfig.name}</p>
         <p className="mt-0.5 text-sm leading-snug text-muted">{siteConfig.description}</p>
       </header>
 
@@ -93,7 +94,7 @@ export function Sidebar({
             href={link.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-foreground/70 transition-colors hover:text-pink-500"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-black/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-white/10"
             title={link.label}
             aria-label={link.label}
           >
@@ -110,30 +111,52 @@ export function Sidebar({
         ))}
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5">
-        {filteredNavItems.map((item, index) => (
-          <div
-            key={item.href}
-            className={`anim-fade-left anim-delay-${index + 1}`}
-          >
-            <Link
-              href={item.href}
-              className={cn("nav-item", isActive(item.href) && "nav-item-active")}
-            >
-              <span className="relative flex w-full items-center justify-center">
-                <span className="absolute left-2">
-                  <NavIcon name={item.icon} className="h-4 w-4" />
-                </span>
-                <span>{t(item.label)}</span>
+      <nav className="flex flex-1 flex-col gap-0.5" aria-label="主导航">
+        {filteredNavItems.map((item, index) => {
+          const content = (
+            <span className="relative flex w-full items-center justify-center">
+              <span className="absolute left-2">
+                <NavIcon name={item.icon} className="h-4 w-4" />
               </span>
-            </Link>
-          </div>
-        ))}
+              <span>{t(item.label)}</span>
+            </span>
+          );
+
+          return (
+            <div
+              key={item.href}
+              className={`anim-fade-left anim-delay-${index + 1}`}
+            >
+              {item.external ? (
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="nav-item min-h-10"
+                >
+                  {content}
+                </a>
+              ) : (
+                <Link
+                  href={item.href}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className={cn(
+                    "nav-item min-h-10",
+                    isActive(item.href) && "nav-item-active"
+                  )}
+                >
+                  {content}
+                </Link>
+              )}
+            </div>
+          );
+        })}
         <div className={`anim-fade-left anim-delay-${filteredNavItems.length + 1}`}>
           {isLoggedIn ? (
             <Link
               href="/admin"
-              className={cn("nav-item", isActive("/admin") && "nav-item-active")}
+              aria-current={isActive("/admin") ? "page" : undefined}
+              className={cn("nav-item min-h-10", isActive("/admin") && "nav-item-active")}
             >
               <span className="relative flex w-full items-center justify-center">
                 <span className="absolute left-2">
@@ -145,7 +168,8 @@ export function Sidebar({
           ) : (
             <Link
               href="/login"
-              className={cn("nav-item", isActive("/login") && "nav-item-active")}
+              aria-current={isActive("/login") ? "page" : undefined}
+              className={cn("nav-item min-h-10", isActive("/login") && "nav-item-active")}
             >
               <span className="relative flex w-full items-center justify-center">
                 <span className="absolute left-2">

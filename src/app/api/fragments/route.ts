@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 const WIDTHS = ["sm", "md", "lg"] as const;
 const HEIGHTS = ["short", "medium", "tall"] as const;
+const MAX_TEXT_LENGTH = 1000;
 
 /** 图片 URL 只接受本站 Supabase storage，精确匹配项目域名。 */
 function isAllowedImageUrl(url: unknown): url is string {
@@ -67,8 +68,11 @@ export async function POST(request: Request) {
   if (type === "image" && !isAllowedImageUrl(imageUrl)) {
     return NextResponse.json({ error: "图片地址不合法" }, { status: 400 });
   }
-  if (type === "text" && (typeof text !== "string" || !text.trim())) {
-    return NextResponse.json({ error: "文字内容不能为空" }, { status: 400 });
+  if (
+    type === "text" &&
+    (typeof text !== "string" || !text.trim() || text.length > MAX_TEXT_LENGTH)
+  ) {
+    return NextResponse.json({ error: `文字内容不能为空且不能超过 ${MAX_TEXT_LENGTH} 个字符` }, { status: 400 });
   }
 
   const { data, error } = await supabase

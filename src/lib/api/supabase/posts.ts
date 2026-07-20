@@ -1,15 +1,41 @@
 import readingTime from "reading-time";
 import type { ContentFormat, Post, PostMeta } from "@/types";
+import type { TiptapDocument } from "@/lib/editor/types";
+import { extractTiptapText } from "@/lib/editor/serialization";
 import { getSupabaseAdmin, getSupabasePublic, type PostRow } from "./client";
-import { cleanupUnusedImages, deletePostImages, extractImageUrls } from "./storage";
+import {
+  cleanupUnusedPostImages,
+  deletePostImages,
+  extractPostImageUrls,
+  type StoredPostContent,
+} from "./storage";
 
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function computeReadingTime(body: string, format: ContentFormat) {
-  const text = format === "html" ? stripHtml(body) : body;
+function computeReadingTime(
+  body: string,
+  format: ContentFormat,
+  contentJson?: TiptapDocument | null
+) {
+  const text =
+    format === "tiptap" && contentJson
+      ? extractTiptapText(contentJson)
+      : format === "html"
+        ? stripHtml(body)
+        : body;
   return readingTime(text || " ").text;
+}
+
+function rowToStoredContent(
+  row: Pick<PostRow, "body" | "content_json" | "content_format">
+): StoredPostContent {
+  return {
+    body: row.body ?? "",
+    contentJson: row.content_json ?? null,
+    contentFormat: row.content_format,
+  };
 }
 
 function rowToPost(row: PostRow): Post {
@@ -25,6 +51,7 @@ function rowToPost(row: PostRow): Post {
     published: row.published,
     readingTime: row.reading_time,
     content: row.body,
+    contentJson: row.content_json,
     contentFormat: row.content_format,
     locale: row.locale,
   };
@@ -34,7 +61,7 @@ function rowToPost(row: PostRow): Post {
 const META_COLUMNS =
   "id,slug,title,description,date,updated,tags,category,published,reading_time,content_format,locale";
 
-type MetaRow = Omit<PostRow, "body" | "created_at">;
+type MetaRow = Omit<PostRow, "body" | "content_json" | "created_at">;
 
 function metaRowToMeta(row: MetaRow): PostMeta {
   return {
@@ -168,9 +195,12 @@ export async function getAdjacentPosts(
 }
 
 export async function getPostsByTag(tag: string, locale?: string): Promise<PostMeta[]> {
+  // `@>` array matching is case-sensitive. Preserve the former case-insensitive
+  // tag URL behavior without requiring a data migration for existing tags.
+  const normalizedTag = tag.toLocaleLowerCase();
   const posts = await listAllPosts(locale);
-  return posts.filter((p) =>
-    p.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
+  return posts.filter((post) =>
+    post.tags.some((postTag) => postTag.toLocaleLowerCase() === normalizedTag)
   );
 }
 
@@ -231,6 +261,7 @@ export type UpsertPostInput = {
   title: string;
   description: string;
   body: string;
+  contentJson?: TiptapDocument | null;
   contentFormat: ContentFormat;
   tags: string[];
   category?: string;
@@ -268,10 +299,10 @@ async function uniqueSlug(supabase: ReturnType<typeof getSupabaseAdmin>, base: s
 export async function deletePost(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
 
-  // Fetch body before deleting, to clean up associated images
+  // Fetch canonical content before deleting, to clean up associated images.
   const { data: post } = await supabase
     .from("posts")
-    .select("body")
+    .select("body,content_json,content_format")
     .eq("id", id)
     .maybeSingle();
 
@@ -280,7 +311,11 @@ export async function deletePost(id: string): Promise<void> {
 
   // Clean up images from storage
   if (post) {
-    const urls = extractImageUrls((post as PostRow).body ?? "");
+    const urls = extractPostImageUrls(
+      rowToStoredContent(
+        post as Pick<PostRow, "body" | "content_json" | "content_format">
+      )
+    );
     if (urls.length > 0) {
       deletePostImages(urls).catch((e) =>
         console.warn("Image cleanup failed on post delete:", e)
@@ -292,10 +327,10 @@ export async function deletePost(id: string): Promise<void> {
 export async function deletePosts(ids: string[]): Promise<void> {
   const supabase = getSupabaseAdmin();
 
-  // Fetch bodies before deleting, to clean up associated images
+  // Fetch canonical content before deleting, to clean up associated images.
   const { data: posts } = await supabase
     .from("posts")
-    .select("body")
+    .select("body,content_json,content_format")
     .in("id", ids);
 
   const { error } = await supabase.from("posts").delete().in("id", ids);
@@ -304,8 +339,11 @@ export async function deletePosts(ids: string[]): Promise<void> {
   // Clean up images from storage
   if (posts && posts.length > 0) {
     const allUrls: string[] = [];
-    for (const row of posts as PostRow[]) {
-      const urls = extractImageUrls(row.body ?? "");
+    for (const row of posts as Pick<
+      PostRow,
+      "body" | "content_json" | "content_format"
+    >[]) {
+      const urls = extractPostImageUrls(rowToStoredContent(row));
       allUrls.push(...urls);
     }
     if (allUrls.length > 0) {
@@ -320,20 +358,33 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
   const contentFormat = input.contentFormat;
-  const reading_time = computeReadingTime(input.body, contentFormat);
+  const reading_time = computeReadingTime(
+    input.body,
+    contentFormat,
+    input.contentJson
+  );
 
   let slug: string;
   let published: boolean;
+  let existingContent: StoredPostContent | null = null;
 
   if (input.id) {
     // Fetch existing post data in one query
     const { data: existing } = await supabase
       .from("posts")
-      .select("slug, published")
+      .select("slug,published,body,content_json,content_format")
       .eq("id", input.id)
       .maybeSingle();
     slug = input.slug?.trim() || existing?.slug || slugify(input.title);
     published = input.published !== undefined ? input.published : (existing?.published ?? false);
+    if (existing) {
+      existingContent = rowToStoredContent(
+        existing as Pick<
+          PostRow,
+          "body" | "content_json" | "content_format"
+        >
+      );
+    }
   } else {
     const baseSlug = input.slug?.trim() || slugify(input.title);
     slug = await uniqueSlug(supabase, baseSlug);
@@ -344,7 +395,8 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     slug,
     title: input.title,
     description: input.description,
-    body: input.body,
+    body: contentFormat === "tiptap" ? "" : input.body,
+    content_json: contentFormat === "tiptap" ? input.contentJson ?? null : null,
     content_format: contentFormat,
     date: now,
     updated: now,
@@ -355,17 +407,7 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     reading_time,
   };
 
-  let oldBody = "";
-
   if (input.id) {
-    // Fetch old body before updating, for image cleanup
-    const { data: oldPost } = await supabase
-      .from("posts")
-      .select("body")
-      .eq("id", input.id)
-      .maybeSingle();
-    if (oldPost) oldBody = (oldPost as PostRow).body ?? "";
-
     const { data, error } = await supabase
       .from("posts")
       .update(row)
@@ -374,8 +416,12 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
       .single();
     if (error) throw error;
 
-    if (oldBody) {
-      cleanupUnusedImages(oldBody, input.body).catch((e) =>
+    if (existingContent) {
+      cleanupUnusedPostImages(existingContent, {
+        body: row.body,
+        contentJson: row.content_json,
+        contentFormat,
+      }).catch((e) =>
         console.warn("Image cleanup failed:", e)
       );
     }

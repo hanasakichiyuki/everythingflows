@@ -10,7 +10,13 @@ interface ToastProps {
 export function Toast({ message, isVisible, onClose, type = "error" }: ToastProps) {
   if (!isVisible) return null;
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+    <div
+      className="fixed left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2"
+      style={{
+        bottom:
+          "calc(1.5rem + var(--mobile-player-offset, 0px) + env(safe-area-inset-bottom, 0px))",
+      }}
+    >
       <div
         role="alert"
         aria-live={type === "error" ? "assertive" : "polite"}

@@ -52,6 +52,8 @@ export interface ListConversationsOptions {
 export interface ListMessagesOptions {
   limit?: number;
   before?: string;
+  /** Fetch the most recent messages while still returning them chronologically. */
+  latestFirst?: boolean;
 }
 
 export interface PaginatedResult<T> {

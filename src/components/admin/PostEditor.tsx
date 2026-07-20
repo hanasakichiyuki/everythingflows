@@ -1,12 +1,32 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  Clock3,
+  Loader2,
+  Save,
+  Send,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { publishPostAction, saveDraftAction, deletePostAction } from "@/app/actions/posts";
-import { RichTextEditor } from "./RichTextEditor";
+import { NovelPostEditor } from "./editor/NovelPostEditor";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  EMPTY_TIPTAP_DOCUMENT,
+  isTiptapDocumentEmpty,
+  type TiptapDocument,
+} from "@/lib/editor/types";
+import {
+  extractTiptapText,
+  htmlToTiptapDocument,
+} from "@/lib/editor/serialization";
+import type { ContentFormat } from "@/types";
 
 const AUTO_SAVE_INTERVAL = 30_000; // 30s
 
@@ -20,6 +40,8 @@ type Props = {
     tags: string[];
     category?: string;
     body: string;
+    contentJson: TiptapDocument | null;
+    contentFormat: ContentFormat;
   };
 };
 
@@ -32,7 +54,18 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [tags, setTags] = useState(initialData?.tags.join(", ") ?? "");
   const [category, setCategory] = useState(initialData?.category ?? "");
-  const [content, setContent] = useState(initialData?.body ?? "");
+  const [contentFormat, setContentFormat] = useState<ContentFormat>(
+    initialData?.contentFormat ?? "tiptap"
+  );
+  const [legacyBody, setLegacyBody] = useState(initialData?.body ?? "");
+  const [contentJson, setContentJson] = useState<TiptapDocument>(
+    initialData?.contentJson ?? EMPTY_TIPTAP_DOCUMENT
+  );
+  const [editorInitialContent, setEditorInitialContent] =
+    useState<TiptapDocument>(
+      initialData?.contentJson ?? EMPTY_TIPTAP_DOCUMENT
+    );
+  const [editorRevision, setEditorRevision] = useState(0);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -40,26 +73,47 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
 
   const isEditMode = !!initialData;
   const hasChangesRef = useRef(false);
+  const changeTrackingReadyRef = useRef(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const parseTags = () =>
-    tags
-      .split(/[,，]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+  const parsedTags = useMemo(
+    () =>
+      tags
+        .split(/[,，]/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    [tags]
+  );
+
+  const hasContent =
+    contentFormat === "tiptap"
+      ? !isTiptapDocumentEmpty(contentJson)
+      : Boolean(legacyBody.trim());
+  const contentCharacters = useMemo(
+    () =>
+      contentFormat === "tiptap"
+        ? extractTiptapText(contentJson).replace(/\s/g, "").length
+        : legacyBody.replace(/\s/g, "").length,
+    [contentFormat, contentJson, legacyBody]
+  );
 
   const saveDraft = useCallback(async () => {
-    if (!title.trim() || !content.trim()) return;
+    const contentIsEmpty =
+      contentFormat === "tiptap"
+        ? isTiptapDocumentEmpty(contentJson)
+        : !legacyBody.trim();
+    if (!title.trim() || contentIsEmpty) return;
     setSaveStatus("saving");
     setMessage("");
 
     const result = await saveDraftAction({
       title: title.trim(),
       description: description.trim(),
-      tags: parseTags(),
+      tags: parsedTags,
       category: category.trim() || undefined,
-      body: content,
-      contentFormat: "html",
+      body: contentFormat === "tiptap" ? "" : legacyBody,
+      contentJson: contentFormat === "tiptap" ? contentJson : null,
+      contentFormat,
       locale,
       id: initialData?.id,
     });
@@ -73,25 +127,41 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     setSaveStatus("saved");
     setMessage("草稿已保存");
     hasChangesRef.current = false;
+    if (!initialData?.id && result.post.id) {
+      router.replace(`/admin/edit/${result.post.id}`);
+      return;
+    }
     // Reset to idle after 2s
     setTimeout(() => {
       setSaveStatus((s) => (s === "saved" ? "idle" : s));
       setMessage("");
     }, 2000);
-  }, [title, description, tags, category, content, locale, initialData?.id]);
+  }, [
+    title,
+    contentFormat,
+    contentJson,
+    legacyBody,
+    description,
+    parsedTags,
+    category,
+    locale,
+    initialData?.id,
+    router,
+  ]);
 
   const publish = async () => {
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim() || !hasContent) return;
     setSaveStatus("publishing");
     setMessage("");
 
     const result = await publishPostAction({
       title: title.trim(),
       description: description.trim(),
-      tags: parseTags(),
+      tags: parsedTags,
       category: category.trim() || undefined,
-      body: content,
-      contentFormat: "html",
+      body: contentFormat === "tiptap" ? "" : legacyBody,
+      contentJson: contentFormat === "tiptap" ? contentJson : null,
+      contentFormat,
       locale,
       published: true,
       id: initialData?.id,
@@ -135,8 +205,36 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
 
   // Track changes
   useEffect(() => {
+    if (!changeTrackingReadyRef.current) {
+      changeTrackingReadyRef.current = true;
+      return;
+    }
     hasChangesRef.current = true;
-  }, [title, description, tags, category, content]);
+  }, [
+    title,
+    description,
+    tags,
+    category,
+    contentFormat,
+    contentJson,
+    legacyBody,
+  ]);
+
+  const convertLegacyHtml = () => {
+    try {
+      const converted = htmlToTiptapDocument(legacyBody);
+      setContentJson(converted);
+      setEditorInitialContent(converted);
+      setContentFormat("tiptap");
+      setEditorRevision((value) => value + 1);
+      setSaveStatus("idle");
+      setMessage("已转换为新版编辑器，保存后才会写入数据库");
+      hasChangesRef.current = true;
+    } catch (error) {
+      setSaveStatus("error");
+      setMessage(error instanceof Error ? error.message : "HTML 转换失败");
+    }
+  };
 
   const handleDelete = async () => {
     if (!initialData?.id) return;
@@ -152,6 +250,16 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     }
   };
 
+  const closeEditor = () => {
+    if (
+      hasChangesRef.current &&
+      !window.confirm("当前修改可能尚未保存，确定要关闭编辑器吗？")
+    ) {
+      return;
+    }
+    router.push("/");
+  };
+
   if (!supabaseMode) {
     return (
       <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
@@ -163,8 +271,9 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   const statusLabel = (() => {
     switch (saveStatus) {
       case "saving":
+        return "正在保存";
       case "publishing":
-        return "保存中...";
+        return "正在发布";
       case "saved":
         return "已保存";
       case "error":
@@ -174,103 +283,249 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     }
   })();
 
+  const actionDisabled =
+    !title.trim() ||
+    !hasContent ||
+    saveStatus === "saving" ||
+    saveStatus === "publishing";
+  const articleIdentifier = initialData?.id
+    ? `post-${initialData.id.slice(0, 12)}`
+    : "保存后生成文章标识";
+
   return (
-    <div className="space-y-6">
-      <label className="block">
-        <span className="text-sm font-medium">{t("titleField")}</span>
-        <input
-          className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </label>
-
-      <label className="block">
-        <span className="text-sm font-medium">{t("descField")}</span>
-        <input
-          className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </label>
-
-      <label className="block">
-        <span className="text-sm font-medium">{t("tagsField")}</span>
-        <input
-          className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-        />
-      </label>
-
-      <label className="block">
-        <span className="text-sm font-medium">{t("categoryField")}</span>
-        <input
-          className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        />
-      </label>
-
-      <div>
-        <span className="text-sm font-medium">{t("contentField")}</span>
-        <div className="mt-1">
-          <RichTextEditor
-            onChange={setContent}
-            placeholder={t("contentPlaceholder")}
-            supabaseMode={supabaseMode}
-            initialContent={initialData?.body}
-          />
+    <div className="grid min-h-[calc(100vh-4.5rem)] lg:h-[calc(100vh-4.5rem)] lg:min-h-0 lg:grid-cols-[250px_minmax(0,1fr)]">
+      <aside className="flex flex-col border-b border-border/60 bg-foreground/[0.018] p-4 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+          <Settings2 className="h-3.5 w-3.5 text-muted" />
+          <h2 className="text-xs font-semibold">文章设置</h2>
         </div>
-        <p className="mt-2 text-xs text-muted">{t("embedHint")}</p>
-      </div>
 
-      {message && (
-        <p
-          className={`text-sm ${saveStatus === "error" ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}
-        >
-          {message}
-        </p>
-      )}
+        <div className="space-y-5 py-4">
+          <section>
+            <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted">
+              状态
+            </p>
+            <div className="space-y-2 rounded-xl border border-border/60 bg-background/45 px-3 py-2.5 text-[11px]">
+              <div className="flex items-center justify-between gap-2">
+                <span>自动保存</span>
+                <span className="flex items-center gap-1.5 text-muted">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isEditMode ? "bg-emerald-400" : "bg-amber-400"
+                    }`}
+                  />
+                  {isEditMode ? "已开启" : "首次保存后"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span>内容格式</span>
+                <span className="rounded-md bg-foreground/5 px-1.5 py-0.5 font-mono text-[9px] uppercase text-muted">
+                  {contentFormat}
+                </span>
+              </div>
+            </div>
+          </section>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={saveDraft}
-            disabled={!title.trim() || !content.trim() || saveStatus === "saving" || saveStatus === "publishing"}
-          >
-            保存草稿
-          </Button>
-          <Button
-            type="button"
-            variant="ink"
-            size="lg"
-            onClick={publish}
-            disabled={!title.trim() || !content.trim() || saveStatus === "saving" || saveStatus === "publishing"}
-          >
-            {saveStatus === "publishing" ? (isEditMode ? t("updating") : t("publishing")) : (isEditMode ? t("update") : t("publish"))}
-          </Button>
+          <label className="block">
+            <span className="text-[11px] font-medium">{t("descField")}</span>
+            <Textarea
+              className="mt-1.5 min-h-20 resize-none border-border/70 bg-background/50 px-3 py-2 text-xs leading-5"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="简短描述文章内容"
+              maxLength={1000}
+              rows={3}
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-[11px] font-medium">{t("categoryField")}</span>
+            <Input
+              className="mt-1.5 h-9 border-border/70 bg-background/50 px-3 py-2 text-xs"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              placeholder="例如：前端开发"
+              maxLength={100}
+            />
+          </label>
+
+          <section>
+            <label className="block">
+              <span className="text-[11px] font-medium">{t("tagsField")}</span>
+              <Input
+                className="mt-1.5 h-9 border-border/70 bg-background/50 px-3 py-2 text-xs"
+                value={tags}
+                onChange={(event) => setTags(event.target.value)}
+                placeholder="使用逗号分隔"
+              />
+            </label>
+            {parsedTags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {parsedTags.map((tag, index) => (
+                  <span
+                    key={`${tag}-${index}`}
+                    className="rounded-full border border-border/60 bg-background/70 px-2 py-1 text-[9px] text-muted"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
-        <div className="flex items-center gap-3">
-          {statusLabel && (
-            <span className={`text-xs ${saveStatus === "error" ? "text-red-500" : "text-muted"}`}>
-              {statusLabel}
-            </span>
-          )}
-          {isEditMode && (
+
+        {isEditMode && (
+          <div className="mt-auto border-t border-border/60 pt-3">
             <Button
               type="button"
               variant="destructive"
-              size="lg"
+              size="sm"
               onClick={() => setDeleteConfirmOpen(true)}
+              className="h-8 px-2 text-[11px]"
             >
-              删除文章
+              <Trash2 className="h-3.5 w-3.5" />
+              删除这篇文章
             </Button>
+          </div>
+        )}
+      </aside>
+
+      <section
+        className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-background/55"
+        aria-label="文章编辑区"
+      >
+        <div className="flex min-h-11 items-center gap-3 border-b border-border/60 px-3 sm:px-4">
+          <label
+            htmlFor="post-title"
+            className="shrink-0 text-[11px] font-medium text-muted"
+          >
+            文章名称
+          </label>
+          <Input
+            id="post-title"
+            className="h-8 min-w-0 flex-1 rounded-lg border-border/60 bg-background/45 px-3 py-1.5 text-xs"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="输入文章标题..."
+            maxLength={200}
+          />
+          <span
+            className="hidden max-w-44 truncate font-mono text-[9px] text-muted/60 sm:block"
+            title={articleIdentifier}
+          >
+            {articleIdentifier}
+          </span>
+        </div>
+
+        {message && (
+          <p
+            className={`border-b border-border/60 px-4 py-2 text-[11px] ${
+              saveStatus === "error"
+                ? "bg-red-500/5 text-red-600 dark:text-red-400"
+                : "bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
+            }`}
+          >
+            {message}
+          </p>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {contentFormat === "tiptap" ? (
+            <NovelPostEditor
+              key={`${initialData?.id ?? "new"}-${editorRevision}`}
+              onChange={setContentJson}
+              initialContent={editorInitialContent}
+            />
+          ) : (
+            <section className="space-y-3 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs">
+                <span>
+                  当前文章使用 {contentFormat.toUpperCase()} 格式，将保持原格式保存。
+                </span>
+                {contentFormat === "html" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={convertLegacyHtml}
+                  >
+                    转换为新版编辑器
+                  </Button>
+                )}
+              </div>
+              <textarea
+                value={legacyBody}
+                onChange={(event) => setLegacyBody(event.target.value)}
+                className="min-h-[calc(100vh-15rem)] w-full border-0 bg-transparent px-4 py-3 font-mono text-sm leading-6 outline-none"
+                spellCheck={false}
+                aria-label={`${contentFormat.toUpperCase()} 源码`}
+              />
+            </section>
           )}
         </div>
-      </div>
+
+        <footer className="z-30 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border/60 bg-background/90 px-3 py-2 backdrop-blur-xl sm:px-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted">
+            <span>{contentCharacters} 字</span>
+            <span className="flex items-center gap-1">
+              <Clock3 className="h-3 w-3" />
+              {isEditMode ? "每 30 秒自动保存" : "首次保存后开启自动保存"}
+            </span>
+            <span>⌘S / Ctrl+S 保存草稿</span>
+            {statusLabel && (
+              <span
+                className={`flex items-center gap-1 ${
+                  saveStatus === "error" ? "text-red-500" : ""
+                }`}
+              >
+                {(saveStatus === "saving" ||
+                  saveStatus === "publishing") && (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                )}
+                {statusLabel}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={closeEditor}
+            >
+              关闭
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={saveDraft}
+              disabled={actionDisabled}
+              className="gap-1.5 rounded-full"
+            >
+              <Save className="h-3.5 w-3.5" />
+              保存草稿
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={publish}
+              disabled={actionDisabled}
+              className="gap-1.5 rounded-full"
+            >
+              <Send className="h-3.5 w-3.5" />
+              {saveStatus === "publishing"
+                ? isEditMode
+                  ? t("updating")
+                  : t("publishing")
+                : isEditMode
+                  ? t("update")
+                  : t("publish")}
+            </Button>
+          </div>
+        </footer>
+      </section>
 
       <ConfirmDialog
         open={deleteConfirmOpen}

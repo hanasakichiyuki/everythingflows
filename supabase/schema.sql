@@ -8,7 +8,8 @@ create table if not exists public.posts (
   title text not null,
   description text not null default '',
   body text not null default '',
-  content_format text not null default 'html' check (content_format in ('html', 'mdx')),
+  content_json jsonb,
+  content_format text not null default 'html' check (content_format in ('html', 'mdx', 'tiptap')),
   date timestamptz not null default now(),
   updated timestamptz,
   tags text[] not null default '{}',
@@ -16,7 +17,9 @@ create table if not exists public.posts (
   published boolean not null default true,
   locale text not null default 'zh',
   reading_time text not null default '1 min read',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint posts_tiptap_content_required
+    check (content_format <> 'tiptap' or content_json is not null)
 );
 
 create index if not exists posts_locale_published_date_idx

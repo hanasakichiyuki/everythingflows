@@ -102,14 +102,15 @@ function MessageItemImpl({
 
           {/* 操作区 —— hover 显示 */}
           <div
-            className={`mt-1 flex items-center gap-3 text-muted opacity-0 transition-opacity group-hover:opacity-100 ${
+            className={`mt-1 flex items-center gap-2 text-muted opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 ${
               isUser ? "flex-row-reverse" : ""
             }`}
           >
             <button
+              type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1 text-xs transition-colors hover:text-foreground"
-              title="复制"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-xs transition-colors hover:bg-muted/20 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
+              aria-label={copied ? "已复制消息" : "复制消息"}
             >
               {copied ? (
                 <Check className="h-3.5 w-3.5 text-green-500" />
@@ -119,9 +120,10 @@ function MessageItemImpl({
             </button>
             {!isUser && onRegenerate && isLastAssistant && !isStreaming && (
               <button
+                type="button"
                 onClick={onRegenerate}
-                className="flex items-center gap-1 text-xs transition-colors hover:text-foreground"
-                title="重新生成"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-xs transition-colors hover:bg-muted/20 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
+                aria-label="重新生成回复"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
               </button>

@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MemoryFragment } from "@/types/memory";
+import { useState } from "react";
+import type { MemoryFragment } from "@/types/memory";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface FragmentDetailModalProps {
   fragment: MemoryFragment;
@@ -16,14 +25,8 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
   const [saving, setSaving] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageAspect, setImageAspect] = useState(1);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // 根据内容决定弹窗宽度
   const getModalWidth = () => {
@@ -91,7 +94,7 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
   };
 
   const handleDelete = async () => {
-    if (!confirm("确定要删除这个碎片吗？")) return;
+    setDeleting(true);
     try {
       const res = await fetch(`/api/fragments/${fragment.id}`, { method: "DELETE" });
       if (res.ok) {
@@ -100,31 +103,49 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
       }
     } catch (err) {
       console.error("Failed to delete fragment:", err);
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmOpen(false);
     }
   };
 
   return (
-    <div
-      className="anim-fade-in-slow fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="碎片详情"
-    >
-      <div
-        className={`anim-fade-scale relative w-[90vw] max-h-[90vh] ${modalWidth} overflow-auto rounded-3xl border border-zinc-800/40 bg-zinc-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl`}
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open && !saving && !deleting) onClose();
+        }}
       >
+      <DialogContent
+        overlayClassName="bg-black/85 backdrop-blur-md"
+        showCloseButton={false}
+        className={`max-h-[90vh] w-[90vw] ${modalWidth} overflow-y-auto rounded-3xl border-zinc-800/40 bg-zinc-900/95 p-0 text-zinc-200 backdrop-blur-xl`}
+        onEscapeKeyDown={(event) => {
+          if (saving || deleting) event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          if (saving || deleting) event.preventDefault();
+        }}
+      >
+        <DialogTitle className="sr-only">碎片详情</DialogTitle>
+        <DialogDescription className="sr-only">
+          查看、编辑或删除这条碎片
+        </DialogDescription>
+
         {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/60 text-zinc-400 transition-all duration-200 hover:rotate-90 hover:scale-110 hover:bg-zinc-700/60 hover:text-zinc-200 active:scale-90"
-          aria-label="关闭"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
-          </svg>
-        </button>
+        <DialogClose asChild>
+          <button
+            type="button"
+            disabled={saving || deleting}
+            className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800/60 text-zinc-400 transition-all duration-200 hover:rotate-90 hover:scale-105 hover:bg-zinc-700/60 hover:text-zinc-200 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/60 disabled:pointer-events-none"
+            aria-label="关闭"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+            </svg>
+          </button>
+        </DialogClose>
 
         {/* Content */}
         {fragment.type === "image" ? (
@@ -132,7 +153,7 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
             <div className="relative flex items-center justify-center p-6">
               <img
                 src={fragment.imageUrl || ""}
-                alt={fragment.text || ""}
+                alt={fragment.text || "碎片图片"}
                 className="max-h-[65vh] w-auto rounded-xl object-contain shadow-lg"
                 onLoad={(e) => {
                   const img = e.target as HTMLImageElement;
@@ -144,10 +165,11 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
             {fragment.text && (
               <div className="px-8 pb-6">
                 {isEditing ? (
-                  <textarea
+                  <Textarea
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-700/50 bg-zinc-800/50 px-4 py-3 text-sm font-light leading-relaxed text-zinc-200 outline-none focus:border-zinc-600"
+                    aria-label="碎片文字"
+                    className="min-h-0 border-zinc-700/50 bg-zinc-800/50 text-zinc-200 focus-visible:border-zinc-600 focus-visible:ring-zinc-500/40"
                     rows={3}
                   />
                 ) : (
@@ -173,10 +195,11 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
               </span>
 
               {isEditing ? (
-                <textarea
+                <Textarea
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  className="relative w-full rounded-xl border border-zinc-700/50 bg-zinc-800/50 px-4 py-3 text-sm font-light leading-relaxed text-zinc-200 outline-none focus:border-zinc-600"
+                  aria-label="碎片文字"
+                  className="relative min-h-0 border-zinc-700/50 bg-zinc-800/50 text-zinc-200 focus-visible:border-zinc-600 focus-visible:ring-zinc-500/40"
                   rows={8}
                 />
               ) : (
@@ -199,7 +222,7 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between border-t border-zinc-800/40 px-8 py-5">
+        <div className="flex flex-col gap-4 border-t border-zinc-800/40 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <span className="text-xs tracking-wider text-zinc-500">
             {new Date(fragment.createdAt).toLocaleDateString("zh-CN", {
               year: "numeric",
@@ -211,15 +234,18 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
             {isEditing ? (
               <>
                 <button
+                  type="button"
                   onClick={() => { setIsEditing(false); setEditText(fragment.text || ""); }}
-                  className="rounded-xl border border-zinc-700/50 px-5 py-2 text-xs tracking-wide text-zinc-400 transition-all hover:scale-105 hover:border-zinc-600 hover:text-zinc-200 active:scale-95"
+                  disabled={saving}
+                  className="min-h-10 rounded-xl border border-zinc-700/50 px-5 py-2 text-xs tracking-wide text-zinc-400 transition-all hover:scale-105 hover:border-zinc-600 hover:text-zinc-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 disabled:opacity-40"
                 >
                   取消
                 </button>
                 <button
+                  type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="rounded-xl bg-zinc-700/60 px-5 py-2 text-xs tracking-wide text-zinc-200 transition-all hover:scale-105 hover:bg-zinc-600/60 active:scale-95 disabled:opacity-40"
+                  className="min-h-10 rounded-xl bg-zinc-700/60 px-5 py-2 text-xs tracking-wide text-zinc-200 transition-all hover:scale-105 hover:bg-zinc-600/60 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 disabled:opacity-40"
                 >
                   {saving ? "保存中..." : "保存"}
                 </button>
@@ -227,14 +253,16 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
             ) : (
               <>
                 <button
+                  type="button"
                   onClick={() => setIsEditing(true)}
-                  className="rounded-xl border border-zinc-700/50 px-5 py-2 text-xs tracking-wide text-zinc-400 transition-all hover:scale-105 hover:border-zinc-600 hover:text-zinc-200 active:scale-95"
+                  className="min-h-10 rounded-xl border border-zinc-700/50 px-5 py-2 text-xs tracking-wide text-zinc-400 transition-all hover:scale-105 hover:border-zinc-600 hover:text-zinc-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
                 >
                   编辑
                 </button>
                 <button
-                  onClick={handleDelete}
-                  className="rounded-xl border border-red-900/40 px-5 py-2 text-xs tracking-wide text-red-400/80 transition-all hover:scale-105 hover:border-red-800/60 hover:bg-red-900/20 hover:text-red-300 active:scale-95"
+                  type="button"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="min-h-10 rounded-xl border border-red-900/40 px-5 py-2 text-xs tracking-wide text-red-400/80 transition-all hover:scale-105 hover:border-red-800/60 hover:bg-red-900/20 hover:text-red-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
                 >
                   删除
                 </button>
@@ -242,7 +270,19 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="删除碎片"
+        message="确定要删除这条碎片吗？此操作不可撤销。"
+        confirmText="确认删除"
+        cancelText="取消"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        loading={deleting}
+      />
+    </>
   );
 }

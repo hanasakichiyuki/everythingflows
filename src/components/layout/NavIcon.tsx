@@ -10,6 +10,7 @@ import {
   PanelLeftClose,
   Sparkles,
   MessageCircle,
+  Globe2,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -41,6 +42,7 @@ const icons: Record<string, LucideIcon | typeof GitHubIcon> = {
   qq: QQIcon as unknown as LucideIcon,
   sparkles: Sparkles,
   "message-circle": MessageCircle,
+  globe: Globe2,
 };
 
 export function NavIcon({ name, className }: { name: string; className?: string }) {

@@ -3,15 +3,28 @@ import type { SiteConfig } from "@/types";
 
 export const siteConfig = siteConfigJson as SiteConfig;
 
-export const navItems = [
+export type NavItem = {
+  href: string;
+  icon: string;
+  label: string;
+  external?: boolean;
+};
+
+export const navItems: readonly NavItem[] = [
   { href: "/", icon: "home", label: "home" },
   { href: "/archive", icon: "archive", label: "archive" },
   { href: "/fragments", icon: "sparkles", label: "fragments" },
   { href: "/chat", icon: "message-circle", label: "chat" },
   { href: "/search", icon: "search", label: "search" },
   { href: "/links", icon: "link", label: "links" },
+  {
+    href: "https://github.com/hanasakichiyuki/blogb",
+    icon: "globe",
+    label: "personalSite",
+    external: true,
+  },
   { href: "/about", icon: "user", label: "about" },
-] as const;
+];
 
 export const futureTools: { id: string; nameKey: string; href: string; enabled: boolean }[] = [
   { id: "fortune", nameKey: "tools.fortune", href: "/tools/fortune", enabled: false },

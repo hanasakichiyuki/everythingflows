@@ -22,10 +22,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired - required for Server Components
+  // getUser validates the JWT with Supabase Auth; getSession only reads cookies.
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return { response, session };
+  return { response, user };
 }

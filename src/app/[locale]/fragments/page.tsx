@@ -1,35 +1,15 @@
-import { MemoryFragment } from "@/types/memory";
 import { MemoryWall } from "@/components/memory/MemoryWall";
-import { seedFragments } from "@/data/seed-fragments";
-import { getSupabasePublic } from "@/lib/api/supabase/client";
+import { listFragments } from "@/lib/api/fragments";
 
 // ISR：碎碎念变更频率低；1h 兜底，增删改时由 API 路由精确 revalidate。
 export const revalidate = 3600;
 
-async function getFragments(): Promise<MemoryFragment[]> {
+async function getFragments() {
   try {
-    const supabase = getSupabasePublic();
-    const { data, error } = await supabase
-      .from("fragments")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching fragments:", error);
-      return seedFragments;
-    }
-
-    return data.map((item) => ({
-      id: item.id,
-      type: item.type as "image" | "text",
-      imageUrl: item.image_url || undefined,
-      text: item.text || undefined,
-      width: (item.width as MemoryFragment["width"]) || "md",
-      height: (item.height as MemoryFragment["height"]) || "medium",
-      createdAt: item.created_at,
-    }));
+    return await listFragments();
   } catch {
-    return seedFragments;
+    console.error("[fragments] unable to load fragments");
+    return [];
   }
 }
 

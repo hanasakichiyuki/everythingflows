@@ -41,11 +41,15 @@ export function ModelPicker({
   return (
     <div ref={ref} className="relative">
       <button
+        type="button"
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
         title={disabled ? "登录后可切换模型" : undefined}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls="chat-model-listbox"
         className={cn(
-          "flex items-center gap-1.5 rounded-lg text-xs transition-colors",
+          "flex min-h-10 items-center gap-1.5 rounded-lg text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50",
           "px-2 py-1 text-foreground/80 hover:bg-muted/30",
           disabled && "cursor-not-allowed opacity-60 hover:bg-transparent"
         )}
@@ -63,16 +67,24 @@ export function ModelPicker({
       </button>
 
       {open && !disabled && (
-        <div className="anim-fade-in absolute right-0 top-full z-50 mt-1 min-w-[240px] overflow-hidden rounded-xl border border-border bg-background shadow-xl">
+        <div
+          id="chat-model-listbox"
+          role="listbox"
+          aria-label="选择 AI 模型"
+          className="anim-fade-in absolute right-0 top-full z-50 mt-1 min-w-[240px] overflow-hidden rounded-xl border border-border bg-background shadow-xl"
+        >
           {models.map((model) => (
             <button
+              type="button"
               key={model.id}
+              role="option"
+              aria-selected={selectedModelId === model.id}
               onClick={() => {
                 onSelect(model.id);
                 setOpen(false);
               }}
               className={cn(
-                "flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-muted/30",
+                "flex min-h-11 w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pink-400/50",
                 selectedModelId === model.id && "bg-muted/40"
               )}
             >

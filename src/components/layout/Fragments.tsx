@@ -1,35 +1,37 @@
 import { Link } from "@/i18n/navigation";
+import Image from "next/image";
 import type { MemoryFragment } from "@/types/memory";
+import { Surface } from "@/components/ui/surface";
+import { getTranslations } from "next-intl/server";
 
 interface FragmentsProps {
   fragments: MemoryFragment[];
 }
 
-export function Fragments({ fragments }: FragmentsProps) {
+export async function Fragments({ fragments }: FragmentsProps) {
+  const t = await getTranslations("home");
   const displayFragments = fragments.slice(0, 4);
 
   return (
-    <div
-      className="anim-fade-up relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-6 shadow-lg dark:border-white/10 dark:bg-gray-900/50"
+    <Surface
+      className="anim-fade-up p-6"
       style={{ animationDelay: "0.16s" }}
     >
-      <div className="absolute inset-0 rounded-2xl bg-white/10 dark:bg-gray-900/30 pointer-events-none" />
-
-      <div className="relative z-10">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground/90 dark:text-foreground">
-            Fragments
-            <span className="ml-2 text-pink-500">•</span>
+            {t("fragments")}
+            <span className="ml-2 text-primary">•</span>
           </h3>
           <Link
             href="/fragments"
-            className="text-xs text-muted transition-colors hover:text-pink-500"
+            className="text-xs text-muted transition-colors hover:text-primary"
           >
-            查看全部 →
+            {t("viewAll")} <span aria-hidden>→</span>
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {displayFragments.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3">
           {displayFragments.map((fragment, index) => (
             <div
               key={fragment.id}
@@ -38,9 +40,11 @@ export function Fragments({ fragments }: FragmentsProps) {
               <Link href={`/fragments`} className="block">
                 {fragment.type === "image" ? (
                   <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-800/30 bg-zinc-900/30">
-                    <img
+                    <Image
                       src={fragment.imageUrl || ""}
                       alt={fragment.text || "Fragment"}
+                      fill
+                      sizes="(max-width: 1024px) 50vw, 240px"
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     {fragment.text && (
@@ -68,8 +72,12 @@ export function Fragments({ fragments }: FragmentsProps) {
               </Link>
             </div>
           ))}
-        </div>
-      </div>
-    </div>
+          </div>
+        ) : (
+          <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-border px-4 py-10 text-center">
+            <p className="text-sm text-muted">{t("fragmentsEmpty")}</p>
+          </div>
+        )}
+    </Surface>
   );
 }

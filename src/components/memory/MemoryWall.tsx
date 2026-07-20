@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MemoryFragment } from "@/types/memory";
+import type { MemoryFragment } from "@/types/memory";
 import { MemoryCard } from "./MemoryCard";
 import { FragmentDetailModal } from "./FragmentDetailModal";
 import { AddFragmentButton } from "./AddFragmentButton";
@@ -38,20 +38,28 @@ export function MemoryWall({ fragments }: { fragments: MemoryFragment[] }) {
       </header>
       {/* Masonry Grid */}
       <div className="mx-auto max-w-6xl px-4 pb-20 md:px-8">
-        <div className="columns-2 gap-3 md:columns-3 lg:columns-4 xl:columns-4">
-          {fragmentsList.map((fragment, index) => (
-            <div
-              key={fragment.id}
-              className="anim-fade-up break-inside-avoid mb-3"
-              style={{ animationDelay: `${Math.min(index * 0.05, 0.6)}s` }}
-            >
-              <MemoryCard
-                fragment={fragment}
-                onClick={() => setSelectedFragment(fragment)}
-              />
-            </div>
-          ))}
-        </div>
+        {fragmentsList.length > 0 ? (
+          <div className="columns-2 gap-3 md:columns-3 lg:columns-4 xl:columns-4">
+            {fragmentsList.map((fragment, index) => (
+              <div
+                key={fragment.id}
+                className="anim-fade-up mb-3 break-inside-avoid"
+                style={{ animationDelay: `${Math.min(index * 0.05, 0.6)}s` }}
+              >
+                <MemoryCard
+                  fragment={fragment}
+                  onClick={() => setSelectedFragment(fragment)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mx-auto max-w-md rounded-2xl border border-dashed border-zinc-700/60 px-6 py-16 text-center">
+            <p className="text-sm font-light tracking-wide text-zinc-500">
+              还没有留下碎片
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

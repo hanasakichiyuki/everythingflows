@@ -1,10 +1,9 @@
-"use client";
-
 import { LatestPosts } from "./LatestPosts";
 import { Fragments } from "./Fragments";
-import { useCurrentTime } from "@/hooks/useCurrentTime";
+import { HomeDate } from "./HomeDate";
 import type { PostMeta } from "@/types";
 import type { MemoryFragment } from "@/types/memory";
+import { Surface } from "@/components/ui/surface";
 
 interface HomePageContentProps {
   posts: PostMeta[];
@@ -39,14 +38,12 @@ const text = `或许鸟儿
 })(); */
 
 export function HomePageContent({ posts, fragments }: HomePageContentProps) {
-  const time = useCurrentTime();
-
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 px-8 py-10 shadow-lg dark:border-white/10 dark:bg-gray-900/50 sm:px-14">
-        <div className="absolute inset-0 rounded-2xl bg-white/10 dark:bg-gray-900/30 pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+      <Surface
+        className="px-8 py-10 sm:px-14"
+        contentClassName="flex flex-col gap-8 md:flex-row md:items-start md:justify-between"
+      >
           <div className="flex-1 space-y-4">
             <div>
               <h1 className="mb-3 text-5xl font-bold tracking-tight">
@@ -76,19 +73,8 @@ export function HomePageContent({ posts, fragments }: HomePageContentProps) {
             </p>
           </div>
 
-          <div className="anim-fade-up text-right">
-            <div className="text-7xl font-bold text-foreground/90 dark:text-foreground">
-              {time.day}
-            </div>
-            <div className="mt-1 text-sm text-muted">
-              {time.month} {time.year}
-            </div>
-            <div className="mt-0.5 text-xs text-muted">
-              {time.weekday}
-            </div>
-          </div>
-        </div>
-      </div>
+          <HomeDate />
+      </Surface>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
         <LatestPosts posts={posts} />

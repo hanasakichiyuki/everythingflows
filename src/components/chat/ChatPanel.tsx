@@ -138,10 +138,10 @@ export function ChatPanel({
           content,
         });
         if (!result.ok) {
-          console.error("保存消息失败:", result.error);
+          setCallbackError("消息未保存，刷新后可能丢失");
         }
-      } catch (e) {
-        console.error("保存消息失败:", e instanceof Error ? e.message : e);
+      } catch {
+        setCallbackError("消息未保存，刷新后可能丢失");
       }
     },
     [sendMessage, conversation.id],
@@ -167,9 +167,10 @@ export function ChatPanel({
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-2.5">
         <button
+          type="button"
           onClick={onToggleSidebar}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-muted/30 hover:text-foreground"
-          title="对话列表"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
+          aria-label="打开对话列表"
         >
           <PanelLeft className="h-4 w-4" />
         </button>

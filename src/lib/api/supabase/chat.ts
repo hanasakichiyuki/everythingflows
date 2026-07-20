@@ -178,9 +178,14 @@ export async function deleteConversation(
 }
 
 export async function createMessage(
-  input: CreateMessageInput
+  input: CreateMessageInput,
+  userId: string
 ): Promise<Message> {
   const supabase = getSupabaseAdmin();
+  const isOwner = await verifyConversationOwnership(input.conversationId, userId);
+  if (!isOwner) {
+    throw new Error("无权访问此对话");
+  }
   const { data, error } = await supabase
     .from("chat_messages")
     .insert({
@@ -202,12 +207,13 @@ export async function getMessages(
 ): Promise<PaginatedResult<Message>> {
   const supabase = getSupabaseAdmin();
   const limit = options?.limit ?? 100;
+  const latestFirst = options?.latestFirst ?? false;
 
   let query = supabase
     .from("chat_messages")
     .select()
     .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: !latestFirst })
     .limit(limit + 1);
 
   if (options?.before) {
@@ -227,10 +233,13 @@ export async function getMessages(
 
   const rows = data as MessageRow[];
   const hasMore = rows.length > limit;
-  const data_rows = hasMore ? rows.slice(0, limit) : rows;
+  const dataRows = hasMore ? rows.slice(0, limit) : rows;
+  // The database query runs newest-first to retain the most recent context,
+  // but callers always receive messages in chronological order.
+  const orderedRows = latestFirst ? dataRows.reverse() : dataRows;
 
   return {
-    data: data_rows.map(mapMessage),
+    data: orderedRows.map(mapMessage),
     hasMore,
   };
 }

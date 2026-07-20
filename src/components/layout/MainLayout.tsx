@@ -7,11 +7,14 @@ import { Sidebar } from "./Sidebar";
 import { RouteTransition } from "./RouteTransition";
 import { NavigationOverlay } from "./NavigationOverlay";
 import { RightSidebarProvider } from "./RightSidebarContext";
-import { SearchModal } from "@/components/search/SearchModal";
 import type { SearchItem } from "@/components/search/SearchModal";
 import { siteConfig } from "@/config/site";
 
 const MusicPlayer = dynamic(() => import("./MusicPlayer").then((mod) => ({ default: mod.MusicPlayer })), { ssr: false });
+const SearchModal = dynamic(
+  () => import("@/components/search/SearchModal").then((mod) => ({ default: mod.SearchModal })),
+  { ssr: false }
+);
 
 const Live2DWidget = dynamic(
   () => import("@/components/live2d/Live2DWidget").then((m) => m.Live2DWidget),
@@ -23,6 +26,8 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
   const [searchOpen, setSearchOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
+  const isAdminWorkspace =
+    pathname === "/admin" || pathname.startsWith("/admin/");
 
   // 移动端默认收起侧边栏（桌面端保持展开）；跨断点时同步。
   // SSR 默认 false（桌面正确），挂载后按视口校正——侧边栏本就从屏外滑入，移动端几乎无闪烁。
@@ -39,15 +44,22 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
 
   // 移动端导航后自动收起抽屉
   useEffect(() => {
-    if (isMobile) setSidebarCollapsed(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+    if (!isMobile) return;
+    const frame = requestAnimationFrame(() => setSidebarCollapsed(true));
+    return () => cancelAnimationFrame(frame);
+  }, [isMobile, pathname]);
 
   return (
     <RightSidebarProvider>
+      <a
+        href="#main-content"
+        className="fixed left-3 top-3 z-[100] -translate-y-20 rounded-lg bg-background px-4 py-2 text-sm font-medium text-foreground shadow-lg transition-transform focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        跳到主要内容
+      </a>
       <div className="relative flex min-h-screen">
         {/* Full-screen background image */}
-        {siteConfig.backgroundImage && (
+        {!isAdminWorkspace && siteConfig.backgroundImage && (
           <div
             className="site-background fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
             aria-hidden
@@ -55,14 +67,16 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
         )}
 
         {/* Sidebar */}
-        <Sidebar
-          onSearchClick={() => setSearchOpen(true)}
-          onCollapseClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          collapsed={sidebarCollapsed}
-        />
+        {!isAdminWorkspace && (
+          <Sidebar
+            onSearchClick={() => setSearchOpen(true)}
+            onCollapseClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            collapsed={sidebarCollapsed}
+          />
+        )}
 
         {/* 移动端抽屉遮罩 —— 打开时点击关闭 */}
-        {isMobile && !sidebarCollapsed && (
+        {!isAdminWorkspace && isMobile && !sidebarCollapsed && (
           <div
             className="anim-fade-in fixed inset-0 z-[15] bg-black/30 backdrop-blur-sm md:hidden"
             onClick={() => setSidebarCollapsed(true)}
@@ -71,10 +85,11 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
         )}
 
         {/* Expand sidebar button (visible when collapsed) */}
-        {sidebarCollapsed && (
+        {!isAdminWorkspace && sidebarCollapsed && (
           <button
+            type="button"
             onClick={() => setSidebarCollapsed(false)}
-            className="anim-pop-in fixed left-2 top-4 z-30 flex h-8 w-8 items-center justify-center rounded-lg bg-white/60 text-foreground/70 shadow-sm backdrop-blur-sm transition-transform duration-200 hover:scale-110 hover:bg-white/80 hover:text-foreground active:scale-95 dark:bg-gray-900/50 dark:hover:bg-gray-900/70"
+            className="anim-pop-in fixed left-2 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-white/60 text-foreground/70 shadow-sm backdrop-blur-sm transition-transform duration-200 hover:scale-105 hover:bg-white/80 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-gray-900/50 dark:hover:bg-gray-900/70"
             aria-label="展开侧边栏"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -85,20 +100,39 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
         )}
 
         {/* Main content */}
-        <main className={`relative z-10 flex-1 px-6 py-8 md:px-10 lg:px-12 transition-all duration-300 ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[200px]"}`}>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className={`relative z-10 flex-1 transition-all duration-300 ${isAdminWorkspace ? "ml-0 bg-[#f1f2f5] px-3 py-3 dark:bg-[#101114]" : `public-site-main px-6 py-8 md:px-10 lg:px-12 ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[200px]"}`}`}
+        >
           <RouteTransition>
-            <div className="mx-auto max-w-4xl">{children}</div>
+            <div
+              className={
+                isAdminWorkspace
+                  ? "mx-auto w-full max-w-[1500px]"
+                  : "mx-auto max-w-4xl"
+              }
+            >
+              {children}
+            </div>
           </RouteTransition>
-          <footer className="mt-12 text-center text-[11px] text-foreground/30 text-teal-500">
-            © 2026 Everythingflows.All rights reserved.
-          </footer>
+          {!isAdminWorkspace && (
+            <footer className="mt-12 text-center text-[11px] text-foreground/40">
+              © 2026 Everythingflows.All rights reserved.
+            </footer>
+          )}
         </main>
 
         {/* Live2D Widget */}
-        <Live2DWidget sidebarCollapsed={sidebarCollapsed} />
+        {!isAdminWorkspace && <Live2DWidget sidebarCollapsed={sidebarCollapsed} />}
 
         {/* Desktop Music Player */}
-        {siteConfig.music.enabled && <MusicPlayer collapsed={sidebarCollapsed} />}
+        {siteConfig.music.enabled && (
+          <MusicPlayer
+            collapsed={sidebarCollapsed}
+            hidden={isAdminWorkspace}
+          />
+        )}
       </div>
 
       {/* Search Modal */}

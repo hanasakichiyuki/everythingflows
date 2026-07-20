@@ -16,8 +16,9 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:text-pink-500"
-      aria-label={isDark ? "亮色模式" : "暗色模式"}
+      className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-black/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-white/10"
+      aria-label={isDark ? "切换为亮色模式" : "切换为暗色模式"}
+      aria-pressed={isDark}
     >
       {/* key 触发图标切换时的旋转淡入；suppressHydrationWarning 因 mounted 前后图标可能不同 */}
       <span key={isDark ? "sun" : "moon"} className="anim-icon-rotate inline-flex" suppressHydrationWarning>

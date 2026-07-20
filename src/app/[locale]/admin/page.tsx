@@ -1,11 +1,9 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
 import { PostEditor } from "@/components/admin/PostEditor";
 import { isSupabaseMode } from "@/lib/api/posts";
-import { ContentCard } from "@/components/layout/ContentCard";
 import { createClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { AdminWorkspaceShell } from "@/components/admin/AdminWorkspaceShell";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +14,6 @@ export default async function AdminPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("admin");
 
   const supabase = await createClient();
   const {
@@ -28,22 +25,8 @@ export default async function AdminPage({
   }
 
   return (
-    <ContentCard>
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <div className="flex items-center gap-4">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/${locale}/admin/drafts`}>草稿箱</Link>
-          </Button>
-          <span className="text-sm text-muted">{user.email}</span>
-          <form action="/api/auth/logout" method="POST">
-            <Button type="submit" variant="outline" size="sm">
-              登出
-            </Button>
-          </form>
-        </div>
-      </div>
+    <AdminWorkspaceShell email={user.email} mode="create">
       <PostEditor locale={locale} supabaseMode={isSupabaseMode()} />
-    </ContentCard>
+    </AdminWorkspaceShell>
   );
 }

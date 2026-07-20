@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect} from "react";
-import { MemoryFragment } from "@/types/memory";
+import { useEffect, useState } from "react";
+import type { MemoryFragment } from "@/types/memory";
 
 export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; onClick?: () => void }) {
   const [loaded, setLoaded] = useState(false);
@@ -27,9 +27,11 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
       : text;
 
     return (
-      <div
+      <button
+        type="button"
         onClick={onClick}
-        className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-800/30 bg-zinc-900/30 shadow-lg backdrop-blur-sm transition-all duration-500 hover:-translate-y-0.5 hover:scale-[1.005] hover:border-zinc-700/40 hover:shadow-xl hover:shadow-zinc-900/20"
+        className="group relative flex w-full cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-800/30 bg-zinc-900/30 text-left shadow-lg backdrop-blur-sm transition-all duration-500 hover:-translate-y-0.5 hover:scale-[1.005] hover:border-zinc-700/40 hover:shadow-xl hover:shadow-zinc-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        aria-label={`查看碎片：${text.slice(0, 40)}`}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/5 to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
         <div className="relative z-10 p-8 md:p-10">
@@ -43,14 +45,16 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
             month: "short",
           })}
         </span>
-      </div>
+      </button>
     );
   }
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-800/30 bg-zinc-900/30 shadow-lg backdrop-blur-sm transition-all duration-500 hover:-translate-y-0.5 hover:scale-[1.005] hover:border-zinc-700/40 hover:shadow-xl hover:shadow-zinc-900/20"
+      className="group relative block w-full cursor-pointer overflow-hidden rounded-2xl border border-zinc-800/30 bg-zinc-900/30 text-left shadow-lg backdrop-blur-sm transition-all duration-500 hover:-translate-y-0.5 hover:scale-[1.005] hover:border-zinc-700/40 hover:shadow-xl hover:shadow-zinc-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      aria-label={fragment.text ? `查看碎片：${fragment.text.slice(0, 40)}` : "查看图片碎片"}
     >
       <div className="relative w-full overflow-hidden">
         {!loaded && (
@@ -58,7 +62,7 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
         )}
         <img
           src={fragment.imageUrl || ""}
-          alt={fragment.text || ""}
+          alt={fragment.text || "碎片图片"}
           className={`w-full object-cover transition-opacity duration-1000 ${loaded ? "opacity-100" : "opacity-0"}`}
           onLoad={() => setLoaded(true)}
         />
@@ -74,6 +78,6 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
           month: "short",
         })}
       </span>
-    </div>
+    </button>
   );
 }

@@ -46,9 +46,10 @@ export async function deleteConversation(
 }
 
 export async function createMessage(
-  input: CreateMessageInput
+  input: CreateMessageInput,
+  userId: string
 ): Promise<Message> {
-  return sbChat.createMessage(input);
+  return sbChat.createMessage(input, userId);
 }
 
 export async function getMessages(

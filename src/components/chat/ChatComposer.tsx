@@ -61,7 +61,7 @@ export function ChatComposer({
         <div
           className={cn(
             "relative flex items-end gap-2 rounded-[26px] border border-border bg-background shadow-sm transition-shadow",
-            "focus-within:border-foreground/30 focus-within:shadow-md",
+            "focus-within:border-foreground/30 focus-within:shadow-md focus-within:ring-2 focus-within:ring-pink-400/20",
             "dark:border-border"
           )}
         >
@@ -71,10 +71,12 @@ export function ChatComposer({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="发送消息"
+            aria-label="发送消息"
+            aria-describedby="chat-composer-hint"
             rows={1}
             disabled={disabled}
             className={cn(
-              "max-h-[200px] flex-1 resize-none bg-transparent px-5 py-3.5",
+              "max-h-[200px] flex-1 resize-none bg-transparent py-3.5 pl-5 pr-14",
               "text-[15px] leading-6 text-foreground placeholder:text-muted",
               "focus:outline-none disabled:opacity-50"
             )}
@@ -84,23 +86,25 @@ export function ChatComposer({
           <div className="absolute bottom-2 right-2">
             {isStreaming ? (
               <button
+                type="button"
                 onClick={onStop}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-background transition-all hover:opacity-80 active:scale-95"
-                title="停止生成"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background transition-all hover:opacity-80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 focus-visible:ring-offset-2"
+                aria-label="停止生成"
               >
                 <Square className="h-3.5 w-3.5 fill-current" />
               </button>
             ) : (
               <button
+                type="button"
                 onClick={handleSend}
                 disabled={!canSend}
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full transition-all active:scale-95",
+                  "flex h-10 w-10 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 focus-visible:ring-offset-2",
                   canSend
                     ? "bg-foreground text-background hover:opacity-80"
                     : "bg-muted/30 text-muted"
                 )}
-                title="发送"
+                aria-label="发送消息"
               >
                 <ArrowUp className="h-4 w-4" />
               </button>
@@ -108,7 +112,7 @@ export function ChatComposer({
           </div>
         </div>
 
-        <p className="mt-2 text-center text-xs text-muted">
+        <p id="chat-composer-hint" className="mt-2 text-center text-xs text-muted">
           AI 可能会出错，请核实重要信息
         </p>
       </div>

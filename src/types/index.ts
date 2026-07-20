@@ -1,4 +1,6 @@
-export type ContentFormat = "html" | "mdx";
+import type { TiptapDocument } from "@/lib/editor/types";
+
+export type ContentFormat = "html" | "mdx" | "tiptap";
 
 export interface Post {
   id?: string;
@@ -12,6 +14,7 @@ export interface Post {
   published: boolean;
   readingTime: string;
   content: string;
+  contentJson: TiptapDocument | null;
   contentFormat: ContentFormat;
   locale: string;
 }

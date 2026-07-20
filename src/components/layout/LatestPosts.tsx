@@ -1,5 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import type { PostMeta } from "@/types";
+import { Surface } from "@/components/ui/surface";
+import { getTranslations } from "next-intl/server";
 
 interface LatestPostsProps {
   posts: PostMeta[];
@@ -12,37 +14,37 @@ function formatMonthDay(date: string) {
   return `${month}-${day}`;
 }
 
-export function LatestPosts({ posts }: LatestPostsProps) {
+export async function LatestPosts({ posts }: LatestPostsProps) {
+  const t = await getTranslations("home");
   const displayPosts = posts.slice(0, 5);
 
   return (
-    <div
-      className="anim-fade-up relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-6 shadow-lg dark:border-white/10 dark:bg-gray-900/50"
+    <Surface
+      className="anim-fade-up flex h-full flex-col p-6"
+      contentClassName="flex flex-1 flex-col"
     >
-      <div className="absolute inset-0 rounded-2xl bg-white/10 dark:bg-gray-900/30 pointer-events-none" />
-
-      <div className="relative z-10 flex flex-1 flex-col">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground/90 dark:text-foreground">
-            Latest Posts
-            <span className="ml-2 text-pink-500">•</span>
+            {t("latest")}
+            <span className="ml-2 text-primary">•</span>
           </h3>
           <Link
             href="/archive"
-            className="text-xs text-muted transition-colors hover:text-pink-500"
+            className="text-xs text-muted transition-colors hover:text-primary"
           >
-            查看全部 →
+            {t("viewAll")} <span aria-hidden>→</span>
           </Link>
         </div>
 
-        <div className="relative flex flex-1 flex-col justify-evenly pl-8">
+        {displayPosts.length > 0 ? (
+          <div className="relative flex flex-1 flex-col justify-evenly pl-8">
           {/* Vertical timeline line */}
           <div
             className="absolute left-[2.125rem] top-2 bottom-2 w-px border-l border-dashed border-pink-300/25"
             aria-hidden
           />
 
-          {displayPosts.map((post, index) => (
+            {displayPosts.map((post, index) => (
             <article
               key={post.slug}
               className={`anim-fade-up anim-delay-${index + 1} group cursor-pointer`}
@@ -90,9 +92,13 @@ export function LatestPosts({ posts }: LatestPostsProps) {
                 )}
               </Link>
             </article>
-          ))}
-        </div>
-      </div>
-    </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-border px-4 py-10 text-center">
+            <p className="text-sm text-muted">{t("empty")}</p>
+          </div>
+        )}
+    </Surface>
   );
 }

@@ -170,7 +170,7 @@ export async function deleteConversationAction(
 }
 
 export async function createMessageAction(
-  input: { conversationId: string; role: "user" | "assistant" | "system"; content: string }
+  input: { conversationId: string; role: "user"; content: string }
 ): Promise<ActionResult<Message>> {
   return handle(async () => {
     const userId = await getUserId();
@@ -179,20 +179,16 @@ export async function createMessageAction(
       return ok({
         id: crypto.randomUUID(),
         conversationId: input.conversationId,
-        role: input.role,
+        role: "user",
         content: input.content,
         modelId: null,
         createdAt: new Date().toISOString(),
       });
     }
-    const isOwner = await verifyConversationOwnership(
-      input.conversationId,
-      userId
-    );
-    if (!isOwner) {
-      return fail("无权访问此对话");
+    if (!input.content.trim() || input.content.length > 4000) {
+      return fail("消息内容不能为空且不能超过 4000 个字符");
     }
-    const message = await createMessage(input);
+    const message = await createMessage(input, userId);
     return ok(message);
   });
 }

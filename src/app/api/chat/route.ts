@@ -23,6 +23,7 @@ const DEFAULT_SYSTEM_PROMPT = `你是顾砚雪，害羞的女高吉他手，也�
 import {
   createMessage as saveMessage,
   getConversation,
+  getMessages,
   verifyConversationOwnership,
 } from "@/lib/api/chat";
 import { createClient } from "@/lib/supabase/server-client";
@@ -64,19 +65,17 @@ function json(error: string, status: number): Response {
   });
 }
 
-/** 匿名用户的轻量防护：单条消息字符上限、单次请求消息数组上限（防御性） */
-const ANON_MAX_MESSAGE_CHARS = 4000;
-const ANON_MAX_MESSAGES_PER_REQUEST = 100;
+/** 所有请求的输入边界，避免单个账户无限消耗模型上下文。 */
+const MAX_MESSAGE_CHARS = 4000;
+const MAX_MESSAGES_PER_REQUEST = 100;
 
 /** 匿名用户每日请求上限（按 IP + UTC 日期计数） */
 const ANON_DAILY_LIMIT = 30;
+const USER_DAILY_LIMIT = 200;
 
-function clientIp(req: Request): string {
-  const xf = req.headers.get("x-forwarded-for");
-  if (xf) return xf.split(",")[0]!.trim();
-  const real = req.headers.get("x-real-ip");
-  if (real) return real.trim();
-  return "unknown";
+function clientIp(req: Request): string | null {
+  // 仅接受 Vercel 覆盖写入的请求头；X-Forwarded-For 和 X-Real-IP 可由客户端伪造。
+  return req.headers.get("x-vercel-forwarded-for")?.trim() || null;
 }
 
 /** 当天 UTC 日期字符串（YYYY-MM-DD），用于日限 key */
@@ -94,32 +93,39 @@ function secondsUntilDayEnd(): number {
 // 匿名用户每日请求计数（进程内降级，Upstash 不可用时使用）
 const dailyCountMap = new Map<string, { count: number; date: string }>();
 
-/** 匿名用户日限检查：Upstash 优先（分布式），降级进程内 Map（单实例） */
-async function checkAnonDailyLimit(ip: string): Promise<{ allowed: boolean; count: number; limit: number }> {
+/** 日限检查。生产环境要求 Upstash，避免多实例时无声放宽配额。 */
+async function checkDailyLimit(
+  subject: string,
+  limit: number
+): Promise<{ allowed: boolean; count: number; limit: number; unavailable?: boolean }> {
   const dateKey = todayUtcKey();
 
   const redis = getRedis();
   if (redis) {
     try {
-      const redisKey = `chat:daily:${ip}:${dateKey}`;
+      const redisKey = `chat:daily:${subject}:${dateKey}`;
       const count = await redis.incr(redisKey);
       if (count === 1) {
         await redis.expire(redisKey, secondsUntilDayEnd());
       }
-      return { allowed: count <= ANON_DAILY_LIMIT, count, limit: ANON_DAILY_LIMIT };
-    } catch (e) {
-      console.error("[chat] redis daily count failed, fallback to in-memory:", e);
+      return { allowed: count <= limit, count, limit };
+    } catch {
+      console.error("[chat] redis daily count failed");
     }
   }
 
+  if (process.env.NODE_ENV === "production") {
+    return { allowed: false, count: 0, limit, unavailable: true };
+  }
+
   // 降级：进程内 Map
-  const entry = dailyCountMap.get(ip);
+  const entry = dailyCountMap.get(subject);
   if (!entry || entry.date !== dateKey) {
-    dailyCountMap.set(ip, { count: 1, date: dateKey });
-    return { allowed: true, count: 1, limit: ANON_DAILY_LIMIT };
+    dailyCountMap.set(subject, { count: 1, date: dateKey });
+    return { allowed: true, count: 1, limit };
   }
   entry.count += 1;
-  return { allowed: entry.count <= ANON_DAILY_LIMIT, count: entry.count, limit: ANON_DAILY_LIMIT };
+  return { allowed: entry.count <= limit, count: entry.count, limit };
 }
 
 // 定期清理进程内 dailyCountMap 的跨日旧条目，防止长期运行内存泄漏
@@ -189,32 +195,13 @@ export async function POST(req: Request) {
     return json("messages 不能为空", 400);
   }
 
-  // 匿名用户条数与长度上限
-  if (isAnonymous) {
-    // 每日请求上限（按 IP + UTC 日期）
-    const ip = clientIp(req);
-    const daily = await checkAnonDailyLimit(ip);
-    if (!daily.allowed) {
-      return json(
-        `匿名用户每日最多发送 ${daily.limit} 条消息，今日已用 ${daily.count} 次，请登录后继续使用`,
-        429
-      );
-    }
-    // 单次请求消息数组防御性上限
-    if (messages.length > ANON_MAX_MESSAGES_PER_REQUEST) {
-      return json(
-        `单次请求消息数过多，请登录后再试`,
-        400
-      );
-    }
-    for (const m of messages) {
-      const text = extractText(m);
-      if (text.length > ANON_MAX_MESSAGE_CHARS) {
-        return json(
-          `单条消息不能超过 ${ANON_MAX_MESSAGE_CHARS} 字符，请登录后再试`,
-          400
-        );
-      }
+  if (messages.length > MAX_MESSAGES_PER_REQUEST) {
+    return json("单次请求消息数过多", 400);
+  }
+  for (const m of messages) {
+    const text = extractText(m);
+    if (text.length > MAX_MESSAGE_CHARS) {
+      return json(`单条消息不能超过 ${MAX_MESSAGE_CHARS} 字符`, 400);
     }
   }
 
@@ -224,12 +211,13 @@ export async function POST(req: Request) {
   // 仅登录用户可读取对话配置（模型、系统提示词）；匿名用户忽略请求中的 modelId
   if (user && conversationId) {
     const isOwner = await verifyConversationOwnership(conversationId, user.id);
-    if (isOwner) {
-      const conversation = await getConversation(conversationId);
-      if (conversation) {
-        conversationModelId = conversation.modelId;
-        systemPrompt = conversation.systemPrompt;
-      }
+    if (!isOwner) {
+      return json("无权访问此对话", 403);
+    }
+    const conversation = await getConversation(conversationId);
+    if (conversation) {
+      conversationModelId = conversation.modelId;
+      systemPrompt = conversation.systemPrompt;
     }
   }
 
@@ -253,14 +241,53 @@ export async function POST(req: Request) {
     return json("AI 模型解析失败：无可用模型，请检查 API Key 配置", 500);
   }
 
-  const apiMessages: { role: "user" | "assistant"; content: string }[] = [];
-  for (const m of messages) {
-    // system role 不放进 messages 数组（AI SDK v6 不接受），用 system 选项传
-    if (m.role === "system") continue;
-    apiMessages.push({
-      role: m.role as "user" | "assistant",
-      content: extractText(m),
-    });
+  const lastMessage = messages.at(-1);
+  if (!lastMessage || lastMessage.role !== "user") {
+    return json("请求必须以一条用户消息结束", 400);
+  }
+  const latestUserMessage = extractText(lastMessage).trim();
+  if (!latestUserMessage) return json("消息内容不能为空", 400);
+
+  const anonymousIp = isAnonymous ? clientIp(req) : null;
+  if (isAnonymous && !anonymousIp && process.env.NODE_ENV === "production") {
+    return json("聊天服务限流暂不可用，请稍后重试", 503);
+  }
+  const daily = await checkDailyLimit(
+    isAnonymous ? `anon:${anonymousIp ?? "development"}` : `user:${user.id}`,
+    isAnonymous ? ANON_DAILY_LIMIT : USER_DAILY_LIMIT
+  );
+  if (!daily.allowed) {
+    if (daily.unavailable) {
+      return json("聊天服务限流暂不可用，请稍后重试", 503);
+    }
+    return json(
+      isAnonymous
+        ? `匿名用户每日最多发送 ${daily.limit} 条消息，请登录后继续使用`
+        : `今日聊天次数已达上限（${daily.limit}），请明天再试`,
+      429
+    );
+  }
+
+  let apiMessages: { role: "user" | "assistant"; content: string }[];
+  if (user && conversationId) {
+    const history = await getMessages(conversationId, { limit: 100, latestFirst: true });
+    apiMessages = history.data
+      .filter(
+        (message): message is typeof message & { role: "user" | "assistant" } =>
+          message.role === "user" || message.role === "assistant"
+      )
+      .map((message) => ({ role: message.role, content: message.content }));
+    if (apiMessages.at(-1)?.content !== latestUserMessage) {
+      apiMessages.push({ role: "user", content: latestUserMessage });
+    }
+  } else {
+    // 匿名对话仅接受客户端历史，但不允许注入 system 角色。
+    apiMessages = messages
+      .filter((message) => message.role === "user" || message.role === "assistant")
+      .map((message) => ({
+        role: message.role as "user" | "assistant",
+        content: extractText(message),
+      }));
   }
 
   const baseSystemMessage = systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
@@ -281,18 +308,6 @@ export async function POST(req: Request) {
   // 仅登录用户（有 conversationId 且服务端可持久化）走摘要缓存；匿名用户纯滑窗。
   const memoryConversationId = user ? conversationId : undefined;
 
-  console.log("[chat] input:", {
-    user: isAnonymous ? "anon" : user.id,
-    conversationId: conversationId ?? "(none)",
-    requestedModelId: body.modelId,
-    resolvedModelId,
-    candidates: candidateIds,
-    minContextWindow,
-    incomingMsgCount: messages.length,
-    apiMsgCount: apiMessages.length,
-    lastUserMsg: apiMessages[apiMessages.length - 1]?.content?.slice(0, 80),
-  });
-
   const { messages: ctxMessages, system: ctxSystem, summarized } =
     await buildContextWithMemory(
       apiMessages,
@@ -301,13 +316,13 @@ export async function POST(req: Request) {
       memoryConversationId
     );
 
-  console.log("[chat] memory:", {
-    summarized,
-    beforeCount: apiMessages.length,
-    afterCount: ctxMessages.length,
-    systemLen: ctxSystem.length,
-    systemHadSummary: ctxSystem.includes("以下为之前对话的摘要"),
-  });
+  if (process.env.NODE_ENV === "development") {
+    console.debug("[chat] context prepared", {
+      model: resolvedModelId,
+      messageCount: ctxMessages.length,
+      summarized,
+    });
+  }
 
   // 顺序尝试候选模型：用首个 chunk 探测成败，失败（error part）则切下一个。
   // 不做预检，只在真实请求产出首 chunk 后判断。
@@ -324,8 +339,6 @@ export async function POST(req: Request) {
       continue;
     }
 
-    console.log("[chat] trying model:", candidateId);
-
     const result = streamText({
       model,
       messages: ctxMessages,
@@ -335,19 +348,14 @@ export async function POST(req: Request) {
         lastError = error;
       },
       onFinish: async ({ text, usage, finishReason }) => {
-        console.log("[chat] output:", {
-          model: candidateId,
-          finishReason,
-          outputChars: text.length,
-          outputPreview: text.slice(0, 120),
-          usage: usage
-            ? {
-                inputTokens: usage.inputTokens,
-                outputTokens: usage.outputTokens,
-                totalTokens: usage.totalTokens,
-              }
-            : "(unavailable)",
-        });
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[chat] output", {
+            model: candidateId,
+            finishReason,
+            outputChars: text.length,
+            totalTokens: usage?.totalTokens,
+          });
+        }
         // 仅登录用户保存助手回复，记录实际生成所用模型
         if (user && conversationId && text) {
           try {
@@ -356,9 +364,9 @@ export async function POST(req: Request) {
               role: "assistant",
               content: text,
               modelId: candidateId,
-            });
-          } catch (e) {
-            console.error("Failed to save assistant message:", e);
+            }, user.id);
+          } catch {
+            console.error("[chat] failed to save assistant message");
           }
         }
       },
@@ -369,7 +377,7 @@ export async function POST(req: Request) {
     const aiResponse = result.toUIMessageStreamResponse({
       onError: (error) => {
         console.error(`[chat] stream error (${candidateId}):`, error);
-        return error instanceof Error ? error.message : "AI 服务出错，请稍后重试";
+        return "AI 服务出错，请稍后重试";
       },
     });
 
@@ -395,7 +403,6 @@ export async function POST(req: Request) {
     }
 
     // 成功：组合首块 + 剩余字节为新 body，复用原响应头
-    console.log(`[chat] streaming from model: ${candidateId}`);
     const combined = new ReadableStream<Uint8Array>({
       start(controller) {
         if (firstBytes) controller.enqueue(firstBytes);
@@ -418,7 +425,5 @@ export async function POST(req: Request) {
 
   // 所有候选都失败
   console.error("[chat] all candidate models failed:", attemptLog);
-  const errMsg =
-    lastError instanceof Error ? lastError.message : "AI 服务暂不可用，请稍后再试";
-  return json(errMsg, 502);
+  return json("AI 服务暂不可用，请稍后再试", 502);
 }

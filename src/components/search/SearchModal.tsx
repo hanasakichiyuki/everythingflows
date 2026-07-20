@@ -1,10 +1,17 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import Fuse from "fuse.js";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Search, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export interface SearchItem {
   slug: string;
@@ -39,60 +46,52 @@ export function SearchModal({
 
   const results = query.trim() ? fuse.search(query).map((r) => r.item) : [];
 
-  useEffect(() => {
-    if (open) {
-      setQuery("");
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
-
   const handleSelect = () => {
     setQuery("");
     onClose();
   };
 
-  if (!open) return null;
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="anim-fade-in fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("placeholder")}
-        className="anim-fade-scale fixed left-4 right-4 top-4 z-50 md:left-[calc(50%-200px)] md:right-auto md:top-[20%] md:w-full md:max-w-lg md:-translate-x-1/2 rounded-2xl border border-white/20 bg-white/80 p-4 shadow-2xl backdrop-blur-xl dark:bg-gray-900/80 dark:border-white/10"
-        onClick={(e) => e.stopPropagation()}
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          setQuery("");
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName="bg-black/20"
+        className="left-1/2 top-4 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 translate-y-0 border-white/20 bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-gray-900/80 md:top-[20%]"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          inputRef.current?.focus();
+        }}
       >
+        <DialogTitle className="sr-only">搜索文章</DialogTitle>
+        <DialogDescription className="sr-only">
+          输入标题、描述、标签或分类关键词搜索文章
+        </DialogDescription>
+
         {/* Search input */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
+          <Input
             ref={inputRef}
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("placeholder")}
-            className="w-full rounded-xl border border-border bg-background/50 py-3 pl-10 pr-10 text-sm outline-none focus:ring-2 focus:ring-accent/30"
+            className="h-12 bg-background/50 pl-10 pr-12"
           />
           {query && (
             <button
+              type="button"
               onClick={() => setQuery("")}
               aria-label="清除"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
+              className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
             >
               <X className="h-4 w-4" />
             </button>
@@ -113,7 +112,7 @@ export function SearchModal({
                 <Link
                   href={`/blog/${encodeURIComponent(item.slug)}`}
                   onClick={handleSelect}
-                  className="group block rounded-lg px-3 py-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                  className="group block rounded-lg px-3 py-2 transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 dark:hover:bg-white/5"
                 >
                   <h3 className="text-sm font-medium group-hover:underline">{item.title}</h3>
                   <p className="mt-0.5 text-xs text-muted">{item.description}</p>
@@ -122,7 +121,7 @@ export function SearchModal({
             ))}
           </ul>
         </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }

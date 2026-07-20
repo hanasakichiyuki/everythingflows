@@ -128,7 +128,11 @@ export default async function BlogPostPage({
           <EditPostButton postId={post.id!} />
           </div>
         </header>
-        <PostContent content={post.content} contentFormat={post.contentFormat} />
+        <PostContent
+          content={post.content}
+          contentJson={post.contentJson}
+          contentFormat={post.contentFormat}
+        />
         <PostNavigation prev={prev} next={next} />
         <section className="mt-12">
           <h2 className="mb-4 text-lg font-semibold">{t("comments")}</h2>

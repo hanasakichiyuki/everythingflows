@@ -1,9 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { publishPost, deletePost, deletePosts } from "@/lib/api/posts";
+import { publishPost, deletePost, deletePosts, getPostById } from "@/lib/api/posts";
 import { createClient } from "@/lib/supabase/server-client";
 import type { ContentFormat } from "@/types";
+import type { TiptapDocument } from "@/lib/editor/types";
+import {
+  isTiptapDocumentEmpty,
+  validateTiptapDocument,
+} from "@/lib/editor/types";
 
 export type PublishPostPayload = {
   title: string;
@@ -11,12 +16,52 @@ export type PublishPostPayload = {
   tags: string[];
   category?: string;
   body: string;
+  contentJson?: TiptapDocument | null;
   contentFormat: ContentFormat;
   locale: string;
   published?: boolean;
   slug?: string;
   id?: string;
 };
+
+type ValidatedContent =
+  | { ok: true; contentJson: TiptapDocument | null }
+  | { ok: false; error: string };
+
+function validatePostPayload(payload: PublishPostPayload): ValidatedContent {
+  if (!["html", "mdx", "tiptap"].includes(payload.contentFormat)) {
+    return { ok: false, error: "文章内容格式无效" };
+  }
+  if (!payload.title.trim() || payload.title.length > 200) {
+    return { ok: false, error: "标题不能为空且不能超过 200 个字符" };
+  }
+  if (payload.description.length > 1000) {
+    return { ok: false, error: "描述不能超过 1000 个字符" };
+  }
+  if (payload.category && payload.category.length > 100) {
+    return { ok: false, error: "分类不能超过 100 个字符" };
+  }
+  if (
+    payload.tags.length > 20 ||
+    payload.tags.some((tag) => !tag.trim() || tag.length > 50)
+  ) {
+    return { ok: false, error: "标签最多 20 个，且每个不能超过 50 个字符" };
+  }
+
+  if (payload.contentFormat === "tiptap") {
+    const result = validateTiptapDocument(payload.contentJson);
+    if (!result.success) return { ok: false, error: result.error };
+    if (isTiptapDocumentEmpty(result.data)) {
+      return { ok: false, error: "文章内容不能为空" };
+    }
+    return { ok: true, contentJson: result.data };
+  }
+
+  if (!payload.body.trim() || payload.body.length > 1_000_000) {
+    return { ok: false, error: "文章内容不能为空且不能超过 100 万个字符" };
+  }
+  return { ok: true, contentJson: null };
+}
 
 export async function saveDraftAction(payload: PublishPostPayload) {
   // Verify Supabase authentication
@@ -29,12 +74,17 @@ export async function saveDraftAction(payload: PublishPostPayload) {
     return { ok: false as const, error: "未登录" };
   }
 
-  // Don't pass `published` — upsertPost will preserve existing status for updates,
-  // or default to published for new posts.
-  const { published: _p, ...rest } = payload;
+  const validated = validatePostPayload(payload);
+  if (!validated.ok) {
+    return { ok: false as const, error: validated.error };
+  }
 
+  // Existing posts preserve their current status. A new draft must be explicit,
+  // otherwise the data layer's new-post default is published.
   const result = await publishPost({
-    ...rest,
+    ...payload,
+    contentJson: validated.contentJson,
+    published: payload.id ? undefined : false,
     id: payload.id,
   });
 
@@ -43,6 +93,7 @@ export async function saveDraftAction(payload: PublishPostPayload) {
     revalidatePath(`/blog/${result.post.slug}`);
     revalidatePath("/archive");
     revalidatePath("/search");
+    revalidatePath("/blog/tag", "layout");
   }
 
   return result;
@@ -59,6 +110,11 @@ export async function publishPostAction(payload: PublishPostPayload) {
     return { ok: false as const, error: "未登录" };
   }
 
+  const validated = validatePostPayload(payload);
+  if (!validated.ok) {
+    return { ok: false as const, error: validated.error };
+  }
+
   const result = await publishPost(
     {
       title: payload.title,
@@ -66,6 +122,7 @@ export async function publishPostAction(payload: PublishPostPayload) {
       tags: payload.tags,
       category: payload.category,
       body: payload.body,
+      contentJson: validated.contentJson,
       contentFormat: payload.contentFormat,
       locale: payload.locale,
       published: payload.published,
@@ -79,6 +136,7 @@ export async function publishPostAction(payload: PublishPostPayload) {
     revalidatePath(`/blog/${result.post.slug}`);
     revalidatePath("/archive");
     revalidatePath("/search");
+    revalidatePath("/blog/tag", "layout");
   }
 
   return result;
@@ -94,6 +152,7 @@ export async function deletePostAction(id: string) {
     return { ok: false as const, error: "未登录" };
   }
 
+  const existing = await getPostById(id);
   const result = await deletePost(id);
 
   if (result.ok) {
@@ -101,6 +160,8 @@ export async function deletePostAction(id: string) {
     revalidatePath("/admin");
     revalidatePath("/archive");
     revalidatePath("/search");
+    revalidatePath("/blog/tag", "layout");
+    if (existing) revalidatePath(`/blog/${existing.slug}`);
   }
 
   return result;
@@ -123,6 +184,7 @@ export async function deletePostsAction(ids: string[]) {
     revalidatePath("/admin");
     revalidatePath("/archive");
     revalidatePath("/search");
+    revalidatePath("/blog/tag", "layout");
   }
 
   return result;

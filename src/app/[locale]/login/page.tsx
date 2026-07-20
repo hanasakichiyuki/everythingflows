@@ -6,6 +6,8 @@ import { useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/browser-client";
 import { ContentCard } from "@/components/layout/ContentCard";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 function ErrorToast({ message, onDone }: { message: string; onDone: () => void }) {
   const [visible, setVisible] = useState(true);
@@ -22,6 +24,8 @@ function ErrorToast({ message, onDone }: { message: string; onDone: () => void }
   if (typeof document === "undefined") return null;
   return createPortal(
     <div
+      role="alert"
+      aria-live="assertive"
       className={`fixed inset-x-0 top-0 z-[9999] bg-yellow-100 py-3 text-center text-sm text-yellow-800 transition-all duration-300 ease-in-out dark:bg-yellow-900/50 dark:text-yellow-200 ${
         visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
       }`}
@@ -75,10 +79,11 @@ export default function LoginPage() {
             <h1 className="mb-8 text-center text-2xl font-semibold tracking-tight">登录</h1>
             <form onSubmit={handleLogin} className="space-y-5" noValidate>
               <div>
-                <label className="block text-sm font-medium text-foreground/80">邮箱</label>
-                <input
+                <Label htmlFor="login-email">邮箱</Label>
+                <Input
+                  id="login-email"
                   type="email"
-                  className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-foreground/30 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 dark:border-white/10 dark:focus:ring-pink-900/20"
+                  className="mt-1.5"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
@@ -87,10 +92,11 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground/80">密码</label>
-                <input
+                <Label htmlFor="login-password">密码</Label>
+                <Input
+                  id="login-password"
                   type="password"
-                  className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-foreground/30 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 dark:border-white/10 dark:focus:ring-pink-900/20"
+                  className="mt-1.5"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"

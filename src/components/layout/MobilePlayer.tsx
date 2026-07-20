@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PlaylistPanel } from "./PlaylistPanel";
 import { type PlayMode, type UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type MobilePlayerProps = {
   player: UseMusicPlayerReturn;
@@ -17,40 +23,49 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
 
   const [showList, setShowList] = useState(false);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty("--mobile-player-offset", "64px");
+    return () => {
+      document.documentElement.style.setProperty("--mobile-player-offset", "0px");
+    };
+  }, []);
+
   return (
     <>
-      {/* Overlay */}
-      {showList && (
-        <div
-          className="anim-fade-in fixed inset-0 z-40 bg-black/20"
-          onClick={() => setShowList(false)}
-        />
-      )}
-
       {/* Playlist bottom sheet */}
-      {showList && (
-        <div className="anim-slide-up fixed inset-x-0 bottom-0 z-50 px-3 pb-3">
-          <div className="mx-auto max-w-lg">
-            <PlaylistPanel
-              songs={songs}
-              currentIndex={currentIndex}
-              loading={loading}
-              error={error}
-              onSelect={(i) => { playSong(i); setShowList(false); }}
-              onClose={() => setShowList(false)}
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={showList} onOpenChange={setShowList}>
+        <DialogContent
+          showCloseButton={false}
+          overlayClassName="bg-black/25"
+          className="bottom-auto left-1/2 top-auto max-w-lg -translate-x-1/2 translate-y-0 border-0 bg-transparent p-3 shadow-none"
+          style={{
+            bottom:
+              "calc(var(--mobile-player-offset, 64px) + env(safe-area-inset-bottom, 0px) + 0.5rem)",
+          }}
+        >
+          <DialogTitle className="sr-only">播放列表</DialogTitle>
+          <DialogDescription className="sr-only">
+            选择要播放的歌曲
+          </DialogDescription>
+          <PlaylistPanel
+            songs={songs}
+            currentIndex={currentIndex}
+            loading={loading}
+            error={error}
+            onSelect={(i) => { playSong(i); setShowList(false); }}
+            onClose={() => setShowList(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Mini player bar */}
       <div
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[0.08] bg-white/[0.06] backdrop-blur-2xl dark:border-white/[0.06] dark:bg-black/[0.25]"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/85 text-foreground backdrop-blur-2xl"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <div className="mx-auto max-w-lg flex items-center gap-2.5 px-3 py-2">
           {/* Cover */}
-          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg shadow-md shadow-black/20">
+          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg">
             {currentCover ? (
               <img src={currentCover} alt="" className="h-full w-full object-cover" />
             ) : (
@@ -64,22 +79,30 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
 
           {/* Song name + progress */}
           <div className="min-w-0 flex-1 text-left">
-            <p className="truncate text-[12px] font-medium text-black/70">{currentSong || "Music Player"}</p>
-            <div className="mt-1 h-0.5 w-full rounded-full bg-black/10 overflow-hidden">
-              <div className="h-full rounded-full bg-black/60 transition-[width] duration-200" style={{ width: `${progress}%` }} />
+            <p className="truncate text-[12px] font-medium text-foreground/75">{currentSong || "Music Player"}</p>
+            <div
+              className="mt-1 h-0.5 w-full overflow-hidden rounded-full bg-foreground/10"
+              role="progressbar"
+              aria-label="播放进度"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress)}
+            >
+              <div className="h-full rounded-full bg-foreground/60 transition-[width] duration-200" style={{ width: `${progress}%` }} />
             </div>
           </div>
 
           {/* Controls */}
-          <button onClick={prevSong} className="flex-shrink-0 text-black/35 active:text-black/80 active:scale-95 transition-all" aria-label="上一首">
+          <button type="button" onClick={prevSong} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50" aria-label="上一首">
             <svg className="h-[20px] w-[20px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
             </svg>
           </button>
 
           <button
+            type="button"
             onClick={togglePlay}
-            className="flex-shrink-0 text-black/80 active:scale-95 transition-transform"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-foreground/80 transition-transform hover:bg-foreground/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
             aria-label={isPlaying ? "暂停" : "播放"}
           >
             {isPlaying ? (
@@ -93,7 +116,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
             )}
           </button>
 
-          <button onClick={nextSong} className="flex-shrink-0 text-black/35 active:text-black/80 active:scale-95 transition-all" aria-label="下一首">
+          <button type="button" onClick={nextSong} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50" aria-label="下一首">
             <svg className="h-[20px] w-[20px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
             </svg>
@@ -102,8 +125,9 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
           <PlayModeIcon playMode={playMode} onClick={cyclePlayMode} />
 
           <button
+            type="button"
             onClick={() => setShowList(!showList)}
-            className={`flex-shrink-0 transition-colors ${showList ? "text-black/80" : "text-black/35"}`}
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 ${showList ? "text-foreground/80" : "text-foreground/45"}`}
             aria-label="播放列表"
           >
             <svg className="h-[18px] w-[18px]" fill="currentColor" viewBox="0 0 24 24">
@@ -119,8 +143,9 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
 function PlayModeIcon({ playMode, onClick }: { playMode: PlayMode; onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="flex-shrink-0 text-black/35 active:text-black/80 transition-colors"
+      className="hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 min-[420px]:flex"
       aria-label="播放模式"
       title={playMode === "sequence" ? "顺序播放" : playMode === "random" ? "随机播放" : "单曲循环"}
     >

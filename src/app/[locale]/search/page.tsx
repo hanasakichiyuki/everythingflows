@@ -3,7 +3,7 @@ import { getSearchIndex } from "@/lib/api/posts";
 import { SearchBox } from "@/components/search/SearchBox";
 import { ContentCard } from "@/components/layout/ContentCard";
 
-export const dynamic = "auto";
+export const revalidate = 3600;
 
 export default async function SearchPage({
   params,

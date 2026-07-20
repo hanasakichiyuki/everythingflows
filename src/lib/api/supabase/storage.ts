@@ -1,4 +1,7 @@
 import { getSupabaseAdmin } from "./client";
+import type { ContentFormat } from "@/types";
+import type { TiptapDocument } from "@/lib/editor/types";
+import { extractTiptapImageUrls } from "@/lib/editor/serialization";
 
 const BUCKET = "post-images";
 
@@ -37,13 +40,29 @@ function extractStoragePath(url: string): string | null {
 }
 
 export function extractImageUrls(html: string): string[] {
-  const regex = /<img[^>]+src="([^"]+)"/g;
+  const regex = /<img[^>]+src=["']([^"']+)["']/gi;
   const urls: string[] = [];
   let match: RegExpExecArray | null;
   while ((match = regex.exec(html)) !== null) {
     urls.push(match[1]);
   }
   return urls;
+}
+
+export type StoredPostContent = {
+  body: string;
+  contentJson?: TiptapDocument | null;
+  contentFormat: ContentFormat;
+};
+
+export function extractPostImageUrls(content: StoredPostContent): string[] {
+  if (content.contentFormat === "tiptap" && content.contentJson) {
+    return extractTiptapImageUrls(content.contentJson);
+  }
+  if (content.contentFormat === "html") {
+    return extractImageUrls(content.body);
+  }
+  return [];
 }
 
 export async function deletePostImage(url: string): Promise<void> {
@@ -58,7 +77,11 @@ export async function deletePostImage(url: string): Promise<void> {
 }
 
 export async function deletePostImages(urls: string[]): Promise<void> {
-  const paths = urls.map(extractStoragePath).filter((p): p is string => p !== null);
+  const paths = [
+    ...new Set(
+      urls.map(extractStoragePath).filter((p): p is string => p !== null)
+    ),
+  ];
   if (paths.length === 0) return;
 
   const supabase = getSupabaseAdmin();
@@ -68,12 +91,21 @@ export async function deletePostImages(urls: string[]): Promise<void> {
   }
 }
 
-export async function cleanupUnusedImages(oldBody: string, newBody: string): Promise<void> {
-  const oldUrls = extractImageUrls(oldBody);
-  const newUrls = new Set(extractImageUrls(newBody));
-
-  const toDelete = oldUrls.filter((url) => !newUrls.has(url));
+export async function cleanupUnusedPostImages(
+  oldContent: StoredPostContent,
+  newContent: StoredPostContent
+): Promise<void> {
+  const toDelete = findUnusedPostImageUrls(oldContent, newContent);
   if (toDelete.length > 0) {
     await deletePostImages(toDelete);
   }
+}
+
+export function findUnusedPostImageUrls(
+  oldContent: StoredPostContent,
+  newContent: StoredPostContent
+): string[] {
+  const oldUrls = extractPostImageUrls(oldContent);
+  const newUrls = new Set(extractPostImageUrls(newContent));
+  return oldUrls.filter((url) => !newUrls.has(url));
 }

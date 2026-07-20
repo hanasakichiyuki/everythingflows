@@ -16,6 +16,24 @@ const config: Config = {
         muted: "var(--muted)",
         accent: "var(--accent)",
         border: "var(--border)",
+        primary: {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+          soft: "var(--primary-soft)",
+        },
+        ring: "var(--ring)",
+        surface: {
+          DEFAULT: "var(--surface)",
+          overlay: "var(--surface-overlay)",
+          border: "var(--surface-border)",
+        },
+        destructive: {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+      },
+      borderRadius: {
+        surface: "var(--radius)",
       },
       fontFamily: {
         sans: [

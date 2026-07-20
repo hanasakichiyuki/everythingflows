@@ -11,7 +11,7 @@ import {
   getAvailableModelsAction,
   getCurrentUserAction,
 } from "@/app/actions/chat";
-import { getAvailableModels } from "@/lib/services/ai";
+import { getAvailableModels } from "@/lib/services/ai/models";
 import type { Conversation, Message } from "@/types/chat";
 
 export interface AvailableModel {

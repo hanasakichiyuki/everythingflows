@@ -7,7 +7,13 @@ import { MobilePlayer } from "./MobilePlayer";
 
 export type { UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
 
-export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
+export function MusicPlayer({
+  collapsed,
+  hidden = false,
+}: {
+  collapsed?: boolean;
+  hidden?: boolean;
+}) {
   const player = useMusicPlayer();
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
   
@@ -23,7 +29,7 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
   if (isMobile === null || !player.musicEnabled || !player.isMounted) return null;
 
   return (
-    <>
+    <div className={hidden ? "hidden" : undefined} aria-hidden={hidden || undefined}>
       {/* Hidden APlayer container - needed for the library to render audio element */}
       <div ref={player.containerRef} className="hidden" />
 
@@ -32,6 +38,6 @@ export function MusicPlayer({ collapsed }: { collapsed?: boolean }) {
       ) : (
         <DesktopPlayer player={player} collapsed={collapsed} />
       )}
-    </>
+    </div>
   );
 }

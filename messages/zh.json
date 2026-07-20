@@ -9,6 +9,7 @@
     "chat": "AI 对话",
     "blog": "博客",
     "tools": "工具",
+    "personalSite": "个人网站",
     "admin": "写作",
     "login": "登录"
   },
@@ -18,7 +19,10 @@
   },
   "home": {
     "latest": "最新文章",
-    "empty": "还没有文章，去写一篇吧。"
+    "fragments": "最近碎片",
+    "viewAll": "查看全部",
+    "empty": "还没有文章，去写一篇吧。",
+    "fragmentsEmpty": "还没有留下碎片。"
   },
   "archive": {
     "title": "归档",
@@ -51,7 +55,6 @@
     "tagsField": "标签（逗号分隔）",
     "categoryField": "分类",
     "contentField": "正文",
-    "contentPlaceholder": "开始写作…",
     "embedHint": "支持 Ctrl+V 粘贴截图，或点击「图片」上传；需先在 Supabase 执行 supabase/storage.sql。",
     "insertImage": "图片",
     "adminSecretField": "管理密钥",

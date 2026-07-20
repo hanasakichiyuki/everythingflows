@@ -95,22 +95,25 @@ function ConversationEntry({
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
-          className="flex-1 rounded-md border border-pink-400/50 bg-white/80 px-2 py-1 text-sm text-foreground focus:outline-none dark:border-pink-600/50 dark:bg-black/40"
+          aria-label="对话标题"
+          className="min-w-0 flex-1 rounded-md border border-pink-400/50 bg-white/80 px-2 py-1.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/40 dark:border-pink-600/50 dark:bg-black/40"
         />
         <button
+          type="button"
           onClick={handleSave}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-green-500 transition-colors hover:bg-green-500/20"
-          title="保存"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-green-500 transition-colors hover:bg-green-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400/50"
+          aria-label="保存标题"
         >
           <Check className="h-3.5 w-3.5" />
         </button>
         <button
+          type="button"
           onMouseDown={(e) => {
             e.preventDefault();
             handleCancel();
           }}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted transition-colors hover:bg-white/20"
-          title="取消"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-muted transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/40"
+          aria-label="取消重命名"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -120,37 +123,45 @@ function ConversationEntry({
 
   return (
     <div
-      onClick={onSelect}
       className={cn(
-        "group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 transition-colors",
+        "group flex min-h-11 items-center gap-1 rounded-lg px-1.5 py-1 transition-colors",
         "hover:bg-white/40 dark:hover:bg-white/10",
         isActive && "bg-pink-500/15 dark:bg-pink-500/20"
       )}
     >
-      <MessageSquare
-        className={cn(
-          "h-4 w-4 shrink-0",
-          isActive ? "text-pink-500" : "text-foreground/50"
-        )}
-      />
-      <span className="flex-1 truncate text-sm text-foreground">
-        {conv.title}
-      </span>
-      <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={isActive ? "true" : undefined}
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
+      >
+        <MessageSquare
+          className={cn(
+            "h-4 w-4 shrink-0",
+            isActive ? "text-pink-500" : "text-foreground/50"
+          )}
+        />
+        <span className="flex-1 truncate text-sm text-foreground">
+          {conv.title}
+        </span>
+      </button>
+      <div className="flex shrink-0 items-center opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
         <button
+          type="button"
           onClick={handleStartEdit}
-          className="flex h-6 w-6 items-center justify-center rounded text-foreground/50 transition-colors hover:bg-white/40 hover:text-foreground dark:hover:bg-white/10"
-          title="重命名"
+          className="flex h-8 w-8 items-center justify-center rounded text-foreground/50 transition-colors hover:bg-white/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 dark:hover:bg-white/10"
+          aria-label={`重命名对话：${conv.title}`}
         >
           <Pencil className="h-3 w-3" />
         </button>
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="flex h-6 w-6 items-center justify-center rounded text-foreground/50 transition-colors hover:bg-red-500/20 hover:text-red-500"
-          title="删除"
+          className="flex h-8 w-8 items-center justify-center rounded text-foreground/50 transition-colors hover:bg-red-500/20 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
+          aria-label={`删除对话：${conv.title}`}
         >
           <Trash2 className="h-3 w-3" />
         </button>
@@ -187,14 +198,16 @@ export function ConversationList({
   return (
     <div
       ref={ref}
+      aria-label="对话历史"
       className="anim-fade-in absolute left-4 top-14 z-30 w-72 overflow-hidden rounded-xl border border-white/40 bg-white/80 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-gray-900/80"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-white/20 px-4 py-3 dark:border-white/5">
         <h2 className="text-sm font-medium text-foreground">对话历史</h2>
         <button
+          type="button"
           onClick={onNew}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/30 bg-white/40 text-foreground transition-all hover:bg-white/60 active:scale-95 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-          title="新建对话"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/30 bg-white/40 text-foreground transition-all hover:bg-white/60 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+          aria-label="新建对话"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>

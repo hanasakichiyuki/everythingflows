@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { TiptapDocument } from "@/lib/editor/types";
 
 export type PostRow = {
   id: string;
@@ -6,7 +7,8 @@ export type PostRow = {
   title: string;
   description: string;
   body: string;
-  content_format: "html" | "mdx";
+  content_json: TiptapDocument | null;
+  content_format: "html" | "mdx" | "tiptap";
   date: string;
   updated: string | null;
   tags: string[];
