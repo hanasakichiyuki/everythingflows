@@ -285,11 +285,12 @@ async function uniqueSlug(supabase: ReturnType<typeof getSupabaseAdmin>, base: s
   let counter = 2;
 
   while (true) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("posts")
       .select("id")
       .eq("slug", slug)
       .maybeSingle();
+    if (error) throw error;
     if (!data) return slug;
     slug = `${base}-${counter}`;
     counter++;
@@ -370,11 +371,12 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
 
   if (input.id) {
     // Fetch existing post data in one query
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("posts")
       .select("slug,published,body,content_json,content_format")
       .eq("id", input.id)
       .maybeSingle();
+    if (existingError) throw existingError;
     slug = input.slug?.trim() || existing?.slug || slugify(input.title);
     published = input.published !== undefined ? input.published : (existing?.published ?? false);
     if (existing) {

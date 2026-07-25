@@ -17,14 +17,19 @@ export function HomeMusicCard({ player }: { player: UseMusicPlayerReturn }) {
     songs,
     loading,
     error,
+    isPlayerReady,
+    isSwitchingTrack,
     togglePlay,
     prevSong,
     nextSong,
     seekTo,
+    retryPlaylist,
   } = player;
   const [title, ...artistParts] = currentSong.split(" - ");
   const artist = artistParts.join(" - ");
   const unavailable = Boolean(error) || (!loading && songs.length === 0);
+  const preparing = !unavailable && (loading || !isPlayerReady);
+  const controlsDisabled = unavailable || preparing || isSwitchingTrack;
 
   return (
     <Surface className="anim-fade-up p-5" overlay={false} tone="solid">
@@ -52,9 +57,30 @@ export function HomeMusicCard({ player }: { player: UseMusicPlayerReturn }) {
         </div>
         <div className="min-w-0">
           <p className="truncate font-serif text-base font-semibold text-foreground">
-            {loading ? t("loading") : unavailable ? (error ? t("unavailable") : t("empty")) : title || t("playlist")}
+            {loading
+              ? t("loading")
+              : unavailable
+                ? error
+                  ? t("unavailable")
+                  : t("empty")
+                : preparing
+                  ? t("preparing")
+                  : title || t("playlist")}
           </p>
-          <p className="mt-1 truncate text-xs text-muted">{unavailable ? t("tryAgainLater") : artist || t("provider")}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-xs text-muted">
+              {unavailable ? t("tryAgainLater") : isSwitchingTrack ? t("switching") : artist || t("provider")}
+            </p>
+            {error && (
+              <button
+                type="button"
+                onClick={retryPlaylist}
+                className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {t("retry")}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -68,7 +94,7 @@ export function HomeMusicCard({ player }: { player: UseMusicPlayerReturn }) {
           max="100"
           value={progress}
           onChange={(event) => seekTo(Number(event.target.value) / 100)}
-          disabled={duration === 0 || unavailable}
+          disabled={duration === 0 || controlsDisabled}
           aria-label={t("progress")}
           className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent opacity-0 disabled:cursor-not-allowed"
         />
@@ -79,13 +105,13 @@ export function HomeMusicCard({ player }: { player: UseMusicPlayerReturn }) {
       </div>
 
       <div className="mt-3 flex items-center justify-center gap-5">
-        <button type="button" onClick={prevSong} disabled={unavailable} className="rounded-lg p-2 text-muted transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40" aria-label={t("previous")}>
+        <button type="button" onClick={prevSong} disabled={controlsDisabled} className="rounded-lg p-2 text-muted transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40" aria-label={t("previous")}>
           <SkipBack className="h-4 w-4" fill="currentColor" />
         </button>
-        <button type="button" onClick={togglePlay} disabled={unavailable} className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none disabled:cursor-not-allowed disabled:opacity-40" aria-label={isPlaying ? t("pause") : t("play")}>
+        <button type="button" onClick={togglePlay} disabled={controlsDisabled} className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none disabled:cursor-not-allowed disabled:opacity-40" aria-label={isPlaying ? t("pause") : t("play")}>
           {isPlaying ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="ml-0.5 h-5 w-5" fill="currentColor" />}
         </button>
-        <button type="button" onClick={nextSong} disabled={unavailable} className="rounded-lg p-2 text-muted transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40" aria-label={t("next")}>
+        <button type="button" onClick={nextSong} disabled={controlsDisabled} className="rounded-lg p-2 text-muted transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40" aria-label={t("next")}>
           <SkipForward className="h-4 w-4" fill="currentColor" />
         </button>
       </div>

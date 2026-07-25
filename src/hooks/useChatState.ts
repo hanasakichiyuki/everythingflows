@@ -123,8 +123,10 @@ export function useChatState(initialConversationId?: string) {
   }, [state.isAuthenticated]);
 
   const activeConvIdRef = useRef<string | null>(null);
+  const messagesRequestRef = useRef(0);
   useEffect(() => {
     activeConvIdRef.current = state.activeConversation?.id ?? null;
+    messagesRequestRef.current += 1;
   }, [state.activeConversation]);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -133,7 +135,15 @@ export function useChatState(initialConversationId?: string) {
     async (preferId?: string) => {
       // 先检查登录状态（合并原 loadAuth 逻辑，避免竞态）
       const authResult = await getCurrentUserAction();
-      const isAuth = authResult.ok && authResult.data.id !== null;
+      if (!authResult.ok) {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: { message: authResult.error, code: "server" },
+        }));
+        return [];
+      }
+      const isAuth = authResult.data.id !== null;
       isAuthenticatedRef.current = isAuth;
       setState((s) => ({ ...s, isAuthenticated: isAuth }));
 
@@ -192,33 +202,51 @@ export function useChatState(initialConversationId?: string) {
     const result = await getAvailableModelsAction();
     if (result.ok) {
       setState((s) => ({ ...s, models: result.data }));
+    } else {
+      setState((s) => ({
+        ...s,
+        error: { message: result.error, code: "server" },
+      }));
     }
   }, []);
 
   const loadMessages = useCallback(async (conversationId: string) => {
+    const requestId = messagesRequestRef.current + 1;
+    messagesRequestRef.current = requestId;
+    const updateCurrentConversation = (
+      updater: (current: ChatState) => ChatState
+    ) => {
+      setState((current) =>
+        current.activeConversation?.id === conversationId &&
+        messagesRequestRef.current === requestId
+          ? updater(current)
+          : current
+      );
+    };
+
     if (!isAuthenticatedRef.current) {
       // 匿名用户：从 localStorage 加载消息
       const msgs = loadLocalMessages(conversationId);
-      setState((s) => ({
-        ...s,
+      updateCurrentConversation((current) => ({
+        ...current,
         messages: msgs,
         messagesLoading: false,
         error: null,
       }));
       return;
     }
-    setState((s) => ({ ...s, messagesLoading: true }));
+    updateCurrentConversation((current) => ({ ...current, messagesLoading: true }));
     const result = await getMessagesAction(conversationId);
     if (result.ok) {
-      setState((s) => ({
-        ...s,
+      updateCurrentConversation((current) => ({
+        ...current,
         messages: result.data,
         messagesLoading: false,
         error: null,
       }));
     } else {
-      setState((s) => ({
-        ...s,
+      updateCurrentConversation((current) => ({
+        ...current,
         messagesLoading: false,
         error: {
           message: result.error,
@@ -492,6 +520,12 @@ export function useChatState(initialConversationId?: string) {
     setState((s) => ({ ...s, error: null }));
   }, []);
 
+  const reload = useCallback(() => {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    void loadConversations(activeConvIdRef.current ?? undefined);
+    void loadModels();
+  }, [loadConversations, loadModels]);
+
   // ChatPanel 通过此回调报告消息变化，匿名用户防抖写入 localStorage
   const onMessagesChange = useCallback((messages: Message[]) => {
     if (isAuthenticatedRef.current) return;
@@ -512,6 +546,7 @@ export function useChatState(initialConversationId?: string) {
     handleRename,
     handleSwitchModel,
     clearError,
+    reload,
     onMessagesChange,
   };
 }

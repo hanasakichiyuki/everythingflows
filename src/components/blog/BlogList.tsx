@@ -78,7 +78,7 @@ export function BlogList({ posts }: { posts: PostMeta[] }) {
       )}
 
       {visiblePosts.length > 0 ? (
-        <div className="space-y-3">
+        <div className="grid gap-6 md:grid-cols-2">
           {visiblePosts.map((post, index) => (
             <PostCard key={post.slug} post={post} index={index} />
           ))}

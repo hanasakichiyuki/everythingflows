@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { PlaylistPanel } from "./PlaylistPanel";
 import { formatTime, type PlayMode, type UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
 
@@ -10,11 +11,12 @@ type DesktopPlayerProps = {
 };
 
 export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
+  const t = useTranslations("home.music");
   const {
     isPlaying, progress, currentTime, duration, currentSong, currentCover, currentIndex,
-    songs, loading, error, volume, isMuted, playMode,
+    songs, loading, error, isPlayerReady, isSwitchingTrack, volume, isMuted, playMode,
     togglePlay, prevSong, nextSong, playSong,
-    handleVolumeChange, toggleMute, cyclePlayMode, seekTo,
+    handleVolumeChange, toggleMute, cyclePlayMode, seekTo, retryPlaylist,
   } = player;
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -24,6 +26,19 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
     setIsExpanded(false);
     setShowList(false);
   }, []);
+  const unavailable = Boolean(error) || (!loading && songs.length === 0);
+  const controlsDisabled = unavailable || !isPlayerReady || isSwitchingTrack;
+  const statusLabel = loading
+    ? t("loading")
+    : unavailable
+      ? error
+        ? t("unavailable")
+        : t("empty")
+      : !isPlayerReady
+        ? t("preparing")
+        : isSwitchingTrack
+          ? t("switching")
+          : currentSong || t("playlist");
 
   return (
     <>
@@ -52,8 +67,10 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
             currentIndex={currentIndex}
             loading={loading}
             error={error}
+            isSwitchingTrack={isSwitchingTrack}
             onSelect={(i) => { playSong(i); closeAll(); }}
             onClose={closeAll}
+            onRetry={retryPlaylist}
           />
         </div>
       )}
@@ -119,7 +136,7 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
               {/* Song info + progress */}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[11px] font-light tracking-wide text-foreground/80">
-                  {currentSong || (loading ? "Loading..." : "Music Player")}
+                  {statusLabel}
                 </p>
                 <div className="relative mt-1 h-3 rounded focus-within:ring-2 focus-within:ring-accent">
                   <div className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 overflow-hidden rounded-full bg-foreground/15" aria-hidden>
@@ -135,7 +152,7 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
                     step="1"
                     value={progress}
                     onChange={(event) => seekTo(Number(event.target.value) / 100)}
-                    disabled={duration === 0}
+                    disabled={duration === 0 || controlsDisabled}
                     aria-label="播放进度"
                     aria-valuetext={`${formatTime(currentTime)} / ${formatTime(duration)}`}
                     className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent opacity-0 disabled:cursor-not-allowed"
@@ -153,6 +170,7 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
                 togglePlay={togglePlay}
                 prevSong={prevSong}
                 nextSong={nextSong}
+                disabled={controlsDisabled}
               />
 
               {/* Volume */}
@@ -198,18 +216,18 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
 // ---------- Sub-components ----------
 
 function ControlButtons({
-  isPlaying, togglePlay, prevSong, nextSong,
+  isPlaying, togglePlay, prevSong, nextSong, disabled,
 }: {
-  isPlaying: boolean; togglePlay: () => void; prevSong: () => void; nextSong: () => void;
+  isPlaying: boolean; togglePlay: () => void; prevSong: () => void; nextSong: () => void; disabled: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
-      <button onClick={prevSong} className="rounded text-foreground/55 transition-all hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-label="上一首">
+      <button type="button" onClick={prevSong} disabled={disabled} className="rounded text-foreground/55 transition-all hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40" aria-label="上一首">
         <svg className="h-[18px] w-[18px]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
         </svg>
       </button>
-      <button onClick={togglePlay} className="rounded text-foreground/90 transition-all hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-label={isPlaying ? "暂停" : "播放"}>
+      <button type="button" onClick={togglePlay} disabled={disabled} className="rounded text-foreground/90 transition-all hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40" aria-label={isPlaying ? "暂停" : "播放"}>
         {isPlaying ? (
           <svg className="h-[26px] w-[26px]" fill="currentColor" viewBox="0 0 24 24">
             <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
@@ -220,7 +238,7 @@ function ControlButtons({
           </svg>
         )}
       </button>
-      <button onClick={nextSong} className="rounded text-foreground/55 transition-all hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-label="下一首">
+      <button type="button" onClick={nextSong} disabled={disabled} className="rounded text-foreground/55 transition-all hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40" aria-label="下一首">
         <svg className="h-[18px] w-[18px]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
         </svg>

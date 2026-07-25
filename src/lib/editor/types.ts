@@ -40,14 +40,19 @@ const ALLOWED_MARK_TYPES = new Set([
   "underline",
 ]);
 
-const attrsSchema = z.record(z.string(), z.unknown()).optional();
+// TipTap/ProseMirror 会根据扩展及导入来源省略 attrs，部分文档还会将其
+// 序列化为 null。两者都等价于没有属性，先规范化后再做节点白名单校验。
+const attrsSchema = z
+  .record(z.string(), z.unknown())
+  .nullable()
+  .optional()
+  .transform((attrs) => attrs ?? undefined);
 
 const markSchema = z
   .object({
     type: z.string().min(1),
     attrs: attrsSchema,
-  })
-  .strict();
+  });
 
 const nodeSchema: z.ZodType<JSONContent> = z.lazy(() =>
   z
@@ -58,8 +63,39 @@ const nodeSchema: z.ZodType<JSONContent> = z.lazy(() =>
       marks: z.array(markSchema).optional(),
       text: z.string().optional(),
     })
-    .strict()
 );
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * TipTap JSON 的可选字段在不同编辑器扩展、导入路径及 Server Action 传输中
+ * 可能表现为缺失、undefined 或 null。只保留规范字段并统一为空缺省值，避免把
+ * 序列化差异误判为文档损坏；节点类型和属性内容仍由后续白名单校验负责。
+ */
+function normalizeTiptapNode(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+
+  const node: Record<string, unknown> = {};
+  if (typeof value.type === "string") node.type = value.type;
+  if (isRecord(value.attrs)) node.attrs = value.attrs;
+  if (Array.isArray(value.content)) {
+    node.content = value.content.map(normalizeTiptapNode);
+  }
+  if (Array.isArray(value.marks)) {
+    node.marks = value.marks.map((mark) => {
+      if (!isRecord(mark)) return mark;
+      const normalizedMark: Record<string, unknown> = {};
+      if (typeof mark.type === "string") normalizedMark.type = mark.type;
+      if (isRecord(mark.attrs)) normalizedMark.attrs = mark.attrs;
+      return normalizedMark;
+    });
+  }
+  if (typeof value.text === "string") node.text = value.text;
+
+  return node;
+}
 
 function validateSemantics(
   node: JSONContent,
@@ -160,9 +196,17 @@ export function validateTiptapDocument(input: unknown): TiptapValidationResult {
     return { success: false, error: "编辑器内容过大" };
   }
 
-  const parsed = nodeSchema.safeParse(value);
-  if (!parsed.success || parsed.data.type !== "doc") {
-    return { success: false, error: "编辑器文档结构无效" };
+  const parsed = nodeSchema.safeParse(normalizeTiptapNode(value));
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const location = issue?.path.length ? issue.path.join(".") : "根节点";
+    return {
+      success: false,
+      error: `编辑器文档结构无效：${location} 的数据格式不正确`,
+    };
+  }
+  if (parsed.data.type !== "doc") {
+    return { success: false, error: "编辑器文档结构无效：根节点必须是 doc" };
   }
 
   const semanticError = validateSemantics(parsed.data);

@@ -103,6 +103,34 @@ describe("TipTap serialization", () => {
     ).toBe(true);
   });
 
+  it("normalizes nullable editor fields and non-content metadata", () => {
+    const result = validateTiptapDocument({
+      type: "doc",
+      attrs: null,
+      content: [
+        {
+          type: "paragraph",
+          attrs: null,
+          content: [
+            {
+              type: "text",
+              text: "可以发布",
+              marks: null,
+              transientMetadata: { source: "editor" },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.attrs).toBeUndefined();
+      expect(result.data.content?.[0]?.attrs).toBeUndefined();
+      expect(result.data.content?.[0]?.content?.[0]?.marks).toBeUndefined();
+    }
+  });
+
   it("converts AI plain text into controlled paragraphs", () => {
     expect(plainTextToTiptapContent("第一段\n换行\n\n第二段")).toEqual([
       {

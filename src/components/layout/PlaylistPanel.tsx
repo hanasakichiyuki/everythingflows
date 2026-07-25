@@ -1,5 +1,7 @@
 "use client";
 
+import { LoaderCircle, RotateCcw, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Song } from "@/hooks/useMusicPlayer";
 
 type PlaylistPanelProps = {
@@ -7,8 +9,10 @@ type PlaylistPanelProps = {
   currentIndex: number;
   loading: boolean;
   error: string;
+  isSwitchingTrack?: boolean;
   onSelect: (index: number) => void;
   onClose: () => void;
+  onRetry?: () => void;
 };
 
 export function PlaylistPanel({
@@ -16,61 +20,72 @@ export function PlaylistPanel({
   currentIndex,
   loading,
   error,
+  isSwitchingTrack = false,
   onSelect,
   onClose,
+  onRetry,
 }: PlaylistPanelProps) {
+  const t = useTranslations("home.music");
+
   return (
     <div
       className="anim-bubble-in overflow-hidden rounded-2xl border border-border/70 bg-background/90 text-foreground shadow-xl backdrop-blur-2xl"
       role="region"
-      aria-label="播放列表"
+      aria-label={t("playlist")}
     >
-      {/* Header */}
       <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
-        <p className="text-[11px] font-light tracking-wider text-foreground/80">
-          播放列表 ({songs.length})
+        <p className="text-[11px] font-medium tracking-wider text-foreground/80">
+          {t("playlistTitle", { count: songs.length })}
         </p>
         <button
+          type="button"
           onClick={onClose}
-          className="flex h-5 w-5 items-center justify-center rounded-full text-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          aria-label="关闭播放列表"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={t("closePlaylist")}
         >
-          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      {/* List */}
       <div className="max-h-[252px] overflow-y-auto playlist-scroll px-1">
         {loading ? (
-          <div className="flex items-center justify-center py-6">
-            <div className="h-4 w-4 animate-spin rounded-full border border-foreground/15 border-t-foreground" />
+          <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted" role="status">
+            <LoaderCircle className="h-4 w-4 animate-spin text-primary" aria-hidden />
+            {t("loading")}
           </div>
         ) : error ? (
-          <p className="py-4 text-center text-[11px] text-muted">{error}</p>
+          <div className="flex flex-col items-center gap-3 px-5 py-6 text-center">
+            <p className="text-xs leading-5 text-muted">{t("unavailable")}</p>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                {t("retry")}
+              </button>
+            )}
+          </div>
         ) : songs.length > 0 ? (
           <ul className="py-1">
-            {songs.map((song, i) => (
-              <li key={i}>
+            {songs.map((song, index) => (
+              <li key={`${song.url}-${index}`}>
                 <button
-                  onClick={() => onSelect(i)}
-                  aria-current={currentIndex === i ? "true" : undefined}
-                  className={`flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                    currentIndex === i
-                      ? "bg-foreground/10 text-foreground"
-                      : "text-foreground/75 hover:bg-foreground/5 hover:text-foreground"
+                  type="button"
+                  onClick={() => onSelect(index)}
+                  disabled={isSwitchingTrack}
+                  aria-current={currentIndex === index ? "true" : undefined}
+                  className={`flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60 ${
+                    currentIndex === index
+                      ? "bg-primary-soft text-primary"
+                      : "text-foreground/75 hover:bg-foreground/[0.045] hover:text-foreground"
                   }`}
                 >
-                  <span className="w-5 flex-shrink-0 text-center text-[10px] font-light text-muted">
-                    {i + 1}
-                  </span>
-                  <span className="flex-1 truncate font-light tracking-wide">{song.name}</span>
+                  <span className="w-5 shrink-0 text-center text-[10px] text-muted">{index + 1}</span>
+                  <span className="flex-1 truncate tracking-wide">{song.name}</span>
                   {song.artist && (
-                    <span
-                      className="ml-2 flex-shrink-0 truncate text-[10px] font-light text-muted"
-                      style={{ maxWidth: "120px" }}
-                    >
+                    <span className="ml-2 shrink-0 truncate text-[10px] text-muted" style={{ maxWidth: "120px" }}>
                       {song.artist}
                     </span>
                   )}
@@ -79,7 +94,7 @@ export function PlaylistPanel({
             ))}
           </ul>
         ) : (
-          <p className="py-4 text-center text-[11px] text-muted">暂无可播放歌曲</p>
+          <p className="py-6 text-center text-xs text-muted">{t("empty")}</p>
         )}
       </div>
     </div>

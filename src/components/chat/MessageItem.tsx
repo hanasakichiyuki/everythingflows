@@ -2,6 +2,7 @@
 
 import { useState, useCallback, memo } from "react";
 import { Check, Copy, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { MarkdownContent } from "./MarkdownContent";
 import { siteConfig } from "@/config/site";
 import type { ChatRole } from "@/types/chat";
@@ -23,6 +24,7 @@ function MessageItemImpl({
   isLastAssistant,
   isStreaming,
 }: MessageItemProps) {
+  const t = useTranslations("chat");
   const [copied, setCopied] = useState(false);
   const isUser = role === "user";
 
@@ -109,8 +111,8 @@ function MessageItemImpl({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-xs transition-colors hover:bg-muted/20 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
-              aria-label={copied ? "已复制消息" : "复制消息"}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-xs transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={copied ? t("messageCopied") : t("copyMessage")}
             >
               {copied ? (
                 <Check className="h-3.5 w-3.5 text-green-500" />
@@ -122,8 +124,8 @@ function MessageItemImpl({
               <button
                 type="button"
                 onClick={onRegenerate}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-xs transition-colors hover:bg-muted/20 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
-                aria-label="重新生成回复"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-xs transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={t("regenerate")}
               >
                 <RotateCcw className="h-3.5 w-3.5" />
               </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { PlaylistPanel } from "./PlaylistPanel";
 import { type PlayMode, type UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
 import {
@@ -15,13 +16,28 @@ type MobilePlayerProps = {
 };
 
 export function MobilePlayer({ player }: MobilePlayerProps) {
+  const t = useTranslations("home.music");
   const {
     isPlaying, progress, currentSong, currentCover, currentIndex,
-    songs, loading, error, playMode,
+    songs, loading, error, isPlayerReady, isSwitchingTrack, playMode,
     togglePlay, prevSong, nextSong, playSong, cyclePlayMode,
+    retryPlaylist,
   } = player;
 
   const [showList, setShowList] = useState(false);
+  const unavailable = Boolean(error) || (!loading && songs.length === 0);
+  const controlsDisabled = unavailable || !isPlayerReady || isSwitchingTrack;
+  const statusLabel = loading
+    ? t("loading")
+    : unavailable
+      ? error
+        ? t("unavailable")
+        : t("empty")
+      : !isPlayerReady
+        ? t("preparing")
+        : isSwitchingTrack
+          ? t("switching")
+          : currentSong || t("playlist");
 
   useEffect(() => {
     document.documentElement.style.setProperty("--mobile-player-offset", "64px");
@@ -43,7 +59,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
               "calc(var(--mobile-player-offset, 64px) + var(--mobile-nav-offset, 0px) + env(safe-area-inset-bottom, 0px) + 0.5rem)",
           }}
         >
-          <DialogTitle className="sr-only">播放列表</DialogTitle>
+          <DialogTitle className="sr-only">{t("playlist")}</DialogTitle>
           <DialogDescription className="sr-only">
             选择要播放的歌曲
           </DialogDescription>
@@ -52,8 +68,10 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
             currentIndex={currentIndex}
             loading={loading}
             error={error}
+            isSwitchingTrack={isSwitchingTrack}
             onSelect={(i) => { playSong(i); setShowList(false); }}
             onClose={() => setShowList(false)}
+            onRetry={retryPlaylist}
           />
         </DialogContent>
       </Dialog>
@@ -81,7 +99,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
 
           {/* Song name + progress */}
           <div className="min-w-0 flex-1 text-left">
-            <p className="truncate text-[12px] font-medium text-foreground/75">{currentSong || "Music Player"}</p>
+            <p className="truncate text-[12px] font-medium text-foreground/75">{statusLabel}</p>
             <div
               className="mt-1 h-0.5 w-full overflow-hidden rounded-full bg-foreground/10"
               role="progressbar"
@@ -95,7 +113,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
           </div>
 
           {/* Controls */}
-          <button type="button" onClick={prevSong} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="上一首">
+          <button type="button" onClick={prevSong} disabled={controlsDisabled} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40" aria-label="上一首">
             <svg className="h-[20px] w-[20px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
             </svg>
@@ -104,7 +122,8 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
           <button
             type="button"
             onClick={togglePlay}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-foreground/80 transition-transform hover:bg-foreground/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            disabled={controlsDisabled}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-foreground/80 transition-transform hover:bg-foreground/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={isPlaying ? "暂停" : "播放"}
           >
             {isPlaying ? (
@@ -118,7 +137,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
             )}
           </button>
 
-          <button type="button" onClick={nextSong} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="下一首">
+          <button type="button" onClick={nextSong} disabled={controlsDisabled} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40" aria-label="下一首">
             <svg className="h-[20px] w-[20px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
             </svg>

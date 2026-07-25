@@ -48,6 +48,7 @@ function safelyDestroyPlayer(player: APlayerInstance) {
 export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
   const playerRef = useRef<APlayerInstance | null>(null);
   const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const switchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playlistKeyRef = useRef("");
   const playHistoryRef = useRef<number[]>([]);
   const volumeBeforeMute = useRef(0.8);
@@ -63,15 +64,28 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [isSwitchingTrack, setIsSwitchingTrack] = useState(false);
+  const [playlistRequest, setPlaylistRequest] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [playMode, setPlayMode] = useState<PlayMode>("sequence");
 
   const { music } = siteConfig;
 
+  const retryPlaylist = useCallback(() => {
+    setPlaylistRequest((request) => request + 1);
+  }, []);
+
   useEffect(() => {
     const frame = requestAnimationFrame(() => setIsMounted(true));
     return () => cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
+    };
   }, []);
 
   const scheduleDestroy = useCallback((player: APlayerInstance) => {
@@ -95,38 +109,58 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
       netease: "https://api.i-meto.com/meting/api?server=netease&type=playlist&id=",
       tencent: "https://api.i-meto.com/meting/api?server=tencent&type=playlist&id=",
     };
-
     const apiUrl = apiMap[music.server] || apiMap.netease;
+    const controller = new AbortController();
 
-    fetch(`${apiUrl}${music.id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          const parsed = data.map((s: Record<string, string>) => {
-            const artist = s.artist || s.author || s.singer || "";
-            let cover = s.cover || s.pic || "";
-            if (cover.startsWith("//")) cover = "https:" + cover;
-            return {
-              name: s.name || s.title || "",
-              artist,
-              url: s.url || "",
-              cover,
-              lrc: s.lrc || "",
-            };
-          });
-          setSongs(parsed);
-          if (parsed.length > 0) {
-            setCurrentSong(`${parsed[0].name} - ${parsed[0].artist}`);
-            setCurrentCover(parsed[0].cover);
-          }
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load playlist:", err);
-        setError("Failed to load playlist");
-      })
-      .finally(() => setLoading(false));
-  }, [music.enabled, music.server, music.id]);
+    const loadPlaylist = async () => {
+      setLoading(true);
+      setError("");
+      setIsPlayerReady(false);
+      setIsSwitchingTrack(false);
+
+      try {
+        const response = await fetch(`${apiUrl}${music.id}`, { signal: controller.signal });
+        if (!response.ok) throw new Error(`playlist request failed: ${response.status}`);
+
+        const data: unknown = await response.json();
+        if (!Array.isArray(data)) throw new Error("playlist response is not an array");
+
+        const parsed = data.flatMap((item): Song[] => {
+          if (!item || typeof item !== "object") return [];
+          const source = item as Record<string, unknown>;
+          const url = typeof source.url === "string" ? source.url.trim() : "";
+          if (!url) return [];
+          const artist = [source.artist, source.author, source.singer].find(
+            (value): value is string => typeof value === "string" && value.trim().length > 0,
+          ) ?? "";
+          let cover = typeof source.cover === "string" ? source.cover : typeof source.pic === "string" ? source.pic : "";
+          if (cover.startsWith("//")) cover = `https:${cover}`;
+          const name = typeof source.name === "string" ? source.name : typeof source.title === "string" ? source.title : "";
+          const lrc = typeof source.lrc === "string" ? source.lrc : undefined;
+          return [{ name, artist, url, cover, lrc }];
+        });
+
+        if (controller.signal.aborted) return;
+        setSongs(parsed);
+        const firstSong = parsed[0];
+        setCurrentSong(firstSong ? `${firstSong.name} - ${firstSong.artist}` : "");
+        setCurrentCover(firstSong?.cover ?? "");
+        setCurrentIndex(0);
+      } catch (requestError) {
+        if (controller.signal.aborted) return;
+        console.error("Failed to load playlist:", requestError);
+        setSongs([]);
+        setCurrentSong("");
+        setCurrentCover("");
+        setError("音乐服务暂时不可用");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
+    void loadPlaylist();
+    return () => controller.abort();
+  }, [music.enabled, music.server, music.id, playlistRequest]);
 
   // -------- Create APlayer instance --------
   useEffect(() => {
@@ -140,6 +174,7 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
     const playlistKey = songs.map((song) => song.url).join("\n");
     if (playerRef.current && playlistKeyRef.current === playlistKey) {
       const existingPlayer = playerRef.current;
+      setIsPlayerReady(true);
       return () => scheduleDestroy(existingPlayer);
     }
 
@@ -172,6 +207,7 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
 
     (async () => {
       try {
+        setIsPlayerReady(false);
         loadCss("/libs/APlayer.min.css");
         await loadScript("/libs/APlayer.min.js");
         if (cancelled || !containerRef.current || !window.APlayer) return;
@@ -210,6 +246,7 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
         playerRef.current = ap;
         playlistKeyRef.current = playlistKey;
         ap.volume(volume, false);
+        setIsPlayerReady(true);
 
         ap.on("play", () => setIsPlaying(true));
         ap.on("pause", () => {
@@ -245,6 +282,11 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
                 new CustomEvent("live2d:music-change", { detail: { songName } })
               );
             }
+            if (switchTimerRef.current) {
+              clearTimeout(switchTimerRef.current);
+              switchTimerRef.current = null;
+            }
+            setIsSwitchingTrack(false);
           }, 50);
         });
         if (songs.length > 0) {
@@ -255,7 +297,8 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
         }
       } catch (e) {
         console.error("Music player failed to load", e);
-        setError("Failed to load player");
+        setIsPlayerReady(false);
+        setError("播放器初始化失败");
       }
     })();
 
@@ -285,6 +328,22 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
     playerRef.current?.toggle();
   }, []);
 
+  const switchSong = useCallback(
+    (index: number) => {
+      const player = playerRef.current;
+      if (!player || index === player.list.index) return;
+      if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
+      setIsSwitchingTrack(true);
+      switchTimerRef.current = setTimeout(() => {
+        setIsSwitchingTrack(false);
+        switchTimerRef.current = null;
+      }, 1500);
+      player.list.switch(index);
+      setSongInfo(index);
+    },
+    [setSongInfo],
+  );
+
   const prevSong = useCallback(() => {
     if (!playerRef.current || songs.length === 0) return;
     let idx: number;
@@ -298,9 +357,8 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
     } else {
       idx = Math.max(0, playerRef.current.list.index - 1);
     }
-    playerRef.current.list.switch(idx);
-    setSongInfo(idx);
-  }, [playMode, songs.length, setSongInfo]);
+    switchSong(idx);
+  }, [playMode, songs.length, switchSong]);
 
   const nextSong = useCallback(() => {
     if (!playerRef.current || songs.length === 0) return;
@@ -313,16 +371,15 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
     } else {
       idx = Math.min(songs.length - 1, playerRef.current.list.index + 1);
     }
-    playerRef.current.list.switch(idx);
-    setSongInfo(idx);
-  }, [songs.length, playMode, setSongInfo]);
+    switchSong(idx);
+  }, [songs.length, playMode, switchSong]);
 
   const playSong = useCallback(
     (index: number) => {
-      playerRef.current?.list.switch(index);
-      setSongInfo(index);
+      if (index < 0 || index >= songs.length) return;
+      switchSong(index);
     },
-    [setSongInfo],
+    [songs.length, switchSong],
   );
 
   // -------- Volume --------
@@ -384,6 +441,8 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
     songs,
     loading,
     error,
+    isPlayerReady,
+    isSwitchingTrack,
     volume,
     isMuted,
     playMode,
@@ -396,6 +455,7 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
     toggleMute,
     cyclePlayMode,
     seekTo,
+    retryPlaylist,
   };
 }
 

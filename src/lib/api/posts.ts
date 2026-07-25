@@ -45,6 +45,50 @@ export async function listPostSlugs(locale?: string): Promise<string[]> {
   return sbPosts.listPostSlugs(locale);
 }
 
+type SupabaseWriteError = {
+  code?: unknown;
+  message?: unknown;
+};
+
+function isSupabaseWriteError(error: unknown): error is SupabaseWriteError {
+  return typeof error === "object" && error !== null;
+}
+
+/**
+ * Supabase 的 PostgrestError 是普通对象而非 Error 实例。保留具体原因，避免
+ * 编辑器把数据库配置问题误报成无信息的「保存文章失败」。
+ */
+export function getPostSaveErrorMessage(error: unknown): string {
+  const code = isSupabaseWriteError(error) && typeof error.code === "string"
+    ? error.code
+    : undefined;
+  const message =
+    isSupabaseWriteError(error) && typeof error.message === "string"
+      ? error.message.trim()
+      : error instanceof Error
+        ? error.message.trim()
+        : "";
+  const schemaMessage = `${code ?? ""} ${message}`.toLowerCase();
+
+  if (
+    /content_json|content_format|posts_tiptap_content_required|posts_content_format_check/.test(
+      schemaMessage
+    )
+  ) {
+    return "数据库尚未启用新版编辑器：请在 Supabase SQL Editor 手动执行 supabase/migrations/004_posts_tiptap_content.sql 后重试";
+  }
+  if (code === "23505") {
+    return "保存文章失败：文章链接标识已存在，请修改标题后重试";
+  }
+  if (code === "42501") {
+    return "保存文章失败：服务端没有文章写入权限，请检查 Supabase 服务角色密钥";
+  }
+  if (message) {
+    return `保存文章失败：${message}`;
+  }
+  return "保存文章失败，请稍后重试";
+}
+
 export async function publishPost(
   input: sbPosts.UpsertPostInput
 ): Promise<{ ok: true; post: Post } | { ok: false; error: string }> {
@@ -53,8 +97,7 @@ export async function publishPost(
     return { ok: true, post };
   } catch (e) {
     console.error("publishPost error:", e);
-    const message = e instanceof Error ? e.message : "保存文章失败";
-    return { ok: false, error: message };
+    return { ok: false, error: getPostSaveErrorMessage(e) };
   }
 }
 

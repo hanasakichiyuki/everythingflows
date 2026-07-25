@@ -20,10 +20,10 @@ export default async function TagPage({
     <PageCanvas>
       <section aria-labelledby="tag-page-title">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("tags")}</p>
-        <h1 id="tag-page-title" className="mt-3 font-serif text-3xl font-semibold tracking-tight text-foreground">#{decoded}</h1>
-        <p className="mb-8 mt-2 text-sm text-muted">{t("postCount", { count: posts.length })}</p>
+        <h1 id="tag-page-title" className="mt-3 font-serif text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">#{decoded}</h1>
+        <p className="mb-9 mt-3 text-sm leading-7 text-muted sm:text-[15px]">{t("postCount", { count: posts.length })}</p>
         {posts.length > 0 ? (
-          <div className="space-y-3">
+          <div className="grid gap-6 md:grid-cols-2">
             {posts.map((post, index) => (
               <PostCard key={post.slug} post={post} index={index} />
             ))}

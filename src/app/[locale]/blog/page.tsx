@@ -18,14 +18,14 @@ export default async function BlogPage({
     <PageCanvas>
       <section aria-labelledby="blog-page-title">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("eyebrow")}</p>
-        <div className="mt-3 flex flex-col gap-2 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mt-3 flex flex-col gap-4 border-b border-border pb-9 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 id="blog-page-title" className="font-serif text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{t("title")}</h1>
-            <p className="mt-2 text-sm leading-6 text-muted">{t("subtitle")}</p>
+            <h1 id="blog-page-title" className="font-serif text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">{t("title")}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted sm:text-[15px]">{t("subtitle")}</p>
           </div>
           <p className="text-sm text-muted">{t("postCount", { count: posts.length })}</p>
         </div>
-        <div className="mt-7">
+        <div className="mt-8">
           <BlogList posts={posts} />
         </div>
       </section>

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import { LoaderCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { ConversationList } from "./ConversationList";
 import { ChatPanel } from "./ChatPanel";
 import { ChatEmptyPanel } from "./ChatEmptyPanel";
@@ -13,16 +15,16 @@ interface ChatShellProps {
 }
 
 export function ChatShell({ initialConversationId }: ChatShellProps) {
+  const t = useTranslations("chat");
   const [listOpen, setListOpen] = useState(false);
-  const [globalError, setGlobalError] = useState<string | null>(null);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
-
   const {
     conversations,
     activeConversation,
     messages,
     models,
     loading,
+    messagesLoading,
     isAuthenticated,
     error,
     handleNew,
@@ -32,12 +34,13 @@ export function ChatShell({ initialConversationId }: ChatShellProps) {
     handleRename,
     handleSwitchModel,
     clearError,
+    reload,
     onMessagesChange,
   } = useChatState(initialConversationId);
 
-  const onToggleList = useCallback(() => {
-    setListOpen((v) => !v);
-  }, []);
+  const selectableModels = isAuthenticated ? models : models.filter((model) => model.isFree);
+
+  const onToggleList = useCallback(() => setListOpen((open) => !open), []);
 
   const onNew = useCallback(() => {
     handleNew();
@@ -49,44 +52,29 @@ export function ChatShell({ initialConversationId }: ChatShellProps) {
       handleSelect(id);
       setListOpen(false);
     },
-    [handleSelect]
+    [handleSelect],
   );
 
   const onSwitchModel = useCallback(
     (modelId: string) => {
-      if (activeConversation) {
-        handleSwitchModel(activeConversation.id, modelId);
-      }
+      if (activeConversation) void handleSwitchModel(activeConversation.id, modelId);
     },
-    [activeConversation, handleSwitchModel]
+    [activeConversation, handleSwitchModel],
   );
 
-  // 匿名用户只显示免费模型；登录用户显示全部已配置模型
-  const selectableModels = isAuthenticated
-    ? models
-    : models.filter((m) => m.isFree);
-
-  const onSessionError = useCallback((message: string) => {
-    setGlobalError(message);
-  }, []);
-
-  // 空状态页面发消息：创建对话 → 等 ChatPanel 挂载 → 用 pendingMessage 触发发送
   const onCreateAndSend = useCallback(
     async (firstMessage: string, modelId?: string) => {
-      const conv: Conversation | null = await handleCreateAndSend(firstMessage, modelId);
-      if (conv) {
-        setPendingMessage(firstMessage);
-      }
+      const conversation: Conversation | null = await handleCreateAndSend(firstMessage, modelId);
+      if (conversation) setPendingMessage(firstMessage);
     },
-    [handleCreateAndSend]
+    [handleCreateAndSend],
   );
-
-  const onPendingMessageConsumed = useCallback(() => setPendingMessage(null), []);
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted" role="status">
+        <LoaderCircle className="h-5 w-5 animate-spin text-primary" aria-hidden />
+        {t("loading")}
       </div>
     );
   }
@@ -97,50 +85,42 @@ export function ChatShell({ initialConversationId }: ChatShellProps) {
         conversations={conversations}
         activeId={activeConversation?.id ?? null}
         open={listOpen}
-        onToggle={onToggleList}
         onSelect={onSelect}
         onNew={onNew}
         onDelete={handleDelete}
         onRename={handleRename}
+        onClose={() => setListOpen(false)}
       />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {activeConversation ? (
           <ChatPanel
             key={activeConversation.id}
             conversation={activeConversation}
             initialMessages={messages}
             models={selectableModels}
-            canSwitchModel={true}
+            isAuthenticated={isAuthenticated}
+            canSwitchModel
+            messagesLoading={messagesLoading}
             onToggleSidebar={onToggleList}
             onSwitchModel={onSwitchModel}
-            onSessionError={onSessionError}
             onMessagesChange={onMessagesChange}
             pendingMessage={pendingMessage}
-            onPendingMessageConsumed={onPendingMessageConsumed}
+            onPendingMessageConsumed={() => setPendingMessage(null)}
           />
         ) : (
           <ChatEmptyPanel
             models={selectableModels}
-            canSwitchModel={true}
+            isAuthenticated={isAuthenticated}
+            canSwitchModel
             onToggleSidebar={onToggleList}
             onCreateAndSend={onCreateAndSend}
           />
         )}
       </div>
 
-      {globalError && (
-        <ChatError
-          message={globalError}
-          onDismiss={() => setGlobalError(null)}
-        />
-      )}
-
-      {error && !globalError && (
-        <ChatError
-          message={error.message}
-          onDismiss={clearError}
-        />
+      {error && (
+        <ChatError message={error.message} onDismiss={clearError} onRetry={reload} />
       )}
     </div>
   );

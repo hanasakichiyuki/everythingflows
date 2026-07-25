@@ -2,12 +2,14 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { useMemo, useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PanelLeft, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { MessageList } from "./MessageList";
 import { ChatComposer } from "./ChatComposer";
 import { ModelPicker } from "./ModelPicker";
 import { ChatError } from "./ChatError";
+import { ChatCapabilityNotice } from "./ChatCapabilityNotice";
 import { createMessageAction } from "@/app/actions/chat";
 import type { AvailableModel } from "@/hooks/useChatState";
 import type { Conversation, Message } from "@/types/chat";
@@ -16,42 +18,45 @@ interface ChatPanelProps {
   conversation: Conversation;
   initialMessages: Message[];
   models: AvailableModel[];
+  isAuthenticated: boolean;
   canSwitchModel: boolean;
+  messagesLoading: boolean;
   onToggleSidebar: () => void;
   onSwitchModel: (modelId: string) => void;
-  onSessionError: (message: string) => void;
   onMessagesChange?: (messages: Message[]) => void;
   pendingMessage?: string | null;
   onPendingMessageConsumed?: () => void;
 }
 
 function toUIMessages(messages: Message[]): UIMessage[] {
-  return messages.map((m) => ({
-    id: m.id,
-    role: m.role,
-    parts: [{ type: "text", text: m.content }],
+  return messages.map((message) => ({
+    id: message.id,
+    role: message.role,
+    parts: [{ type: "text", text: message.content }],
   }));
 }
 
 function getTextContent(message: UIMessage): string {
-  const textPart = message.parts?.find((p) => p.type === "text");
-  return textPart?.text ?? "";
+  return message.parts?.find((part) => part.type === "text")?.text ?? "";
 }
 
 export function ChatPanel({
   conversation,
   initialMessages,
   models,
+  isAuthenticated,
   canSwitchModel,
+  messagesLoading,
   onToggleSidebar,
   onSwitchModel,
-  onSessionError,
   onMessagesChange,
   pendingMessage,
   onPendingMessageConsumed,
 }: ChatPanelProps) {
+  const t = useTranslations("chat");
   const [dismissedErrorKey, setDismissedErrorKey] = useState<string | null>(null);
   const [callbackError, setCallbackError] = useState<string | null>(null);
+  const [persistenceWarning, setPersistenceWarning] = useState<string | null>(null);
 
   const transport = useMemo(
     () =>
@@ -68,60 +73,59 @@ export function ChatPanel({
     [initialMessages],
   );
 
-  // 历史消息的 createdAt 映射，用于 displayMessages 保持原始时间戳
   const initialCreatedAtMap = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const msg of initialMessages) {
-      m.set(msg.id, msg.createdAt);
-    }
-    return m;
+    const createdAt = new Map<string, string>();
+    for (const message of initialMessages) createdAt.set(message.id, message.createdAt);
+    return createdAt;
   }, [initialMessages]);
+
+  const formatError = useCallback(
+    (error: Error) => {
+      if (/failed to fetch|networkerror|load failed/i.test(error.message)) {
+        return t("networkError");
+      }
+      return error.message || t("genericError");
+    },
+    [t],
+  );
 
   const { messages, sendMessage, status, stop, regenerate, error, setMessages } = useChat({
     id: conversation.id,
     transport,
     messages: initialUIMessages,
-    onError: (err) => {
-      setCallbackError(err.message);
-      onSessionError(err.message);
-    },
+    onError: (streamError) => setCallbackError(formatError(streamError)),
   });
 
   const isStreaming = status === "streaming" || status === "submitted";
+  const selectedModel = models.find((model) => model.id === conversation.modelId);
 
-  // 刷新页面时 initialMessages 可能晚于 ChatPanel 挂载到达（loadMessages 异步）。
-  // useChat 只在构造时读 messages 选项，后续 prop 变化不会更新 Chat 实例。
-  // 此 effect 在 chat 为空且 initialMessages 有数据时同步进去，避免历史丢失。
   useEffect(() => {
     if (initialUIMessages.length > 0 && messages.length === 0 && !isStreaming) {
       setMessages(initialUIMessages);
     }
-  }, [initialUIMessages, messages.length, isStreaming, setMessages]);
+  }, [initialUIMessages, isStreaming, messages.length, setMessages]);
 
-  const errorKey = error?.message ?? callbackError;
-  const localErrorDerived =
-    errorKey && errorKey !== dismissedErrorKey ? errorKey : null;
+  const errorKey = error ? formatError(error) : callbackError;
+  const localError = errorKey && errorKey !== dismissedErrorKey ? errorKey : null;
 
-  // 直接从 useChat 的 messages 转换 —— 排序天然正确，无需本地 state 同步
-  const displayMessages: Message[] = useMemo(() => {
-    return messages
-      .filter((msg) => {
-        if (msg.role === "system") return false;
-        // 流式中的空 assistant 消息不显示（由 ThinkingDots 占位）
-        if (msg.role === "assistant" && !getTextContent(msg) && isStreaming) return false;
-        return true;
-      })
-      .map((msg) => ({
-        id: msg.id,
-        conversationId: conversation.id,
-        role: msg.role as "user" | "assistant",
-        content: getTextContent(msg),
-        modelId: msg.role === "assistant" ? conversation.modelId : null,
-        createdAt: initialCreatedAtMap.get(msg.id) ?? new Date().toISOString(),
-      }));
-  }, [messages, isStreaming, conversation.id, conversation.modelId, initialCreatedAtMap]);
+  const displayMessages: Message[] = useMemo(
+    () =>
+      messages
+        .filter((message) => {
+          if (message.role === "system") return false;
+          return !(message.role === "assistant" && !getTextContent(message) && isStreaming);
+        })
+        .map((message) => ({
+          id: message.id,
+          conversationId: conversation.id,
+          role: message.role as "user" | "assistant",
+          content: getTextContent(message),
+          modelId: message.role === "assistant" ? conversation.modelId : null,
+          createdAt: initialCreatedAtMap.get(message.id) ?? new Date().toISOString(),
+        })),
+    [conversation.id, conversation.modelId, initialCreatedAtMap, isStreaming, messages],
+  );
 
-  // 报告消息变化给 useChatState（匿名用户写入 localStorage）
   useEffect(() => {
     onMessagesChange?.(displayMessages);
   }, [displayMessages, onMessagesChange]);
@@ -129,25 +133,25 @@ export function ChatPanel({
   const handleSend = useCallback(
     async (content: string) => {
       setDismissedErrorKey(null);
+      setCallbackError(null);
+      setPersistenceWarning(null);
       sendMessage({ text: content });
-      // 后台异步保存到数据库（不阻塞 UI）
+      if (!isAuthenticated) return;
+
       try {
         const result = await createMessageAction({
           conversationId: conversation.id,
           role: "user",
           content,
         });
-        if (!result.ok) {
-          setCallbackError("消息未保存，刷新后可能丢失");
-        }
+        if (!result.ok) setPersistenceWarning(t("messageNotSaved"));
       } catch {
-        setCallbackError("消息未保存，刷新后可能丢失");
+        setPersistenceWarning(t("messageNotSaved"));
       }
     },
-    [sendMessage, conversation.id],
+    [conversation.id, isAuthenticated, sendMessage, t],
   );
 
-  // 空状态页面发消息后：ChatPanel 挂载，发送 pendingMessage
   useEffect(() => {
     if (!pendingMessage || !onPendingMessageConsumed) return;
     const frame = requestAnimationFrame(() => {
@@ -158,8 +162,10 @@ export function ChatPanel({
   }, [handleSend, onPendingMessageConsumed, pendingMessage]);
 
   const handleRegenerate = useCallback(() => {
-    setDismissedErrorKey(null);
-    regenerate();
+      setDismissedErrorKey(null);
+      setCallbackError(null);
+      setPersistenceWarning(null);
+      regenerate();
   }, [regenerate]);
 
   const hasMessages = displayMessages.length > 0;
@@ -170,16 +176,14 @@ export function ChatPanel({
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
-          aria-label="打开对话列表"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={t("openHistory")}
         >
           <PanelLeft className="h-4 w-4" />
         </button>
 
-        <div className="flex-1 truncate">
-          <h1 className="truncate text-sm font-medium text-foreground">
-            {conversation.title}
-          </h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-sm font-medium text-foreground">{conversation.title}</h1>
         </div>
 
         <ModelPicker
@@ -187,33 +191,42 @@ export function ChatPanel({
           selectedModelId={conversation.modelId}
           onSelect={onSwitchModel}
           disabled={!canSwitchModel}
+          showLoginHint={!isAuthenticated}
         />
       </header>
+
+      <ChatCapabilityNotice isAuthenticated={isAuthenticated} model={selectedModel} />
 
       <MessageList
         messages={displayMessages}
         isStreaming={isStreaming}
+        historyLoading={messagesLoading}
         onRegenerate={handleRegenerate}
         showWelcome={!hasMessages && !isStreaming}
       />
 
       <ChatComposer
         onSend={handleSend}
-        onStop={() => stop()}
+        onStop={stop}
         isStreaming={isStreaming}
+        disabled={models.length === 0 || messagesLoading}
       />
 
-      {localErrorDerived && (
+      {(localError || persistenceWarning) && (
         <ChatError
-          message={localErrorDerived}
-          onDismiss={() => setDismissedErrorKey(errorKey)}
+          message={localError ?? persistenceWarning ?? t("genericError")}
+          onDismiss={() => {
+            if (localError) setDismissedErrorKey(errorKey);
+            else setPersistenceWarning(null);
+          }}
+          onRetry={localError && !isStreaming ? handleRegenerate : undefined}
         />
       )}
 
       {models.length === 0 && (
-        <div className="shrink-0 border-t border-border bg-foreground/5 px-4 py-2 text-center text-xs text-muted">
+        <div className="shrink-0 border-t border-border bg-destructive/10 px-4 py-2 text-center text-xs text-destructive">
           <Sparkles className="mr-1 inline h-3 w-3" />
-          尚未配置任何 AI 模型，请在环境变量中设置 API Key
+          {t("modelUnavailable")} {t("modelUnavailableHelp")}
         </div>
       )}
     </div>
