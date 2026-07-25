@@ -101,6 +101,12 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   }, [isMobileNavigationOpen]);
 
   const isHome = pathname === "/";
+  const isWideCollectionPage =
+    pathname === "/blog" ||
+    pathname.startsWith("/blog/tag/") ||
+    pathname === "/archive" ||
+    pathname === "/search" ||
+    pathname === "/fragments";
 
   return (
     <MusicPlayerProvider>
@@ -168,7 +174,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               className={
                 isAdminWorkspace
                   ? "mx-auto w-full max-w-[1500px]"
-                  : `mx-auto w-full ${isHome ? "max-w-[1500px]" : "max-w-4xl"}`
+                  : `mx-auto w-full ${isHome ? "max-w-[1500px]" : isWideCollectionPage ? "max-w-[1280px]" : "max-w-4xl"}`
               }
             >
               {children}

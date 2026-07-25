@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { listPosts } from "@/lib/api/posts";
 import { BlogList } from "@/components/blog/BlogList";
-import { PageShell } from "@/components/ui/surface";
+import { PageCanvas } from "@/components/ui/surface";
 
 export const revalidate = 3600;
 
@@ -15,7 +15,7 @@ export default async function BlogPage({
   const [posts, t] = await Promise.all([listPosts(locale), getTranslations("blog")]);
 
   return (
-    <PageShell surfaceClassName="px-5 py-7 sm:px-9 sm:py-10">
+    <PageCanvas>
       <section aria-labelledby="blog-page-title">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("eyebrow")}</p>
         <div className="mt-3 flex flex-col gap-2 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
@@ -29,6 +29,6 @@ export default async function BlogPage({
           <BlogList posts={posts} />
         </div>
       </section>
-    </PageShell>
+    </PageCanvas>
   );
 }

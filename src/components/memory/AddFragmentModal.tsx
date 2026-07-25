@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import type { MemoryFragment } from "@/types/memory";
+import { MAX_FRAGMENT_TEXT_LENGTH } from "@/lib/fragment-validation";
 import { Toast } from "@/components/ui/Toast";
 import {
   Dialog,
@@ -17,6 +19,7 @@ interface AddFragmentModalProps {
 }
 
 export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
+  const t = useTranslations("fragments");
   const [mode, setMode] = useState<"image" | "text">("text");
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -90,14 +93,14 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
     try {
       let imageUrl: string | undefined;
 
-      if (imageFile) {
+      if (mode === "image" && imageFile) {
         const formData = new FormData();
         formData.append("file", imageFile);
         const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
         
         if (!uploadRes.ok) {
           const errorData = await uploadRes.json();
-          throw new Error(errorData.error || "图片上传失败");
+          throw new Error(errorData.error || t("uploadError"));
         }
         
         const uploadData = await uploadRes.json();
@@ -118,7 +121,7 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "保存失败");
+        throw new Error(errorData.error || t("createError"));
       }
 
       const data = await res.json();
@@ -135,7 +138,7 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
       onClose();
     } catch (err) {
       console.error("Failed to add fragment:", err);
-      const errorMessage = err instanceof Error ? err.message : "操作失败，请重试";
+      const errorMessage = err instanceof Error ? err.message : t("createError");
       setError(errorMessage);
     } finally {
       setUploading(false);
@@ -151,10 +154,10 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
         }}
       >
       <DialogContent
-        overlayClassName="bg-black/60"
-        className={`max-w-md border-zinc-800/60 bg-zinc-900/95 p-6 text-zinc-200 ${
+        overlayClassName="bg-black/25"
+        className={`max-w-md border-surface-border bg-surface p-6 text-foreground ${
           isDragging
-            ? "border-zinc-500/80 bg-zinc-800/95"
+            ? "border-primary/60 bg-primary-soft"
             : ""
         }`}
         onEscapeKeyDown={(event) => {
@@ -167,12 +170,10 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <DialogTitle className="mb-6 pr-10 font-light tracking-wide text-zinc-200">
-          添加碎片
+        <DialogTitle className="mb-2 pr-10 font-serif text-xl font-semibold tracking-tight text-foreground">
+          {t("addTitle")}
         </DialogTitle>
-        <DialogDescription className="sr-only">
-          添加文字或图片碎片
-        </DialogDescription>
+        <DialogDescription className="mb-6 text-sm leading-6 text-muted">{t("addDescription")}</DialogDescription>
 
         {/* Mode Toggle */}
         <div className="mb-4 flex gap-2">
@@ -182,11 +183,11 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
             aria-pressed={mode === "text"}
             className={`flex-1 rounded-lg px-4 py-2 text-sm transition-all ${
               mode === "text"
-                ? "bg-zinc-700/50 text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-primary-soft text-primary"
+                : "text-muted hover:bg-foreground/[0.045] hover:text-foreground"
             }`}
           >
-            文字
+            {t("textMode")}
           </button>
           <button
             type="button"
@@ -194,11 +195,11 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
             aria-pressed={mode === "image"}
             className={`flex-1 rounded-lg px-4 py-2 text-sm transition-all ${
               mode === "image"
-                ? "bg-zinc-700/50 text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-primary-soft text-primary"
+                : "text-muted hover:bg-foreground/[0.045] hover:text-foreground"
             }`}
           >
-            图片
+            {t("imageMode")}
           </button>
         </div>
 
@@ -215,14 +216,14 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex w-full items-center justify-center rounded-xl border border-dashed border-zinc-700/50 py-8 text-sm text-zinc-500 transition-all hover:border-zinc-600 hover:text-zinc-300"
+              className="flex w-full items-center justify-center rounded-xl border border-dashed border-border bg-primary-soft/20 py-8 text-sm text-muted transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {imagePreview ? (
                 // FileReader 的 data URL 无固定尺寸，不适合交给 Next 图片优化器。
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagePreview} alt="Preview" className="h-40 w-full rounded-lg object-cover" />
+                <img src={imagePreview} alt={t("imageAlt")} className="h-40 w-full rounded-lg object-cover" />
               ) : (
-                <span>选择图片</span>
+                <span>{t("selectImage")}</span>
               )}
             </button>
           </div>
@@ -233,9 +234,10 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onPaste={handlePaste}
-          placeholder={mode === "text" ? "写下一段记忆... (也可直接粘贴图片)" : "（可选）为图片添加文字..."}
-          aria-label={mode === "text" ? "碎片内容" : "图片说明"}
-          className="mb-4 min-h-0 border-zinc-800/50 bg-zinc-800/30 text-zinc-200 placeholder:text-zinc-600 focus-visible:border-zinc-600 focus-visible:ring-zinc-500/40"
+          placeholder={mode === "text" ? t("textPlaceholder") : t("imagePlaceholder")}
+          aria-label={mode === "text" ? t("contentField") : t("imageCaptionField")}
+          maxLength={MAX_FRAGMENT_TEXT_LENGTH}
+          className="mb-4 min-h-0 border-border bg-background text-foreground placeholder:text-muted focus-visible:ring-ring"
           rows={4}
         />
 
@@ -244,17 +246,17 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-zinc-800/50 px-4 py-2 text-sm text-zinc-400 transition-all hover:border-zinc-700 hover:text-zinc-200"
+            className="flex-1 rounded-xl border border-border px-4 py-2 text-sm text-muted transition-colors hover:bg-primary-soft hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            取消
+            {t("cancel")}
           </button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={uploading || (mode === "text" && !text.trim()) || (mode === "image" && !imageFile)}
-            className="flex-1 rounded-lg bg-zinc-700/50 px-4 py-2 text-sm text-zinc-200 transition-all hover:bg-zinc-600/50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex-1 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {uploading ? "保存中..." : "保存"}
+            {uploading ? t("saving") : t("save")}
           </button>
         </div>
       </DialogContent>

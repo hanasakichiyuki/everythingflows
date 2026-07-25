@@ -1,85 +1,63 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { MemoryFragment } from "@/types/memory";
-import { MemoryCard } from "./MemoryCard";
-import { FragmentDetailModal } from "./FragmentDetailModal";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageCanvas } from "@/components/ui/surface";
 import { AddFragmentButton } from "./AddFragmentButton";
+import { MemoryCard } from "./MemoryCard";
 
 export function MemoryWall({ fragments }: { fragments: MemoryFragment[] }) {
-  const [selectedFragment, setSelectedFragment] = useState<MemoryFragment | null>(null);
-  const [fragmentsList, setFragmentsList] = useState(fragments);
+  const t = useTranslations("fragments");
+  const [addedFragments, setAddedFragments] = useState<MemoryFragment[]>([]);
+  const addedIds = new Set(addedFragments.map((fragment) => fragment.id));
+  const fragmentsList = [
+    ...addedFragments,
+    ...fragments.filter((fragment) => !addedIds.has(fragment.id)),
+  ];
 
   const handleAdd = (fragment: MemoryFragment) => {
-    setFragmentsList((prev) => [fragment, ...prev]);
-  };
-
-  const handleUpdate = (updated: MemoryFragment) => {
-    setFragmentsList((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
-    setSelectedFragment(updated);
-  };
-
-  const handleDelete = (id: string) => {
-    setFragmentsList((prev) => prev.filter((f) => f.id !== id));
+    setAddedFragments((current) => [fragment, ...current]);
   };
 
   return (
-    <div className="relative min-h-[100dvh]">
+    <div className="relative">
       <AddFragmentButton onAdd={handleAdd} />
-      {/* Header */}
-      <header className="flex flex-col items-center justify-center px-6 pt-20 pb-16 md:pt-32 md:pb-24">
-        <h1 className="anim-fade-up text-3xl font-light tracking-[0.2em] text-foreground/85 md:text-4xl">
-          碎片
-        </h1>
-        <div
-          className="anim-fade-in mt-4 h-px w-12 bg-border"
-          style={{ animationDelay: "0.4s" }}
-        />
-      </header>
-      {/* Masonry Grid */}
-      <div className="mx-auto max-w-6xl px-4 pb-20 md:px-8">
-        {fragmentsList.length > 0 ? (
-          <div className="columns-2 gap-3 md:columns-3 lg:columns-4 xl:columns-4">
-            {fragmentsList.map((fragment, index) => (
-              <div
-                key={fragment.id}
-                className="anim-fade-up mb-3 break-inside-avoid"
-                style={{ animationDelay: `${Math.min(index * 0.05, 0.6)}s` }}
-              >
-                <MemoryCard
-                  fragment={fragment}
-                  onClick={() => setSelectedFragment(fragment)}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mx-auto max-w-md rounded-2xl border border-dashed border-zinc-700/60 px-6 py-16 text-center">
-            <p className="text-sm font-light tracking-wide text-zinc-500">
-              还没有留下碎片
+      <PageCanvas>
+        <section aria-labelledby="fragments-page-title">
+          <header className="flex flex-col items-center px-4 pb-10 pt-5 text-center sm:pb-14 sm:pt-8">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              {t("eyebrow")}
             </p>
+            <h1 id="fragments-page-title" className="mt-4 font-serif text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              {t("title")}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{t("subtitle")}</p>
+            <div className="mt-6 h-px w-12 bg-border" aria-hidden />
+          </header>
+
+          <div>
+            {fragmentsList.length > 0 ? (
+              <div className="columns-2 gap-3 min-[760px]:columns-3 min-[1000px]:columns-4 min-[1280px]:columns-5 sm:gap-4">
+                {fragmentsList.map((fragment, index) => (
+                  <div
+                    key={fragment.id}
+                    className="anim-fade-up mb-3 break-inside-avoid sm:mb-4"
+                    style={{ animationDelay: `${Math.min(index * 0.05, 0.6)}s` }}
+                  >
+                    <MemoryCard fragment={fragment} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <footer className="anim-fade-in flex flex-col items-center justify-center px-6 py-16 md:py-24">
-        <div className="h-px w-12 bg-border" />
-        <p className="mt-6 text-center text-xs font-light tracking-wider text-muted">
-          &ldquo;In my beginning is my end.<br />
-          In my end is my beginning.&rdquo;
-        </p>
-      </footer>
-
-      {/* Detail Modal */}
-      {selectedFragment && (
-        <FragmentDetailModal
-          fragment={selectedFragment}
-          onClose={() => setSelectedFragment(null)}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-        />
-      )}
+        </section>
+      </PageCanvas>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { listPosts } from "@/lib/api/posts";
+import { listFragments } from "@/lib/api/fragments";
 import { siteConfig } from "@/config/site";
 import { routing } from "@/i18n/routing";
 
@@ -39,5 +40,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  return [...staticRoutes, ...postRoutes];
+  let fragmentRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const fragments = await listFragments();
+    fragmentRoutes = fragments.map((fragment) => ({
+      url: buildPath(`/fragments/${fragment.id}`),
+      lastModified: fragment.createdAt,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    }));
+  } catch {
+    // Keep the sitemap available even if fragments fail to load.
+  }
+
+  return [...staticRoutes, ...postRoutes, ...fragmentRoutes];
 }

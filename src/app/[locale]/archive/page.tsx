@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getArchiveByYear } from "@/lib/api/posts";
 import { ArchiveView } from "@/components/archive/ArchiveView";
-import { PageShell } from "@/components/ui/surface";
+import { PageCanvas } from "@/components/ui/surface";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 // ISR：归档随发文变化；1h 兜底，发布/删除时由 server action revalidate。
@@ -19,7 +19,7 @@ export default async function ArchivePage({
   const archive = await getArchiveByYear(locale);
 
   return (
-    <PageShell surfaceClassName="px-5 py-7 sm:px-9 sm:py-10">
+    <PageCanvas>
       <section aria-labelledby="archive-page-title">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("eyebrow")}</p>
         <div className="mt-3 border-b border-border pb-7">
@@ -27,13 +27,13 @@ export default async function ArchivePage({
           <p className="mt-2 text-sm leading-6 text-muted">{t("subtitle")}</p>
         </div>
         <div className="mt-8">
-      {archive.length === 0 ? (
-        <EmptyState title={t("empty")} description={t("emptyDescription")} />
-      ) : (
-        <ArchiveView archive={archive} postsLabel={t("posts")} />
-      )}
+          {archive.length === 0 ? (
+            <EmptyState title={t("empty")} description={t("emptyDescription")} />
+          ) : (
+            <ArchiveView archive={archive} postsLabel={t("posts")} />
+          )}
         </div>
       </section>
-    </PageShell>
+    </PageCanvas>
   );
 }

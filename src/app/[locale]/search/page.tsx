@@ -1,7 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { getSearchIndex } from "@/lib/api/posts";
 import { SearchBox } from "@/components/search/SearchBox";
-import { PageShell } from "@/components/ui/surface";
+import { PageCanvas } from "@/components/ui/surface";
 
 export const revalidate = 3600;
 
@@ -15,8 +15,8 @@ export default async function SearchPage({
   const items = await getSearchIndex(locale);
 
   return (
-    <PageShell surfaceClassName="px-5 py-7 sm:px-9 sm:py-10">
+    <PageCanvas>
       <SearchBox items={items} />
-    </PageShell>
+    </PageCanvas>
   );
 }

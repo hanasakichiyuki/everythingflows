@@ -55,7 +55,7 @@ export function Fragments({ fragments, unavailable = false }: FragmentsProps) {
               key={fragment.id}
               className={`anim-fade-scale anim-delay-${index + 1} group cursor-pointer`}
             >
-              <Link href="/fragments" className="block">
+              <Link href={`/fragments/${encodeURIComponent(fragment.id)}`} className="block">
                 {fragment.type === "image" && fragment.imageUrl && !failedImages.has(fragment.id) ? (
                   <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-primary-soft/40">
                     <Image

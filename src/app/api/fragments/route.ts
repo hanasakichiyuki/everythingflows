@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { validateFragmentText } from "@/lib/fragment-validation";
 
 const WIDTHS = ["sm", "md", "lg"] as const;
 const HEIGHTS = ["short", "medium", "tall"] as const;
-const MAX_TEXT_LENGTH = 1000;
 
 /** 图片 URL 只接受本站 Supabase storage，精确匹配项目域名。 */
 function isAllowedImageUrl(url: unknown): url is string {
@@ -44,12 +44,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: Record<string, unknown>;
+  let payload: unknown;
   try {
-    body = await request.json();
+    payload = await request.json();
   } catch {
     return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
   }
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
+  }
+  const body = payload as Record<string, unknown>;
 
   const { type, text, imageUrl } = body;
   const width = typeof body.width === "string" ? body.width : "md";
@@ -68,18 +72,16 @@ export async function POST(request: Request) {
   if (type === "image" && !isAllowedImageUrl(imageUrl)) {
     return NextResponse.json({ error: "图片地址不合法" }, { status: 400 });
   }
-  if (
-    type === "text" &&
-    (typeof text !== "string" || !text.trim() || text.length > MAX_TEXT_LENGTH)
-  ) {
-    return NextResponse.json({ error: `文字内容不能为空且不能超过 ${MAX_TEXT_LENGTH} 个字符` }, { status: 400 });
+  const textValidation = validateFragmentText(text, { required: type === "text" });
+  if (!textValidation.ok) {
+    return NextResponse.json({ error: textValidation.error }, { status: 400 });
   }
 
   const { data, error } = await supabase
     .from("fragments")
     .insert({
       type,
-      text: typeof text === "string" && text ? text : null,
+      text: textValidation.text,
       image_url: type === "image" ? (imageUrl as string) : null,
       width,
       height,
@@ -96,6 +98,8 @@ export async function POST(request: Request) {
   // 首页（最新碎碎念）与碎碎念页是 ISR，新增后立即失效缓存
   revalidatePath("/");
   revalidatePath("/fragments");
+  revalidatePath("/fragments/[id]", "page");
+  revalidatePath("/sitemap.xml");
 
   return NextResponse.json({ data });
 }

@@ -52,6 +52,9 @@ type PageShellProps = {
   contentClassName?: string;
 };
 
+const pageFrameClassName =
+  "anim-fade-up relative -mx-4 -my-8 px-4 py-8 md:-mx-8 md:px-8 lg:-mx-10 lg:px-10";
+
 export function PageShell({
   children,
   className,
@@ -61,7 +64,7 @@ export function PageShell({
   return (
     <div
       className={cn(
-        "anim-fade-up relative -mx-6 -my-8 px-6 py-8 md:-mx-10 md:px-10 lg:-mx-12 lg:px-12",
+        pageFrameClassName,
         className
       )}
     >
@@ -71,6 +74,22 @@ export function PageShell({
       >
         {children}
       </Surface>
+    </div>
+  );
+}
+
+export function PageCanvas({
+  children,
+  className,
+  contentClassName,
+}: {
+  children: ReactNode;
+  className?: string;
+  contentClassName?: string;
+}) {
+  return (
+    <div className={cn(pageFrameClassName, className)}>
+      <div className={cn("relative", contentClassName)}>{children}</div>
     </div>
   );
 }

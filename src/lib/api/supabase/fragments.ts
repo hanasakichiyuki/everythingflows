@@ -34,3 +34,14 @@ export async function listFragments(limit?: number): Promise<MemoryFragment[]> {
   if (error) throw error;
   return (data ?? []).map((row) => mapFragment(row as Parameters<typeof mapFragment>[0]));
 }
+
+export async function getFragment(id: string): Promise<MemoryFragment | null> {
+  const { data, error } = await getSupabasePublic()
+    .from("fragments")
+    .select(FRAGMENT_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? mapFragment(data as Parameters<typeof mapFragment>[0]) : null;
+}
