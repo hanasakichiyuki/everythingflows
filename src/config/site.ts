@@ -12,6 +12,7 @@ export type NavItem = {
 
 export const navItems: readonly NavItem[] = [
   { href: "/", icon: "home", label: "home" },
+  { href: "/blog", icon: "book-open", label: "blog" },
   { href: "/archive", icon: "archive", label: "archive" },
   { href: "/fragments", icon: "sparkles", label: "fragments" },
   { href: "/chat", icon: "message-circle", label: "chat" },

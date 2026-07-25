@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Fuse from "fuse.js";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { Search, X } from "lucide-react";
+import { useRouter } from "@/i18n/navigation";
+import { LoaderCircle, Search, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,28 +12,48 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-
-export interface SearchItem {
-  slug: string;
-  title: string;
-  description: string;
-  tags: string[];
-  category?: string;
-  date: string;
-}
+import { SearchResultList } from "./SearchResultList";
+import type { SearchItem } from "./types";
 
 export function SearchModal({
-  items,
   open,
   onClose,
 }: {
-  items: SearchItem[];
   open: boolean;
   onClose: () => void;
 }) {
   const t = useTranslations("search");
+  const router = useRouter();
+  const [items, setItems] = useState<SearchItem[]>([]);
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open || hasLoaded) return;
+    const controller = new AbortController();
+    const loadItems = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch("/api/search", { signal: controller.signal });
+        if (!response.ok) throw new Error("search index unavailable");
+        const payload = (await response.json()) as { items?: unknown };
+        if (!Array.isArray(payload.items)) throw new Error("invalid search index");
+        setItems(payload.items);
+        setHasLoaded(true);
+      } catch (loadError) {
+        if ((loadError as Error).name !== "AbortError") setError(t("loadError"));
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+    void loadItems();
+    return () => controller.abort();
+  }, [hasLoaded, open, t]);
 
   const fuse = useMemo(
     () =>
@@ -48,7 +68,23 @@ export function SearchModal({
 
   const handleSelect = () => {
     setQuery("");
+    setActiveIndex(-1);
     onClose();
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!results.length) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((value) => (value + 1) % results.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((value) => (value <= 0 ? results.length - 1 : value - 1));
+    } else if (event.key === "Enter" && activeIndex >= 0) {
+      event.preventDefault();
+      router.push(`/blog/${encodeURIComponent(results[activeIndex].slug)}`);
+      handleSelect();
+    }
   };
 
   return (
@@ -70,9 +106,9 @@ export function SearchModal({
           inputRef.current?.focus();
         }}
       >
-        <DialogTitle className="sr-only">搜索文章</DialogTitle>
+        <DialogTitle className="sr-only">{t("modalTitle")}</DialogTitle>
         <DialogDescription className="sr-only">
-          输入标题、描述、标签或分类关键词搜索文章
+          {t("modalDescription")}
         </DialogDescription>
 
         {/* Search input */}
@@ -82,15 +118,21 @@ export function SearchModal({
             ref={inputRef}
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActiveIndex(-1);
+            }}
+            onKeyDown={handleKeyDown}
             placeholder={t("placeholder")}
             className="h-12 bg-background/50 pl-10 pr-12"
+            aria-controls="search-modal-results"
+            aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              aria-label="清除"
+              aria-label={t("clear")}
               className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="h-4 w-4" />
@@ -99,27 +141,16 @@ export function SearchModal({
         </div>
 
         {/* Results */}
-        <div className="max-h-[60vh] overflow-y-auto">
-          {query.trim() && results.length === 0 && (
+        <div id="search-modal-results" className="max-h-[60vh] overflow-y-auto" aria-live="polite">
+          {loading && <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted"><LoaderCircle className="h-4 w-4 animate-spin" />{t("loading")}</p>}
+          {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-center text-sm text-destructive">{error}</p>}
+          {query.trim() && !error && results.length === 0 && (
             <p className="py-4 text-center text-sm text-muted">{t("noResults")}</p>
           )}
-          {!query.trim() && (
-            <p className="py-4 text-center text-sm text-muted">输入关键词开始搜索</p>
+          {!query.trim() && !loading && !error && (
+            <p className="py-6 text-center text-sm text-muted">{t("hint")}</p>
           )}
-          <ul className="space-y-1">
-            {results.map((item) => (
-              <li key={item.slug}>
-                <Link
-                  href={`/blog/${encodeURIComponent(item.slug)}`}
-                  onClick={handleSelect}
-                  className="group block rounded-lg px-3 py-2 transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-white/5"
-                >
-                  <h3 className="text-sm font-medium group-hover:underline">{item.title}</h3>
-                  <p className="mt-0.5 text-xs text-muted">{item.description}</p>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {results.length > 0 && <SearchResultList results={results} query={query} activeIndex={activeIndex} onSelect={handleSelect} />}
         </div>
       </DialogContent>
     </Dialog>

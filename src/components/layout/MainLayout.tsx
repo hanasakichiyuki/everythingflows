@@ -10,7 +10,6 @@ import { NavigationOverlay } from "./NavigationOverlay";
 import { PublicHeader } from "./PublicHeader";
 import { MobileNavigation } from "./MobileNavigation";
 import { MusicPlayerProvider } from "./MusicPlayerProvider";
-import type { SearchItem } from "@/components/search/SearchModal";
 import { siteConfig } from "@/config/site";
 
 const MusicPlayer = dynamic(() => import("./MusicPlayer").then((mod) => ({ default: mod.MusicPlayer })), { ssr: false });
@@ -19,7 +18,7 @@ const SearchModal = dynamic(
   { ssr: false }
 );
 
-export function MainLayout({ children, searchItems }: { children: React.ReactNode; searchItems: SearchItem[] }) {
+export function MainLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations("layout");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -196,7 +195,6 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
 
       {/* Search Modal */}
       <SearchModal
-        items={searchItems}
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
       />

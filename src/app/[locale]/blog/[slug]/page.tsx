@@ -8,10 +8,11 @@ import { PostContent } from "@/components/blog/PostContent";
 import { PostNavigation } from "@/components/blog/PostNavigation";
 import { GiscusComments } from "@/components/comments/GiscusComments";
 import { formatDate } from "@/lib/utils";
-import { ContentCard } from "@/components/layout/ContentCard";
+import { PageShell } from "@/components/ui/surface";
 import { EditPostButton } from "@/components/blog/EditPostButton";
 import { BackButton } from "@/components/blog/BackButton";
 import { siteConfig } from "@/config/site";
+import { CalendarDays, Clock3, Folder, Tag } from "lucide-react";
 
 // ISR: blog content changes rarely; revalidate hourly and on publish/edit.
 export const revalidate = 3600;
@@ -93,52 +94,58 @@ export default async function BlogPostPage({
   const t = await getTranslations("blog");
 
   return (
-    <ContentCard>
+    <PageShell surfaceClassName="mx-auto max-w-[46rem] px-5 py-7 sm:px-10 sm:py-11">
       <article>
-        <header className="mb-8 border-b border-border pb-6">
+        <header className="mb-9 border-b border-border pb-8">
           <BackButton />
-          <div className="mt-3 flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold">{post.title}</h1>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted">
-              <time dateTime={post.date}>
-                {formatDate(post.date)}
-              </time>
-              <span>{post.readingTime}</span>
+          <div className="mt-6 flex items-start justify-between gap-5">
+            <div className="min-w-0">
               {post.category && (
-                <span>
-                  {t("category")}: {post.category}
-                </span>
+                <p className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                  <Folder className="h-3.5 w-3.5" />
+                  {post.category}
+                </p>
+              )}
+              <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">{post.title}</h1>
+              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+                <time className="inline-flex items-center gap-1.5" dateTime={post.date}>
+                  <CalendarDays className="h-4 w-4" />
+                  {formatDate(post.date)}
+                </time>
+                <span className="inline-flex items-center gap-1.5"><Clock3 className="h-4 w-4" />{post.readingTime}</span>
+                {post.updated && post.updated !== post.date && <span>{t("updated", { date: formatDate(post.updated) })}</span>}
+              </div>
+              {post.tags.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Tag className="h-3.5 w-3.5 text-muted" aria-hidden />
+                  {post.tags.map((tag) => (
+                    <Link
+                      key={tag}
+                      href={`/blog/tag/${encodeURIComponent(tag)}`}
+                      className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      #{tag}
+                    </Link>
+                  ))}
+                </div>
               )}
             </div>
-            {post.tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {post.tags.map((tag) => (
-                  <Link
-                    key={tag}
-                    href={`/blog/tag/${encodeURIComponent(tag)}`}
-                    className="rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10"
-                  >
-                    #{tag}
-                  </Link>
-                ))}
-              </div>
-            )}
-            </div>
-          <EditPostButton postId={post.id!} />
+            <EditPostButton postId={post.id!} />
           </div>
         </header>
-        <PostContent
-          content={post.content}
-          contentJson={post.contentJson}
-          contentFormat={post.contentFormat}
-        />
+        <div className="mx-auto max-w-[42rem]">
+          <PostContent
+            content={post.content}
+            contentJson={post.contentJson}
+            contentFormat={post.contentFormat}
+          />
+        </div>
         <PostNavigation prev={prev} next={next} />
-        <section className="mt-12">
-          <h2 className="mb-4 text-lg font-semibold">{t("comments")}</h2>
+        <section className="mt-14 border-t border-border pt-8">
+          <h2 className="font-serif text-xl font-semibold">{t("comments")}</h2>
           <GiscusComments />
         </section>
       </article>
-    </ContentCard>
+    </PageShell>
   );
 }

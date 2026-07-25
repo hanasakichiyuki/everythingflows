@@ -1,7 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { publishPost, deletePost, deletePosts, getPostById } from "@/lib/api/posts";
+import { revalidatePath, updateTag } from "next/cache";
+import { publishPost, deletePost, deletePosts } from "@/lib/api/posts";
+import { SEARCH_INDEX_CACHE_TAG } from "@/lib/cache-tags";
 import { createClient } from "@/lib/supabase/server-client";
 import type { ContentFormat } from "@/types";
 import type { TiptapDocument } from "@/lib/editor/types";
@@ -27,6 +28,17 @@ export type PublishPostPayload = {
 type ValidatedContent =
   | { ok: true; contentJson: TiptapDocument | null }
   | { ok: false; error: string };
+
+function revalidatePublicPostRoutes() {
+  revalidatePath("/", "layout");
+  revalidatePath("/blog");
+  revalidatePath("/blog/[slug]", "page");
+  revalidatePath("/archive");
+  revalidatePath("/search");
+  revalidatePath("/blog/tag/[tag]", "page");
+  revalidatePath("/sitemap.xml");
+  updateTag(SEARCH_INDEX_CACHE_TAG);
+}
 
 function validatePostPayload(payload: PublishPostPayload): ValidatedContent {
   if (!["html", "mdx", "tiptap"].includes(payload.contentFormat)) {
@@ -89,11 +101,7 @@ export async function saveDraftAction(payload: PublishPostPayload) {
   });
 
   if (result.ok) {
-    revalidatePath("/", "layout");
-    revalidatePath(`/blog/${result.post.slug}`);
-    revalidatePath("/archive");
-    revalidatePath("/search");
-    revalidatePath("/blog/tag", "layout");
+    revalidatePublicPostRoutes();
   }
 
   return result;
@@ -132,11 +140,7 @@ export async function publishPostAction(payload: PublishPostPayload) {
   );
 
   if (result.ok) {
-    revalidatePath("/", "layout");
-    revalidatePath(`/blog/${result.post.slug}`);
-    revalidatePath("/archive");
-    revalidatePath("/search");
-    revalidatePath("/blog/tag", "layout");
+    revalidatePublicPostRoutes();
   }
 
   return result;
@@ -152,16 +156,11 @@ export async function deletePostAction(id: string) {
     return { ok: false as const, error: "未登录" };
   }
 
-  const existing = await getPostById(id);
   const result = await deletePost(id);
 
   if (result.ok) {
-    revalidatePath("/", "layout");
     revalidatePath("/admin");
-    revalidatePath("/archive");
-    revalidatePath("/search");
-    revalidatePath("/blog/tag", "layout");
-    if (existing) revalidatePath(`/blog/${existing.slug}`);
+    revalidatePublicPostRoutes();
   }
 
   return result;
@@ -180,11 +179,8 @@ export async function deletePostsAction(ids: string[]) {
   const result = await deletePosts(ids);
 
   if (result.ok) {
-    revalidatePath("/", "layout");
     revalidatePath("/admin");
-    revalidatePath("/archive");
-    revalidatePath("/search");
-    revalidatePath("/blog/tag", "layout");
+    revalidatePublicPostRoutes();
   }
 
   return result;

@@ -11,6 +11,7 @@ import {
   Sparkles,
   MessageCircle,
   Globe2,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -43,6 +44,7 @@ const icons: Record<string, LucideIcon | typeof GitHubIcon> = {
   sparkles: Sparkles,
   "message-circle": MessageCircle,
   globe: Globe2,
+  "book-open": BookOpen,
 };
 
 export function NavIcon({ name, className }: { name: string; className?: string }) {

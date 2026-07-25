@@ -98,19 +98,51 @@
     "footer": "© {year} {siteName}. 保留所有权利。"
   },
   "archive": {
+    "eyebrow": "时间线",
     "title": "归档",
     "posts": "篇文章",
-    "empty": "暂无文章"
+    "subtitle": "按年份与月份回看每一次记录。",
+    "empty": "暂无文章",
+    "emptyDescription": "新的文章发布后，会按时间沉淀在这里。"
   },
   "search": {
+    "eyebrow": "内容检索",
     "title": "搜索",
     "placeholder": "搜索标题、标签、摘要…",
-    "noResults": "没有找到匹配的文章"
+    "pageSubtitle": "从已发布的文章中快速定位主题、标题和标签。",
+    "hint": "输入关键词开始搜索，可使用上下方向键选择结果。",
+    "loading": "正在准备搜索索引…",
+    "loadError": "搜索暂时不可用，请稍后重试。",
+    "noResults": "没有找到匹配的文章",
+    "modalTitle": "搜索文章",
+    "modalDescription": "输入标题、描述、标签或分类关键词搜索文章",
+    "clear": "清除",
+    "resultsLabel": "搜索结果",
+    "article": "文章"
   },
   "blog": {
+    "eyebrow": "阅读与记录",
+    "title": "文章",
+    "subtitle": "按主题与时间整理每一次思考和记录。",
+    "postCount": "共 {count} 篇",
+    "allPosts": "全部文章",
+    "emptyTitle": "还没有文章",
+    "emptyDescription": "新的记录会在这里出现。",
+    "filterEmptyTitle": "这个标签下还没有文章",
+    "filterEmptyDescription": "换一个标签，或查看全部文章。",
+    "tagEmptyTitle": "这个标签下暂时没有文章",
+    "tagEmptyDescription": "可以回到文章列表，浏览其他主题。",
+    "pagination": "文章分页",
+    "previousPage": "上一页",
+    "nextPage": "下一页",
+    "pageStatus": "第 {current} / {total} 页",
+    "postNavigation": "文章翻页",
+    "previousPost": "上一篇",
+    "nextPost": "下一篇",
     "readMore": "阅读全文",
     "tags": "标签",
     "category": "分类",
+    "updated": "更新于 {date}",
     "comments": "评论"
   },
   "about": {

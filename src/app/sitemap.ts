@@ -15,6 +15,7 @@ function buildPath(path: string) {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: buildPath("/"), changeFrequency: "daily", priority: 1 },
+    { url: buildPath("/blog"), changeFrequency: "weekly", priority: 0.8 },
     { url: buildPath("/archive"), changeFrequency: "weekly", priority: 0.6 },
     { url: buildPath("/fragments"), changeFrequency: "weekly", priority: 0.5 },
     { url: buildPath("/links"), changeFrequency: "monthly", priority: 0.4 },
