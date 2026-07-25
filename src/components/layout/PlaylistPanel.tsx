@@ -20,15 +20,19 @@ export function PlaylistPanel({
   onClose,
 }: PlaylistPanelProps) {
   return (
-    <div className="anim-bubble-in overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.06] shadow-xl backdrop-blur-2xl dark:border-white/[0.04] dark:bg-black/[0.2]">
+    <div
+      className="anim-bubble-in overflow-hidden rounded-2xl border border-border/70 bg-background/90 text-foreground shadow-xl backdrop-blur-2xl"
+      role="region"
+      aria-label="播放列表"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
-        <p className="text-[11px] font-light tracking-wider text-black/80">
+      <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
+        <p className="text-[11px] font-light tracking-wider text-foreground/80">
           播放列表 ({songs.length})
         </p>
         <button
           onClick={onClose}
-          className="flex h-5 w-5 items-center justify-center rounded-full text-black/50 hover:text-black transition-colors"
+          className="flex h-5 w-5 items-center justify-center rounded-full text-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-label="关闭播放列表"
         >
           <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -41,29 +45,30 @@ export function PlaylistPanel({
       <div className="max-h-[252px] overflow-y-auto playlist-scroll px-1">
         {loading ? (
           <div className="flex items-center justify-center py-6">
-            <div className="h-4 w-4 animate-spin rounded-full border border-black/10 border-t-black" />
+            <div className="h-4 w-4 animate-spin rounded-full border border-foreground/15 border-t-foreground" />
           </div>
         ) : error ? (
-          <p className="py-4 text-center text-[11px] text-black/35">{error}</p>
+          <p className="py-4 text-center text-[11px] text-muted">{error}</p>
         ) : songs.length > 0 ? (
           <ul className="py-1">
             {songs.map((song, i) => (
               <li key={i}>
                 <button
                   onClick={() => onSelect(i)}
-                  className={`w-full flex items-center gap-3 px-4 py-2 text-left text-[11px] transition-colors rounded-lg ${
+                  aria-current={currentIndex === i ? "true" : undefined}
+                  className={`flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                     currentIndex === i
-                      ? "bg-white/[0.08] text-black"
-                      : "text-black hover:bg-white/[0.04] hover:text-black/90"
+                      ? "bg-foreground/10 text-foreground"
+                      : "text-foreground/75 hover:bg-foreground/5 hover:text-foreground"
                   }`}
                 >
-                  <span className="w-5 text-center text-black flex-shrink-0 text-[10px] font-light">
+                  <span className="w-5 flex-shrink-0 text-center text-[10px] font-light text-muted">
                     {i + 1}
                   </span>
                   <span className="flex-1 truncate font-light tracking-wide">{song.name}</span>
                   {song.artist && (
                     <span
-                      className="truncate text-black flex-shrink-0 ml-2 text-[10px] font-light"
+                      className="ml-2 flex-shrink-0 truncate text-[10px] font-light text-muted"
                       style={{ maxWidth: "120px" }}
                     >
                       {song.artist}
@@ -74,7 +79,7 @@ export function PlaylistPanel({
             ))}
           </ul>
         ) : (
-          <p className="py-4 text-center text-[11px] text-black/35">No songs available</p>
+          <p className="py-4 text-center text-[11px] text-muted">暂无可播放歌曲</p>
         )}
       </div>
     </div>

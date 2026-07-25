@@ -8,6 +8,16 @@ interface FragmentsProps {
   fragments: MemoryFragment[];
 }
 
+function shouldBypassImageOptimizer(src?: string) {
+  if (!src) return false;
+
+  try {
+    return new URL(src).hostname.endsWith(".supabase.co");
+  } catch {
+    return false;
+  }
+}
+
 export async function Fragments({ fragments }: FragmentsProps) {
   const t = await getTranslations("home");
   const displayFragments = fragments.slice(0, 4);
@@ -46,6 +56,7 @@ export async function Fragments({ fragments }: FragmentsProps) {
                       fill
                       sizes="(max-width: 1024px) 50vw, 240px"
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      unoptimized={shouldBypassImageOptimizer(fragment.imageUrl)}
                     />
                     {fragment.text && (
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 pt-6">

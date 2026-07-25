@@ -24,8 +24,10 @@ function ErrorToast({ message, onDone }: { message: string; onDone: () => void }
   if (typeof document === "undefined") return null;
   return createPortal(
     <div
+      id="login-error"
       role="alert"
       aria-live="assertive"
+      aria-atomic="true"
       className={`fixed inset-x-0 top-0 z-[9999] bg-yellow-100 py-3 text-center text-sm text-yellow-800 transition-all duration-300 ease-in-out dark:bg-yellow-900/50 dark:text-yellow-200 ${
         visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
       }`}
@@ -77,17 +79,22 @@ export default function LoginPage() {
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="w-full max-w-sm">
             <h1 className="mb-8 text-center text-2xl font-semibold tracking-tight">登录</h1>
-            <form onSubmit={handleLogin} className="space-y-5" noValidate>
+            <form onSubmit={handleLogin} className="space-y-5" noValidate aria-busy={loading}>
               <div>
                 <Label htmlFor="login-email">邮箱</Label>
                 <Input
                   id="login-email"
+                  name="email"
                   type="email"
                   className="mt-1.5"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  aria-invalid={!!error}
+                  aria-describedby={error ? "login-error" : undefined}
                   required
                 />
               </div>
@@ -95,12 +102,15 @@ export default function LoginPage() {
                 <Label htmlFor="login-password">密码</Label>
                 <Input
                   id="login-password"
+                  name="password"
                   type="password"
                   className="mt-1.5"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? "login-error" : undefined}
                   required
                 />
               </div>

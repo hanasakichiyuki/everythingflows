@@ -142,12 +142,12 @@ export class Live2DEngine {
     const w = this.isMobile ? W_MOBILE : W_DESKTOP;
     const h = this.isMobile ? H_MOBILE : H_DESKTOP;
 
-    const app = new PIXI.Application({
-      width: w,
-      height: h,
-      transparent: true,
-      antialias: true,
-    });
+      const app = new PIXI.Application({
+        width: w,
+        height: h,
+        backgroundAlpha: 0,
+        antialias: true,
+      });
 
     this.app = app;
     this.canvas = app.view as HTMLCanvasElement;

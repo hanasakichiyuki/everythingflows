@@ -28,6 +28,7 @@ export function ChatError({ message, onDismiss }: ChatErrorProps) {
         <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
         <span className="text-sm text-red-700 dark:text-red-300">{message}</span>
         <button
+          type="button"
           onClick={onDismiss}
           aria-label="关闭提示"
           className="ml-2 text-red-400 transition-colors hover:text-red-600"

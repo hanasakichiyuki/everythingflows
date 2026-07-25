@@ -32,6 +32,7 @@ export function Toast({ message, isVisible, onClose, type = "error" }: ToastProp
           {message}
         </span>
         <button
+          type="button"
           onClick={onClose}
           aria-label="关闭"
           className={`text-xs hover:opacity-70 ${

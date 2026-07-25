@@ -24,15 +24,15 @@ export function MemoryWall({ fragments }: { fragments: MemoryFragment[] }) {
   };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-[100dvh]">
       <AddFragmentButton onAdd={handleAdd} />
       {/* Header */}
       <header className="flex flex-col items-center justify-center px-6 pt-20 pb-16 md:pt-32 md:pb-24">
-        <h1 className="anim-fade-up text-3xl font-light tracking-[0.2em] text-zinc-300 md:text-4xl">
+        <h1 className="anim-fade-up text-3xl font-light tracking-[0.2em] text-foreground/85 md:text-4xl">
           碎片
         </h1>
         <div
-          className="anim-fade-in mt-4 h-px w-12 bg-zinc-700"
+          className="anim-fade-in mt-4 h-px w-12 bg-border"
           style={{ animationDelay: "0.4s" }}
         />
       </header>
@@ -64,8 +64,8 @@ export function MemoryWall({ fragments }: { fragments: MemoryFragment[] }) {
 
       {/* Footer */}
       <footer className="anim-fade-in flex flex-col items-center justify-center px-6 py-16 md:py-24">
-        <div className="h-px w-12 bg-zinc-800" />
-        <p className="mt-6 text-center text-xs font-light tracking-wider text-zinc-600">
+        <div className="h-px w-12 bg-border" />
+        <p className="mt-6 text-center text-xs font-light tracking-wider text-muted">
           &ldquo;In my beginning is my end.<br />
           In my end is my beginning.&rdquo;
         </p>

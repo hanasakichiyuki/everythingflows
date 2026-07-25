@@ -40,9 +40,11 @@ export function ChatEmptyPanel({
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-2.5">
         <button
+          type="button"
           onClick={onToggleSidebar}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-muted/30 hover:text-foreground"
           title="对话列表"
+          aria-label="打开对话列表"
         >
           <PanelLeft className="h-4 w-4" />
         </button>
