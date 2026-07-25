@@ -120,13 +120,6 @@ function pickRandom<T>(list: T[]): T {
   return list[Math.floor(Math.random() * list.length)];
 }
 
-function pickNotRepeat<T>(list: T[], last: T | null): T {
-  if (list.length <= 1) return list[0];
-  let pick: T;
-  do { pick = pickRandom(list); } while (pick === last);
-  return pick;
-}
-
 /* ============================================================
  *  Widget
  * ============================================================ */

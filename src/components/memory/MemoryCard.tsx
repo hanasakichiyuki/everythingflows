@@ -60,6 +60,8 @@ export function MemoryCard({ fragment, onClick }: { fragment: MemoryFragment; on
         {!loaded && (
           <div className="absolute inset-0 animate-pulse bg-zinc-800/20" />
         )}
+        {/* 用户上传图片的原始尺寸未知，保留原生 img 以维持瀑布流真实宽高比。 */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={fragment.imageUrl || ""}
           alt={fragment.text || "碎片图片"}

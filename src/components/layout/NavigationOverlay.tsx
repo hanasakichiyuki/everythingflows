@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { usePathname } from "@/i18n/navigation";
 
 /**
@@ -30,7 +31,7 @@ export function NavigationOverlay() {
 
   useEffect(() => {
     // 预热 loading 图，避免首次慢页面时图还没到
-    const warm = () => { const img = new Image(); img.src = "/loading.webp"; };
+    const warm = () => { const img = new window.Image(); img.src = "/loading.webp"; };
     if (typeof requestIdleCallback !== "undefined") requestIdleCallback(warm);
     else setTimeout(warm, 1000);
 
@@ -71,7 +72,8 @@ export function NavigationOverlay() {
   // 路由切换完成 → 清计时器并隐藏
   useEffect(() => {
     clearTimers();
-    setVisible(false);
+    const frame = requestAnimationFrame(() => setVisible(false));
+    return () => cancelAnimationFrame(frame);
   }, [pathname]);
 
   return (
@@ -79,9 +81,11 @@ export function NavigationOverlay() {
       {visible && (
         <div className="anim-fade-in-slow fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
-          <img
+          <Image
             src="/loading.webp"
             alt=""
+            width={192}
+            height={192}
             className="anim-pop-in relative z-10 w-32 h-32 md:w-48 md:h-48 object-contain select-none"
             draggable={false}
           />

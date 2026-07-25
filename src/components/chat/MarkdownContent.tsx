@@ -110,7 +110,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content }: { cont
           ),
         }}
       >
-        {content}
+        {normalized}
       </ReactMarkdown>
     </div>
   );

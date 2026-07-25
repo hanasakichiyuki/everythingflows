@@ -69,7 +69,10 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
 
   const { music } = siteConfig;
 
-  useEffect(() => { setIsMounted(true); }, []);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setIsMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const scheduleDestroy = useCallback((player: APlayerInstance) => {
     if (destroyTimerRef.current) {
@@ -88,8 +91,6 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
   // -------- Fetch playlist --------
   useEffect(() => {
     if (!music.enabled) return;
-    setLoading(true);
-
     const apiMap: Record<string, string> = {
       netease: "https://api.i-meto.com/meting/api?server=netease&type=playlist&id=",
       tencent: "https://api.i-meto.com/meting/api?server=tencent&type=playlist&id=",

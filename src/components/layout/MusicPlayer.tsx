@@ -1,12 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { DesktopPlayer } from "./DesktopPlayer";
 import { MobilePlayer } from "./MobilePlayer";
 import { HomeMusicCard } from "./HomeMusicCard";
 import { useMusicPlayerContext } from "./MusicPlayerProvider";
 
 export type { UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
+
+const mobileMediaQuery = "(max-width: 768px)";
+
+function subscribeToMobileViewport(onStoreChange: () => void) {
+  const mediaQuery = window.matchMedia(mobileMediaQuery);
+  mediaQuery.addEventListener("change", onStoreChange);
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
+}
+
+function getMobileViewportSnapshot() {
+  return window.matchMedia(mobileMediaQuery).matches;
+}
 
 export function MusicPlayer({
   collapsed,
@@ -18,18 +30,14 @@ export function MusicPlayer({
   variant?: "floating" | "home";
 }) {
   const player = useMusicPlayerContext();
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
-  
-  useEffect(() => {
-    const mql = window.matchMedia("(max-width: 768px)");
-    setIsMobile(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
+  const isMobile = useSyncExternalStore(
+    subscribeToMobileViewport,
+    getMobileViewportSnapshot,
+    () => false,
+  );
 
   // Don't render until we know the screen size to avoid hydration mismatch
-  if (isMobile === null || !player.musicEnabled || !player.isMounted) return null;
+  if (!player.musicEnabled || !player.isMounted) return null;
 
   return (
     <div className={hidden ? "hidden" : undefined} aria-hidden={hidden || undefined}>

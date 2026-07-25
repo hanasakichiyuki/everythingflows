@@ -185,7 +185,7 @@ export function useChatState(initialConversationId?: string) {
       }));
       return [];
     },
-    [initialConversationId, router]
+    [initialConversationId]
   );
 
   const loadModels = useCallback(async () => {
@@ -229,16 +229,30 @@ export function useChatState(initialConversationId?: string) {
   }, []);
 
   useEffect(() => {
-    loadConversations();
-    loadModels();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      void loadConversations();
+      void loadModels();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [loadConversations, loadModels]);
 
   useEffect(() => {
-    if (state.activeConversation) {
-      loadMessages(state.activeConversation.id);
-    } else {
-      setState((s) => ({ ...s, messages: [] }));
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (state.activeConversation) {
+        void loadMessages(state.activeConversation.id);
+      } else {
+        setState((s) => ({ ...s, messages: [] }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [state.activeConversation, loadMessages]);
 
   // 卸载时清理防抖定时器

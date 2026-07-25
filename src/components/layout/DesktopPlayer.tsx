@@ -96,6 +96,8 @@ export function DesktopPlayer({ player, collapsed }: DesktopPlayerProps) {
             }}
           >
             {currentCover ? (
+              // APlayer 封面来自用户配置的第三方音乐服务，无法安全预先枚举图片域名和尺寸。
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={currentCover}
                 alt="Album cover"

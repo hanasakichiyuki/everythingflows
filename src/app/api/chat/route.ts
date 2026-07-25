@@ -308,7 +308,7 @@ export async function POST(req: Request) {
   // 仅登录用户（有 conversationId 且服务端可持久化）走摘要缓存；匿名用户纯滑窗。
   const memoryConversationId = user ? conversationId : undefined;
 
-  const { messages: ctxMessages, system: ctxSystem, summarized } =
+  const { messages: ctxMessages, system: ctxSystem } =
     await buildContextWithMemory(
       apiMessages,
       minContextWindow,
@@ -316,26 +316,16 @@ export async function POST(req: Request) {
       memoryConversationId
     );
 
-  if (process.env.NODE_ENV === "development") {
-    console.debug("[chat] context prepared", {
-      model: resolvedModelId,
-      messageCount: ctxMessages.length,
-      summarized,
-    });
-  }
-
   // 顺序尝试候选模型：用首个 chunk 探测成败，失败（error part）则切下一个。
   // 不做预检，只在真实请求产出首 chunk 后判断。
-  let lastError: unknown = null;
   const attemptLog: string[] = [];
 
   for (const candidateId of candidateIds) {
     let model;
     try {
       model = getModel(candidateId).model;
-    } catch (e) {
+    } catch {
       attemptLog.push(`${candidateId}: resolve failed`);
-      lastError = e;
       continue;
     }
 
@@ -345,17 +335,8 @@ export async function POST(req: Request) {
       system: ctxSystem,
       onError: ({ error }) => {
         console.error(`[chat] streamText error (${candidateId}):`, error);
-        lastError = error;
       },
-      onFinish: async ({ text, usage, finishReason }) => {
-        if (process.env.NODE_ENV === "development") {
-          console.debug("[chat] output", {
-            model: candidateId,
-            finishReason,
-            outputChars: text.length,
-            totalTokens: usage?.totalTokens,
-          });
-        }
+      onFinish: async ({ text }) => {
         // 仅登录用户保存助手回复，记录实际生成所用模型
         if (user && conversationId && text) {
           try {
@@ -387,8 +368,7 @@ export async function POST(req: Request) {
     try {
       const first = await bodyReader.read();
       firstBytes = first.done ? null : first.value;
-    } catch (e) {
-      lastError = e;
+    } catch {
       attemptLog.push(`${candidateId}: first read threw`);
       bodyReader.releaseLock();
       continue;

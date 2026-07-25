@@ -49,14 +49,6 @@ function getProvider(config: AIConfig): LanguageModel {
     }
     case "openai":
     default: {
-      console.log("[ai] createOpenAI:", {
-        baseURL: config.baseURL,
-        modelId: config.modelId,
-        api: config.api ?? "responses",
-        apiKeyMasked: config.apiKey
-          ? `${config.apiKey.slice(0, 6)}...${config.apiKey.slice(-4)}`
-          : "(missing)",
-      });
       const provider = createOpenAI({
         apiKey: config.apiKey,
         baseURL: config.baseURL,

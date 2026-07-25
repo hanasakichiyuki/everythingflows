@@ -67,6 +67,8 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
           {/* Cover */}
           <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg">
             {currentCover ? (
+              // APlayer 封面来自用户配置的第三方音乐服务，无法安全预先枚举图片域名和尺寸。
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={currentCover} alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-primary-soft">

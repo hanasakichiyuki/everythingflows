@@ -170,7 +170,7 @@ export function Sidebar({
 
       <footer className="anim-fade-in mt-auto border-t border-border pt-5">
         <p className="px-2 text-center font-serif text-xs leading-relaxed text-muted">
-          万物终将流转，<br />文字替我停留片刻。
+          万物流转<br />
         </p>
         <div className="mt-4 flex justify-center gap-1">
           {siteConfig.social.map((link) => (

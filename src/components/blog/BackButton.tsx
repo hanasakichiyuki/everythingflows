@@ -8,19 +8,19 @@ export function BackButton() {
   const [canGoBack, setCanGoBack] = useState(false);
 
   useEffect(() => {
-    try {
-      const referrer = document.referrer;
-      if (!referrer) {
+    const frame = requestAnimationFrame(() => {
+      try {
+        const referrer = document.referrer;
+        if (!referrer) return;
+        const referrerHost = new URL(referrer).host;
+        const currentHost = window.location.host;
+        const hasHistory = window.history.length > 1;
+        setCanGoBack(referrerHost === currentHost && hasHistory);
+      } catch {
         setCanGoBack(false);
-        return;
       }
-      const referrerHost = new URL(referrer).host;
-      const currentHost = window.location.host;
-      const hasHistory = window.history.length > 1;
-      setCanGoBack(referrerHost === currentHost && hasHistory);
-    } catch {
-      setCanGoBack(false);
-    }
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const handleBack = () => {

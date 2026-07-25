@@ -1,3 +1,6 @@
+import type * as PIXI from "pixi.js";
+import type * as Live2D from "pixi-live2d-display/cubism4";
+
 /**
  * Live2D 渲染引擎 — 纯原生 JS/TS，不依赖 React。
  *
@@ -42,6 +45,37 @@ export interface ModelController {
 
 /** 可销毁对象 — 避免 any 断言 */
 type Destroyable = { destroy: (...args: unknown[]) => unknown };
+
+type Live2DCoreModel = {
+  getParameterIds?: () => string[];
+  setParameterValueById: (id: string, value: number) => void;
+};
+
+type Live2DMotionManager = {
+  stopAllMotions?: () => void;
+  expressionManager?: {
+    resetExpression?: () => void;
+    _motionManager?: { stopAllMotions?: () => void };
+  };
+};
+
+type Live2DModelFacade = {
+  internalModel?: {
+    coreModel?: Live2DCoreModel;
+    motionManager?: Live2DMotionManager;
+  };
+  expression?: (id: string) => void;
+  motion?: (group: string, index: number, priority: number) => void;
+  focus?: (x: number, y: number) => void;
+  height?: number;
+  scale?: { set: (scale: number) => void };
+  x?: number;
+  y?: number;
+};
+
+type PixiApplicationFacade = {
+  renderer: { resize: (width: number, height: number) => void };
+};
 
 export interface EngineOptions {
   container: HTMLElement;
@@ -133,8 +167,8 @@ export class Live2DEngine {
    * ============================================================ */
 
   private async createApp(
-    pixiModule: typeof import("pixi.js"),
-    live2dModule: { Live2DModel: typeof import("pixi-live2d-display/cubism4").Live2DModel }
+    pixiModule: typeof PIXI,
+    live2dModule: typeof Live2D,
   ): Promise<void> {
     const PIXI = pixiModule;
     const Live2DModel = live2dModule.Live2DModel;
@@ -194,13 +228,9 @@ export class Live2DEngine {
 
     this.breathTime += 0.016;
 
-    const m = (this.model as { internalModel?: unknown }).internalModel;
-    if (!m) return;
-
-    const core = (m as { coreModel?: unknown }).coreModel as {
-      getParameterValueById: (id: string) => number;
-      setParameterValueById: (id: string, value: number) => void;
-    };
+    const model = this.model as Live2DModelFacade;
+    const core = model.internalModel?.coreModel;
+    if (!core) return;
 
     // 呼吸
     const breath =
@@ -211,34 +241,34 @@ export class Live2DEngine {
     // 鼠标追踪（使用 ref 对象，不触发 React）
     const focusX = ((this.mouse.x + 1) / 2) * w;
     const focusY = ((this.mouse.y + 1) / 2) * h;
-    (this.model as { focus: (x: number, y: number) => void }).focus(focusX, focusY);
+    model.focus?.(focusX, focusY);
   }
 
   private createController(): ModelController {
     return {
       setExpression: (id: string) => {
-        const em = (this.model as any)?.internalModel?.motionManager?.expressionManager;
+        const model = this.model as Live2DModelFacade | null;
+        const em = model?.internalModel?.motionManager?.expressionManager;
         em?.resetExpression?.();
-        (this.model as any)?.expression?.(id);
+        model?.expression?.(id);
       },
       startMotion: (group: string, index: number) => {
-        (this.model as any)?.motion?.(group, index, 3);
+        const model = this.model as Live2DModelFacade | null;
+        model?.motion?.(group, index, 3);
       },
       resetExpression: () => {
-        const em = (this.model as any)?.internalModel?.motionManager?.expressionManager;
+        const model = this.model as Live2DModelFacade | null;
+        const em = model?.internalModel?.motionManager?.expressionManager;
         em?.resetExpression?.();
         em?._motionManager?.stopAllMotions?.();
       },
       stopAllMotions: () => {
-        (this.model as any)?.internalModel?.motionManager?.stopAllMotions?.();
+        const model = this.model as Live2DModelFacade | null;
+        model?.internalModel?.motionManager?.stopAllMotions?.();
       },
       resetPose: () => {
-        const m = (this.model as any)?.internalModel;
-        if (!m) return;
-        const core = (m as any)?.coreModel as {
-          getParameterIds?: () => string[];
-          setParameterValueById: (id: string, value: number) => void;
-        } | undefined;
+        const model = this.model as Live2DModelFacade | null;
+        const core = model?.internalModel?.coreModel;
         if (!core) return;
 
         const poseParams = [
@@ -275,15 +305,15 @@ export class Live2DEngine {
 
   resize(isMobile: boolean): void {
     this.isMobile = isMobile;
-    const app = this.app as any;
-    const model = this.model as any;
-    if (!app || !model) return;
+    const app = this.app as PixiApplicationFacade | null;
+    const model = this.model as Live2DModelFacade | null;
+    if (!app || !model?.scale) return;
 
     const w = isMobile ? W_MOBILE : W_DESKTOP;
     const h = isMobile ? H_MOBILE : H_DESKTOP;
     app.renderer.resize(w, h);
 
-    const modelH = model.height;
+    const modelH = model.height ?? 0;
     const targetH = h * (isMobile ? 0.55 : 0.88);
     const s = modelH > 0 ? targetH / modelH : 0.22;
     model.scale.set(s);

@@ -37,7 +37,7 @@ export function GiscusComments() {
     script.setAttribute("crossOrigin", "anonymous");
     script.async = true;
     ref.current.appendChild(script);
-  }, [giscus, resolvedTheme]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [giscus, resolvedTheme]);
 
   // Update theme without recreating the widget
   const sendTheme = useCallback(

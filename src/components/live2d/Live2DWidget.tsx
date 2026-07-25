@@ -12,6 +12,7 @@ import { useEffect, useRef } from "react";
 export function Live2DWidget({ sidebarCollapsed = false }: { sidebarCollapsed?: boolean }) {
   const widgetRef = useRef<{ init: () => Promise<void>; destroy: () => void; setSidebarCollapsed: (v: boolean) => void } | null>(null);
   const initRef = useRef(false);
+  const sidebarCollapsedRef = useRef(sidebarCollapsed);
 
   useEffect(() => {
     if (initRef.current) return;
@@ -22,7 +23,7 @@ export function Live2DWidget({ sidebarCollapsed = false }: { sidebarCollapsed?: 
     // 动态导入 widget 模块，拆分 chunk
     import("@/lib/live2d/widget").then((mod) => {
       if (cancelled) return;
-      widgetRef.current = new mod.Live2DWidget({ sidebarCollapsed });
+      widgetRef.current = new mod.Live2DWidget({ sidebarCollapsed: sidebarCollapsedRef.current });
       widgetRef.current.init();
     }).catch((err) => {
       console.error("Failed to load Live2D widget:", err);
@@ -38,6 +39,7 @@ export function Live2DWidget({ sidebarCollapsed = false }: { sidebarCollapsed?: 
 
   // 更新 sidebar 状态，不触发 re-render
   useEffect(() => {
+    sidebarCollapsedRef.current = sidebarCollapsed;
     widgetRef.current?.setSidebarCollapsed(sidebarCollapsed);
   }, [sidebarCollapsed]);
 

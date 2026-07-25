@@ -218,6 +218,8 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
               className="flex w-full items-center justify-center rounded-xl border border-dashed border-zinc-700/50 py-8 text-sm text-zinc-500 transition-all hover:border-zinc-600 hover:text-zinc-300"
             >
               {imagePreview ? (
+                // FileReader 的 data URL 无固定尺寸，不适合交给 Next 图片优化器。
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={imagePreview} alt="Preview" className="h-40 w-full rounded-lg object-cover" />
               ) : (
                 <span>选择图片</span>

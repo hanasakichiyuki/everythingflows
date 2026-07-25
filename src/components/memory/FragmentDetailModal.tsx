@@ -151,6 +151,8 @@ export function FragmentDetailModal({ fragment, onClose, onUpdate, onDelete }: F
         {fragment.type === "image" ? (
           <div className="anim-fade-in relative flex flex-col">
             <div className="relative flex items-center justify-center p-6">
+              {/* 根据真实图片尺寸动态调整弹窗宽度，不能使用固定的 Image 宽高。 */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={fragment.imageUrl || ""}
                 alt={fragment.text || "碎片图片"}

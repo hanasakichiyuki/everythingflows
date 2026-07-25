@@ -149,12 +149,13 @@ export function ChatPanel({
 
   // 空状态页面发消息后：ChatPanel 挂载，发送 pendingMessage
   useEffect(() => {
-    if (pendingMessage && onPendingMessageConsumed) {
-      handleSend(pendingMessage);
+    if (!pendingMessage || !onPendingMessageConsumed) return;
+    const frame = requestAnimationFrame(() => {
+      void handleSend(pendingMessage);
       onPendingMessageConsumed();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingMessage]);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [handleSend, onPendingMessageConsumed, pendingMessage]);
 
   const handleRegenerate = useCallback(() => {
     setDismissedErrorKey(null);

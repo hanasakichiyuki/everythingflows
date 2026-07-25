@@ -218,16 +218,6 @@ export async function buildContextWithMemory(
 
   const totalTokens = estimateMessagesTokens(allMessages);
 
-  console.log("[memory] check:", {
-    msgCount: allMessages.length,
-    estTokens: totalTokens,
-    contextWindow: window,
-    threshold,
-    willSummarize: totalTokens > threshold,
-    conversationId: conversationId ?? "(anon)",
-    redisAvailable: getRedis() !== null,
-  });
-
   // 未达阈值：原样发送
   if (totalTokens <= threshold) {
     return { messages: allMessages, system: baseSystem, summarized: false };
@@ -240,10 +230,6 @@ export async function buildContextWithMemory(
 
   // 匿名用户 / 无 conversationId：纯滑窗，丢弃 toSummarize
   if (!conversationId) {
-    console.log(
-      `[memory] sliding-window only: dropped ${toSummarize.length} early msgs, ` +
-      `keeping ${recent.length} recent (est ${totalTokens} > ${threshold})`
-    );
     return { messages: recent, system: baseSystem, summarized: true };
   }
 
@@ -279,17 +265,9 @@ export async function buildContextWithMemory(
 
   // 摘要不可用（无免费模型 / 调用失败）：降级纯滑窗
   if (!summaryText) {
-    console.log(
-      `[memory] summary unavailable, fallback to sliding-window: ` +
-      `dropped ${toSummarize.length} early msgs`
-    );
     return { messages: recent, system: baseSystem, summarized: true };
   }
 
   const system = `${baseSystem}\n\n---\n以下为之前对话的摘要，供你延续上下文：\n${summaryText}`;
-  console.log(
-    `[memory] summarized: ${toSummarize.length} msgs → ${summaryText.length} chars, ` +
-    `keeping ${recent.length} recent (est ${totalTokens} > ${threshold})`
-  );
   return { messages: recent, system, summarized: true };
 }

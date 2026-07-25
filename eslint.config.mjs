@@ -1,6 +1,8 @@
 import nextConfig from "eslint-config-next";
+import { globalIgnores } from "eslint/config";
 
 const eslintConfig = [
+  globalIgnores(["public/libs/APlayer.min.js"]),
   ...nextConfig,
   {
     name: "everythingflows/typescript-extra",
@@ -19,7 +21,14 @@ const eslintConfig = [
   {
     name: "everythingflows/global",
     rules: {
-      "no-console": "warn",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+    },
+  },
+  {
+    name: "everythingflows/scripts",
+    files: ["scripts/**/*.mjs"],
+    rules: {
+      "no-console": "off",
     },
   },
 ];

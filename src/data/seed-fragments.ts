@@ -1,4 +1,4 @@
-import { MemoryFragment } from "@/types/memory";
+import type { MemoryFragment } from "@/types/memory";
 
 export const seedFragments: MemoryFragment[] = [
   {
