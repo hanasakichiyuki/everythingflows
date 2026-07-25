@@ -18,7 +18,6 @@
       "ls": "allow",
       "pwd": "allow",
 
-      "npm run": "allow",
       "pnpm run": "allow",
 
       "git push": "ask",

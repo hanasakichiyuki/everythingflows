@@ -1,0 +1,20 @@
+# Windows 上使用扁平目录布局，避免旧 npm node_modules 的 junction 重命名冲突。
+nodeLinker: hoisted
+
+# 迁移锁文件时保持 npm 阶段已经验证过的直接依赖版本，升级需单独审查。
+overrides:
+  '@ai-sdk/openai': 3.0.72
+  '@ai-sdk/react': 3.0.209
+  '@supabase/supabase-js': 2.106.1
+  ai: 6.0.207
+  date-fns: 4.2.1
+  fuse.js: 7.3.0
+  geist: 1.7.1
+  lucide-react: 1.16.0
+
+# pnpm v11 默认不执行依赖安装脚本；只批准项目实际使用的原生依赖。
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  sharp: true
+  unrs-resolver: true

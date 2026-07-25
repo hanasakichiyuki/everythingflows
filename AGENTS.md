@@ -1,10 +1,10 @@
 # 万物流转
 
 ## Commands
-- `npm run dev` — dev server (Next 16 默认使用 Turbopack)
-- `npm run build` — production build (also verifies TS + lint)
-- `npm run lint` — ESLint (flat config: `eslint.config.mjs` 扩展 `eslint-config-next` + 自定义规则)
-- `npm run test` — Vitest unit tests
+- `pnpm run dev` — dev server (Next 16 默认使用 Turbopack)
+- `pnpm run build` — production build (also verifies TS + lint)
+- `pnpm run lint` — ESLint (flat config: `eslint.config.mjs` 扩展 `eslint-config-next` + 自定义规则)
+- `pnpm run test` — Vitest unit tests
 
 ## Architecture
 - Next.js 16 App Router, React 19, TS 5, Tailwind CSS
@@ -35,7 +35,7 @@
 - TipTap JSON is canonical for `tiptap` posts; do not persist generated HTML or silently convert legacy MDX.
 
 ## Protected features (do not remove)
-Netease music player, Live2D, Memory wall, Giscus comments, custom editor, timeline archive, i18n, AI chat (anonymous free-model-only + rate limit, login for history & model switching)
+Netease music player, Live2D engine/resources (retain for the future desktop project; do not mount it in the website public layout by default), Memory wall, Giscus comments, custom editor, timeline archive, i18n, AI chat (anonymous free-model-only + rate limit, login for history & model switching)
 
 ## Prohibited
 - Modify `.env*` files or commit secrets

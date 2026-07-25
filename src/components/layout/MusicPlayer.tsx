@@ -1,20 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useMusicPlayer } from "@/hooks/useMusicPlayer";
 import { DesktopPlayer } from "./DesktopPlayer";
 import { MobilePlayer } from "./MobilePlayer";
+import { HomeMusicCard } from "./HomeMusicCard";
+import { useMusicPlayerContext } from "./MusicPlayerProvider";
 
 export type { UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
 
 export function MusicPlayer({
   collapsed,
   hidden = false,
+  variant = "floating",
 }: {
   collapsed?: boolean;
   hidden?: boolean;
+  variant?: "floating" | "home";
 }) {
-  const player = useMusicPlayer();
+  const player = useMusicPlayerContext();
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
   
   useEffect(() => {
@@ -30,11 +33,10 @@ export function MusicPlayer({
 
   return (
     <div className={hidden ? "hidden" : undefined} aria-hidden={hidden || undefined}>
-      {/* Hidden APlayer container - needed for the library to render audio element */}
-      <div ref={player.containerRef} className="hidden" />
-
       {isMobile ? (
         <MobilePlayer player={player} />
+      ) : variant === "home" ? (
+        <HomeMusicCard player={player} />
       ) : (
         <DesktopPlayer player={player} collapsed={collapsed} />
       )}

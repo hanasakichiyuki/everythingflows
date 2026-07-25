@@ -91,7 +91,7 @@ export function SearchModal({
               type="button"
               onClick={() => setQuery("")}
               aria-label="清除"
-              className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
+              className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="h-4 w-4" />
             </button>
@@ -112,7 +112,7 @@ export function SearchModal({
                 <Link
                   href={`/blog/${encodeURIComponent(item.slug)}`}
                   onClick={handleSelect}
-                  className="group block rounded-lg px-3 py-2 transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 dark:hover:bg-white/5"
+                  className="group block rounded-lg px-3 py-2 transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-white/5"
                 >
                   <h3 className="text-sm font-medium group-hover:underline">{item.title}</h3>
                   <p className="mt-0.5 text-xs text-muted">{item.description}</p>

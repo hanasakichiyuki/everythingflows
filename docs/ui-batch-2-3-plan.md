@@ -19,7 +19,7 @@
 |--------|------|
 | 搜索入口 | 侧栏 Modal 为主，保留 `/search` 深链，共享同一 `SearchPanel` |
 | i18n 深度 | 全应用（用户侧 + Chat + Memory + 后台管理文案） |
-| 不改动 | Memory 全宽瀑布流、Chat 全高布局、Live2D、音乐播放器核心交互 |
+| 不改动 | Memory 全宽瀑布流、Chat 全高布局、音乐播放器核心交互；Live2D 引擎和资源保留，但网站端不默认挂载 |
 
 ---
 
@@ -161,7 +161,7 @@
 - footer 间距 / 标点
 - 标准页面字号统一  
 
-**明确不改：** Memory 全宽瀑布流、Chat 全高布局、Live2D、音乐播放器受保护功能。
+**明确不改：** Memory 全宽瀑布流、Chat 全高布局、音乐播放器受保护功能；保留 Live2D 引擎和资源，但网站端不默认挂载。
 
 ---
 
@@ -170,9 +170,9 @@
 ### 命令
 
 ```bash
-npm run lint
-npx tsc --noEmit
-npm run build
+pnpm run lint
+pnpm run typecheck
+pnpm run build
 ```
 
 ### 手测重点
@@ -211,7 +211,7 @@ npm run build
 | `ChatComposer` / `ModelPicker` | 专用交互，非标准表单 |
 | 播放器控件与拖拽定位 | 第 1 批已 token 化；按钮与定位耦合 |
 | `RichTextEditor` TipTap 工具栏 | 编辑器专用 |
-| Live2D bottom 层叠 | protected feature，需单独产品确认 |
+| Live2D bottom 层叠 | 引擎与资源保留，网站端默认不挂载；桌面端项目另行确认 |
 | Memory 瀑布流是否套 ContentCard | 刻意全 bleed，本批不改结构 |
 
 ---

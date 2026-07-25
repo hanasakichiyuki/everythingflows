@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { Sidebar } from "./Sidebar";
 import { RouteTransition } from "./RouteTransition";
 import { NavigationOverlay } from "./NavigationOverlay";
-import { RightSidebarProvider } from "./RightSidebarContext";
+import { PublicHeader } from "./PublicHeader";
+import { MobileNavigation } from "./MobileNavigation";
+import { MusicPlayerProvider } from "./MusicPlayerProvider";
 import type { SearchItem } from "@/components/search/SearchModal";
 import { siteConfig } from "@/config/site";
 
@@ -16,18 +19,18 @@ const SearchModal = dynamic(
   { ssr: false }
 );
 
-const Live2DWidget = dynamic(
-  () => import("@/components/live2d/Live2DWidget").then((m) => m.Live2DWidget),
-  { ssr: false }
-);
-
 export function MainLayout({ children, searchItems }: { children: React.ReactNode; searchItems: SearchItem[] }) {
+  const t = useTranslations("layout");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
   const isAdminWorkspace =
     pathname === "/admin" || pathname.startsWith("/admin/");
+  const isMobileNavigationOpen = isMobile && !sidebarCollapsed;
+  const openNavigation = () => setSidebarCollapsed(false);
+  const closeNavigation = () => setSidebarCollapsed(true);
+  const toggleNavigation = () => setSidebarCollapsed((value) => !value);
 
   // 移动端默认收起侧边栏（桌面端保持展开）；跨断点时同步。
   // SSR 默认 false（桌面正确），挂载后按视口校正——侧边栏本就从屏外滑入，移动端几乎无闪烁。
@@ -49,48 +52,95 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
     return () => cancelAnimationFrame(frame);
   }, [isMobile, pathname]);
 
+  useEffect(() => {
+    if (!isMobileNavigationOpen) return;
+    const drawer = document.getElementById("mobile-navigation-drawer");
+    const previousActiveElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSidebarCollapsed(true);
+        return;
+      }
+
+      if (event.key !== "Tab" || !drawer) return;
+      const focusable = Array.from(
+        drawer.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => !element.hasAttribute("inert"));
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const frame = requestAnimationFrame(() => {
+      drawer?.querySelector<HTMLElement>("button, a[href]")?.focus();
+    });
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+      previousActiveElement?.focus();
+    };
+  }, [isMobileNavigationOpen]);
+
+  const isHome = pathname === "/";
+
   return (
-    <RightSidebarProvider>
+    <MusicPlayerProvider>
       <a
         href="#main-content"
+        aria-hidden={isMobileNavigationOpen}
+        inert={isMobileNavigationOpen}
         className="fixed left-3 top-3 z-[100] -translate-y-20 rounded-lg bg-background px-4 py-2 text-sm font-medium text-foreground shadow-lg transition-transform focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-ring"
       >
-        跳到主要内容
+        {t("skipToContent")}
       </a>
       <div className="relative flex min-h-screen">
-        {/* Full-screen background image */}
-        {!isAdminWorkspace && siteConfig.backgroundImage && (
-          <div
-            className="site-background fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-            aria-hidden
-          />
-        )}
-
         {/* Sidebar */}
         {!isAdminWorkspace && (
           <Sidebar
             onSearchClick={() => setSearchOpen(true)}
-            onCollapseClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onCollapseClick={toggleNavigation}
             collapsed={sidebarCollapsed}
+            isMobile={isMobile}
           />
         )}
 
         {/* 移动端抽屉遮罩 —— 打开时点击关闭 */}
-        {!isAdminWorkspace && isMobile && !sidebarCollapsed && (
-          <div
-            className="anim-fade-in fixed inset-0 z-[15] bg-black/30 backdrop-blur-sm md:hidden"
-            onClick={() => setSidebarCollapsed(true)}
-            aria-hidden
+        {!isAdminWorkspace && isMobileNavigationOpen && (
+          <button
+            type="button"
+            className="anim-fade-in fixed inset-0 z-[55] bg-black/30 backdrop-blur-sm md:hidden"
+            onClick={closeNavigation}
+            aria-label={t("closeNavigation")}
           />
         )}
 
         {/* Expand sidebar button (visible when collapsed) */}
-        {!isAdminWorkspace && sidebarCollapsed && (
+        {!isAdminWorkspace && sidebarCollapsed && !isMobile && (
           <button
             type="button"
-            onClick={() => setSidebarCollapsed(false)}
-            className="anim-pop-in fixed left-2 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-white/60 text-foreground/70 shadow-sm backdrop-blur-sm transition-transform duration-200 hover:scale-105 hover:bg-white/80 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-gray-900/50 dark:hover:bg-gray-900/70"
-            aria-label="展开侧边栏"
+            onClick={openNavigation}
+            className="anim-pop-in fixed left-3 top-4 z-30 flex h-11 w-11 items-center justify-center rounded-xl border border-surface-border bg-surface/90 text-foreground/70 shadow-sm backdrop-blur-xl transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={t("openNavigation")}
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -103,35 +153,44 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
         <main
           id="main-content"
           tabIndex={-1}
-          className={`relative z-10 flex-1 transition-all duration-300 ${isAdminWorkspace ? "ml-0 bg-[#f1f2f5] px-3 py-3 dark:bg-[#101114]" : `public-site-main px-6 py-8 md:px-10 lg:px-12 ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[200px]"}`}`}
+          aria-hidden={isMobileNavigationOpen}
+          inert={isMobileNavigationOpen}
+          className={`relative z-10 flex-1 transition-all duration-300 ${isAdminWorkspace ? "ml-0 bg-[#f1f2f5] px-3 py-3 dark:bg-[#101114]" : `public-site-main px-4 py-0 md:px-8 lg:px-10 ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[220px]"}`}`}
         >
+          {!isAdminWorkspace && (
+            <PublicHeader
+              onOpenNavigation={openNavigation}
+              onSearchClick={() => setSearchOpen(true)}
+              navigationOpen={isMobileNavigationOpen}
+            />
+          )}
           <RouteTransition>
             <div
               className={
                 isAdminWorkspace
                   ? "mx-auto w-full max-w-[1500px]"
-                  : "mx-auto max-w-4xl"
+                  : `mx-auto w-full ${isHome ? "max-w-[1500px]" : "max-w-4xl"}`
               }
             >
               {children}
             </div>
           </RouteTransition>
           {!isAdminWorkspace && (
-            <footer className="mt-12 text-center text-[11px] text-foreground/40">
-              © 2026 Everythingflows.All rights reserved.
+            <footer className="mt-12 text-center text-xs text-muted/70">
+              {t("footer", { year: 2026, siteName: siteConfig.name })}
             </footer>
           )}
         </main>
 
-        {/* Live2D Widget */}
-        {!isAdminWorkspace && <Live2DWidget sidebarCollapsed={sidebarCollapsed} />}
-
-        {/* Desktop Music Player */}
-        {siteConfig.music.enabled && (
+        {siteConfig.music.enabled && !isHome && (
           <MusicPlayer
             collapsed={sidebarCollapsed}
             hidden={isAdminWorkspace}
           />
+        )}
+
+        {!isAdminWorkspace && (
+          <MobileNavigation onMoreClick={openNavigation} drawerOpen={isMobileNavigationOpen} />
         )}
       </div>
 
@@ -144,6 +203,6 @@ export function MainLayout({ children, searchItems }: { children: React.ReactNod
 
       {/* 智能导航遮罩 —— 仅在页面真正加载慢时显示吉祥物 */}
       <NavigationOverlay />
-    </RightSidebarProvider>
+    </MusicPlayerProvider>
   );
 }

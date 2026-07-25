@@ -1,85 +1,185 @@
+import { ArrowRight, Bot, PenLine, Sparkles } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { LatestPosts } from "./LatestPosts";
 import { Fragments } from "./Fragments";
 import { HomeDate } from "./HomeDate";
+import { MusicPlayer } from "./MusicPlayer";
 import type { PostMeta } from "@/types";
 import type { MemoryFragment } from "@/types/memory";
 import { Surface } from "@/components/ui/surface";
+import { Link } from "@/i18n/navigation";
 
 interface HomePageContentProps {
   posts: PostMeta[];
   fragments: MemoryFragment[];
+  postsUnavailable: boolean;
+  fragmentsUnavailable: boolean;
 }
 
-const text = `或许鸟儿
-会借这拓展的空间,飞得愈发炽烈。
-春天曾需要你。常有一颗星辰
-静静等候,只为让你留意。`;
+function formatPostDate(date: string) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(date));
+}
 
-/* const chars = (() => {
-  let delay = 0;
-  return text.split("").map((char) => {
-    const currentDelay = delay;
-
-    if (char === "，") {
-      delay += 0.22;
-    } else if (char === "。") {
-      delay += 0.45;
-    } else if (char === "\n") {
-      delay += 0.7;
-    } else {
-      delay += 0.06;
-    }
-
-    return {
-      char,
-      delay: currentDelay,
-    };
-  });
-})(); */
-
-export function HomePageContent({ posts, fragments }: HomePageContentProps) {
+function FlowIllustration() {
   return (
-    <div className="space-y-6">
-      <Surface
-        className="px-8 py-10 sm:px-14"
-        contentClassName="flex flex-col gap-8 md:flex-row md:items-start md:justify-between"
-      >
-          <div className="flex-1 space-y-4">
-            <div>
-              <h1 className="mb-3 text-5xl font-bold tracking-tight">
-                Everything
-                <br />
-                <span className="text-cyan-500">flows.</span>
-              </h1>
-            </div>
+    <div className="pointer-events-none relative mx-auto h-56 w-full max-w-sm lg:h-72" aria-hidden>
+      <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-soft blur-2xl" />
+      <svg viewBox="0 0 360 300" className="relative h-full w-full overflow-visible">
+        <path d="M28 220C100 112 171 270 332 70" fill="none" stroke="var(--primary)" strokeOpacity="0.48" strokeWidth="2" strokeLinecap="round" />
+        <path d="M28 257C110 150 202 294 338 141" fill="none" stroke="var(--primary)" strokeOpacity="0.26" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M63 85C136 10 210 132 297 40" fill="none" stroke="var(--primary)" strokeOpacity="0.22" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="4 8" />
+        <circle cx="74" cy="170" r="30" fill="var(--primary)" fillOpacity="0.07" stroke="var(--primary)" strokeOpacity="0.28" />
+        <circle cx="251" cy="124" r="50" fill="var(--primary)" fillOpacity="0.04" stroke="var(--primary)" strokeOpacity="0.2" />
+        <circle cx="157" cy="191" r="8" fill="var(--accent)" fillOpacity="0.72" />
+        <circle cx="289" cy="78" r="5" fill="var(--accent)" fillOpacity="0.62" />
+        <circle cx="206" cy="231" r="4" fill="var(--primary)" fillOpacity="0.72" />
+        <path d="M150 70l6 14 14 6-14 6-6 14-6-14-14-6 14-6 6-14Z" fill="var(--accent)" fillOpacity="0.24" stroke="var(--accent)" strokeOpacity="0.55" />
+      </svg>
+    </div>
+  );
+}
 
-            <p
-              className="
-    max-w-[320px]
-    text-[15px]
-    leading-[2.2]
-    tracking-[0.04em]
-    text-neutral-700/70
-    dark:text-neutral-300/65
-    font-light
-    whitespace-pre-line
-  "
-              style={{
-                fontFamily: '"LXGW WenKai Screen", serif',
-                textShadow: "0 0 20px rgba(255,255,255,0.05)",
-              }}
-            >
-              {text}
+export async function HomePageContent({
+  posts,
+  fragments,
+  postsUnavailable,
+  fragmentsUnavailable,
+}: HomePageContentProps) {
+  const t = await getTranslations("home");
+  const featuredPost = posts[0];
+  const tagCount = new Set(posts.flatMap((post) => post.tags)).size;
+  const stats = [
+    { value: postsUnavailable ? "—" : posts.length, label: t("stats.posts") },
+    { value: fragmentsUnavailable ? "—" : fragments.length, label: t("stats.fragments") },
+    { value: postsUnavailable ? "—" : tagCount, label: t("stats.tags") },
+  ];
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
+      <div className="min-w-0 space-y-6">
+        <Surface
+          className="anim-fade-up min-h-[360px] px-6 py-8 sm:px-9 sm:py-10"
+          contentClassName="grid h-full gap-8 lg:grid-cols-[minmax(0,1.12fr)_minmax(17rem,0.88fr)] lg:items-center"
+          tone="solid"
+          overlay={false}
+        >
+          <div className="relative z-10">
+            <p className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              {t("hero.eyebrow")}
             </p>
+            <h1 className="max-w-2xl font-serif text-[2.65rem] font-semibold leading-[1.08] tracking-[-0.035em] text-foreground sm:text-5xl lg:text-[3.35rem]">
+              {t("hero.title")}
+              <br />
+              <span className="text-accent">{t("hero.titleAccent")}</span>
+            </h1>
+            <p className="mt-5 max-w-xl text-sm leading-7 text-muted sm:text-[15px]">
+              {t("hero.line1")}
+              <br />
+              {t("hero.line2")}
+              <br />
+              {t("hero.line3")}
+              <br />
+              {t("hero.line4")}
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              {featuredPost && (
+                <Link
+                  href={`/blog/${encodeURIComponent(featuredPost.slug)}`}
+                  className="group inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none"
+                >
+                  <PenLine className="h-4 w-4" />
+                  {t("actions.readLatest")}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              )}
+              <Link
+                href="/fragments"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-accent/45 bg-accent/5 px-5 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Sparkles className="h-4 w-4" />
+                {t("actions.browseFragments")}
+              </Link>
+            </div>
           </div>
+          <FlowIllustration />
+        </Surface>
 
-          <HomeDate />
-      </Surface>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <Surface className="anim-fade-up p-5 sm:p-6" tone="solid" overlay={false} interactive>
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">{t("featured.label")}</span>
+                <Sparkles className="h-5 w-5 text-accent/70" />
+              </div>
+              {featuredPost ? (
+                <Link href={`/blog/${encodeURIComponent(featuredPost.slug)}`} className="group mt-5 flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <h2 className="font-serif text-2xl font-semibold leading-tight text-foreground transition-colors group-hover:text-primary">
+                    {featuredPost.title}
+                  </h2>
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">{featuredPost.description}</p>
+                  <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-7 text-xs text-muted">
+                    <time dateTime={featuredPost.date}>{formatPostDate(featuredPost.date)}</time>
+                    <span aria-hidden>·</span>
+                    <span>{featuredPost.readingTime}</span>
+                  </div>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                    {t("featured.continueReading")} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </span>
+                </Link>
+              ) : (
+                <p className="mt-8 text-sm leading-6 text-muted">
+                  {postsUnavailable ? t("featured.unavailable") : t("featured.empty")}
+                </p>
+              )}
+            </div>
+          </Surface>
+          <Fragments fragments={fragments} unavailable={fragmentsUnavailable} />
+        </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
-        <LatestPosts posts={posts} />
-        <Fragments fragments={fragments} />
+        <LatestPosts posts={posts} unavailable={postsUnavailable} />
       </div>
+
+      <aside className="grid gap-4 xl:sticky xl:top-28" aria-label={t("asideLabel")}>
+        <HomeDate />
+        <MusicPlayer variant="home" />
+
+        <Surface className="anim-fade-up border-primary/25 bg-[var(--home-ai-surface)] p-5 text-[var(--home-ai-foreground)] shadow-[0_18px_45px_-28px_rgba(14,51,64,0.8)]" overlay={false}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Bot className="h-4 w-4 text-[var(--home-ai-accent)]" />
+              {t("ai.title")}
+            </div>
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--home-ai-accent)_15%,transparent)] px-2 py-1 text-[9px] font-semibold tracking-wider text-[var(--home-ai-accent)]">{t("ai.availability")}</span>
+          </div>
+          <p className="mt-5 text-sm leading-6 text-[color-mix(in_srgb,var(--home-ai-foreground)_65%,transparent)]">
+            {t("ai.description")}
+          </p>
+          <Link href="/chat" className="group mt-5 flex min-h-11 items-center justify-between rounded-xl border border-white/15 bg-white/5 px-4 text-sm text-[color-mix(in_srgb,var(--home-ai-foreground)_85%,transparent)] transition-colors hover:border-[color-mix(in_srgb,var(--home-ai-accent)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--home-ai-accent)_10%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-ai-accent)]">
+            {t("ai.start")}
+            <ArrowRight className="h-4 w-4 text-[var(--home-ai-accent)] transition-transform group-hover:translate-x-1" />
+          </Link>
+        </Surface>
+
+        <Surface className="anim-fade-up p-5" tone="solid" overlay={false}>
+          <p className="text-sm font-semibold">{t("stats.title")}</p>
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            {stats.map(({ value, label }) => (
+              <div key={label} className="text-center">
+                <div className="font-serif text-2xl font-semibold text-primary">{value}</div>
+                <div className="mt-1 text-[11px] text-muted">{label}</div>
+              </div>
+            ))}
+          </div>
+          {(postsUnavailable || fragmentsUnavailable) && (
+            <p className="mt-4 text-center text-xs text-muted">{t("stats.unavailable")}</p>
+          )}
+        </Surface>
+      </aside>
     </div>
   );
 }

@@ -7,7 +7,7 @@
 Remove-Item -Recurse -Force .next
 
 # 2. 启动开发服务器
-npm run dev
+pnpm run dev
 
 # 3. 访问
 # http://localhost:3000
@@ -20,10 +20,10 @@ npm run dev
 Remove-Item -Recurse -Force .next
 
 # 2. 构建（需要 3-5 分钟）
-npm run build
+pnpm run build
 
 # 3. 启动生产服务器
-npm start
+pnpm start
 
 # 4. 访问
 # http://localhost:3000
@@ -40,7 +40,7 @@ Remove-Item -Recurse -Force .next
 Remove-Item -Recurse -Force node_modules\.cache -ErrorAction SilentlyContinue
 
 # 重新构建
-npm run build
+pnpm run build
 ```
 
 ### 错误：Application error

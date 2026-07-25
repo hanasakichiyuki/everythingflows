@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type RefObject } from "react";
 import { siteConfig } from "@/config/site";
 
 // ---------- APlayer global type ----------
@@ -45,8 +45,7 @@ function safelyDestroyPlayer(player: APlayerInstance) {
   player.destroy();
 }
 
-export function useMusicPlayer() {
-  const containerRef = useRef<HTMLDivElement>(null);
+export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
   const playerRef = useRef<APlayerInstance | null>(null);
   const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playlistKeyRef = useRef("");
@@ -60,6 +59,7 @@ export function useMusicPlayer() {
   const [duration, setDuration] = useState(0);
   const [currentSong, setCurrentSong] = useState("");
   const [currentCover, setCurrentCover] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -185,7 +185,7 @@ export function useMusicPlayer() {
             cover: s.cover,
             lrc: s.lrc,
           })),
-          theme: "#ec4899",
+          theme: "#208cab",
           autoplay: false,
           listFolded: true,
           listMaxHeight: 200,
@@ -234,6 +234,7 @@ export function useMusicPlayer() {
               const songName = `${audio.name} - ${audio.artist}`;
               setCurrentSong(songName);
               setCurrentCover(audio.cover || "");
+              setCurrentIndex(idx);
               playHistoryRef.current.push(idx);
               if (playHistoryRef.current.length > 50) {
                 playHistoryRef.current = playHistoryRef.current.slice(-50);
@@ -248,6 +249,7 @@ export function useMusicPlayer() {
         if (songs.length > 0) {
           setCurrentSong(`${songs[0].name} - ${songs[0].artist}`);
           setCurrentCover(songs[0].cover);
+          setCurrentIndex(0);
           playHistoryRef.current = [0];
         }
       } catch (e) {
@@ -272,6 +274,7 @@ export function useMusicPlayer() {
         const s = songs[idx];
         setCurrentSong(`${s.name} - ${s.artist}`);
         setCurrentCover(s.cover || "");
+        setCurrentIndex(idx);
       }
     },
     [songs],
@@ -368,12 +371,7 @@ export function useMusicPlayer() {
     [duration],
   );
 
-  // -------- Current index --------
-  const currentIndex = playerRef.current?.list?.index ?? 0;
-
   return {
-    containerRef,
-    playerRef,
     isMounted,
     isPlaying,
     progress,

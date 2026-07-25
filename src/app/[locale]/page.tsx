@@ -2,15 +2,31 @@ import { setRequestLocale } from "next-intl/server";
 import { listPosts } from "@/lib/api/posts";
 import { HomePageContent } from "@/components/layout/HomePageContent";
 import { listFragments } from "@/lib/api/fragments";
+import type { PostMeta } from "@/types";
+import type { MemoryFragment } from "@/types/memory";
 
 export const revalidate = 3600;
 
-async function getHomeFragments() {
+type HomeDataResult<T> = {
+  items: T[];
+  hasError: boolean;
+};
+
+async function getHomePosts(locale: string): Promise<HomeDataResult<PostMeta>> {
   try {
-    return await listFragments(6);
+    return { items: await listPosts(locale), hasError: false };
+  } catch {
+    console.error("[home] unable to load posts");
+    return { items: [], hasError: true };
+  }
+}
+
+async function getHomeFragments(): Promise<HomeDataResult<MemoryFragment>> {
+  try {
+    return { items: await listFragments(6), hasError: false };
   } catch {
     console.error("[home] unable to load fragments");
-    return [];
+    return { items: [], hasError: true };
   }
 }
 
@@ -21,10 +37,14 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [posts, fragments] = await Promise.all([
-    listPosts(locale),
-    getHomeFragments(),
-  ]);
+  const [postsResult, fragmentsResult] = await Promise.all([getHomePosts(locale), getHomeFragments()]);
 
-  return <HomePageContent posts={posts} fragments={fragments} />;
+  return (
+    <HomePageContent
+      posts={postsResult.items}
+      fragments={fragmentsResult.items}
+      postsUnavailable={postsResult.hasError}
+      fragmentsUnavailable={fragmentsResult.hasError}
+    />
+  );
 }

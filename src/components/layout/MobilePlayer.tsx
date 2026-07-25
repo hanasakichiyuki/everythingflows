@@ -40,7 +40,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
           className="bottom-auto left-1/2 top-auto max-w-lg -translate-x-1/2 translate-y-0 border-0 bg-transparent p-3 shadow-none"
           style={{
             bottom:
-              "calc(var(--mobile-player-offset, 64px) + env(safe-area-inset-bottom, 0px) + 0.5rem)",
+              "calc(var(--mobile-player-offset, 64px) + var(--mobile-nav-offset, 0px) + env(safe-area-inset-bottom, 0px) + 0.5rem)",
           }}
         >
           <DialogTitle className="sr-only">播放列表</DialogTitle>
@@ -69,8 +69,8 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
             {currentCover ? (
               <img src={currentCover} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-zinc-800">
-                <svg className="h-4 w-4 text-zinc-600" fill="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-full w-full items-center justify-center bg-primary-soft">
+                <svg className="h-4 w-4 text-primary/60" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                 </svg>
               </div>
@@ -93,7 +93,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
           </div>
 
           {/* Controls */}
-          <button type="button" onClick={prevSong} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50" aria-label="上一首">
+          <button type="button" onClick={prevSong} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="上一首">
             <svg className="h-[20px] w-[20px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
             </svg>
@@ -102,7 +102,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
           <button
             type="button"
             onClick={togglePlay}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-foreground/80 transition-transform hover:bg-foreground/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-foreground/80 transition-transform hover:bg-foreground/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={isPlaying ? "暂停" : "播放"}
           >
             {isPlaying ? (
@@ -116,7 +116,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
             )}
           </button>
 
-          <button type="button" onClick={nextSong} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50" aria-label="下一首">
+          <button type="button" onClick={nextSong} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="下一首">
             <svg className="h-[20px] w-[20px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
             </svg>
@@ -127,7 +127,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
           <button
             type="button"
             onClick={() => setShowList(!showList)}
-            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 ${showList ? "text-foreground/80" : "text-foreground/45"}`}
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${showList ? "text-foreground/80" : "text-foreground/45"}`}
             aria-label="播放列表"
           >
             <svg className="h-[18px] w-[18px]" fill="currentColor" viewBox="0 0 24 24">
@@ -145,7 +145,7 @@ function PlayModeIcon({ playMode, onClick }: { playMode: PlayMode; onClick: () =
     <button
       type="button"
       onClick={onClick}
-      className="hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50 min-[420px]:flex"
+      className="hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-[420px]:flex"
       aria-label="播放模式"
       title={playMode === "sequence" ? "顺序播放" : playMode === "random" ? "随机播放" : "单曲循环"}
     >

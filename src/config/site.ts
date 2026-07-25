@@ -17,12 +17,6 @@ export const navItems: readonly NavItem[] = [
   { href: "/chat", icon: "message-circle", label: "chat" },
   { href: "/search", icon: "search", label: "search" },
   { href: "/links", icon: "link", label: "links" },
-  {
-    href: "https://github.com/hanasakichiyuki/blogb",
-    icon: "globe",
-    label: "personalSite",
-    external: true,
-  },
   { href: "/about", icon: "user", label: "about" },
 ];
 

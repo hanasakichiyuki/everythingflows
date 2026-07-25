@@ -4,69 +4,81 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 全屏背景图 —— 单张 webp，移动端与桌面共用 */
+/* 旧壁纸类保留给未来可选主题；默认主题不再挂载全屏壁纸。 */
 .site-background {
   background-image: url('/avatar/background.webp');
 }
 
 :root {
-  --background: #f5f5f4;
-  --foreground: #1a1a2e;
-  --sidebar: #f0efed;
-  --muted: #6b7280;
-  --accent: #4a5568;
-  --border: #e5e5e5;
-  --primary: #db2777;
+  --background: #f7f3ec;
+  --foreground: #202a2e;
+  --sidebar: #f8f4ed;
+  --muted: #6f797d;
+  --accent: #c35b78;
+  --border: rgba(31, 89, 108, 0.13);
+  --primary: #208cab;
   --primary-foreground: #ffffff;
-  --primary-soft: rgba(219, 39, 119, 0.1);
-  --ring: rgba(219, 39, 119, 0.45);
-  --surface: rgba(255, 255, 255, 0.64);
-  --surface-overlay: rgba(255, 255, 255, 0.1);
-  --surface-border: rgba(255, 255, 255, 0.48);
+  --primary-soft: rgba(32, 140, 171, 0.1);
+  --ring: rgba(32, 140, 171, 0.42);
+  --surface: rgba(255, 252, 247, 0.92);
+  --surface-overlay: rgba(255, 255, 255, 0.18);
+  --surface-border: rgba(55, 91, 101, 0.14);
+  --home-ai-surface: #14252b;
+  --home-ai-foreground: #f5fbfc;
+  --home-ai-accent: #7bd6e8;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --radius: 1rem;
+  --radius: 1.25rem;
   --mobile-player-offset: 0px;
+  --mobile-nav-offset: 0px;
 }
 
 .dark {
-  --background: #1a1b1e;
-  --foreground: #e8e8f0;
-  --sidebar: #141518;
-  --muted: #9ca3af;
-  --accent: #c5cad3;
-  --border: #2d3038;
-  --primary: #f472b6;
-  --primary-foreground: #1a1b1e;
-  --primary-soft: rgba(244, 114, 182, 0.12);
-  --ring: rgba(244, 114, 182, 0.55);
-  --surface: rgba(17, 24, 39, 0.56);
-  --surface-overlay: rgba(17, 24, 39, 0.3);
-  --surface-border: rgba(255, 255, 255, 0.1);
+  --background: #141a1d;
+  --foreground: #edf4f5;
+  --sidebar: #182126;
+  --muted: #a8b4b8;
+  --accent: #ef8faa;
+  --border: rgba(211, 233, 238, 0.12);
+  --primary: #69cfdf;
+  --primary-foreground: #102128;
+  --primary-soft: rgba(105, 207, 223, 0.14);
+  --ring: rgba(105, 207, 223, 0.5);
+  --surface: rgba(27, 36, 40, 0.94);
+  --surface-overlay: rgba(255, 255, 255, 0.02);
+  --surface-border: rgba(211, 233, 238, 0.11);
+  --home-ai-surface: #10252c;
+  --home-ai-foreground: #edf8fa;
+  --home-ai-accent: #79d5e6;
   --destructive: #f87171;
-  --destructive-foreground: #1a1b1e;
+  --destructive-foreground: #201215;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+  background-image:
+    radial-gradient(circle at 82% 8%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 28rem),
+    radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--primary) 6%, transparent), transparent 32rem);
+  background-attachment: fixed;
+  min-height: 100dvh;
 }
 
 .public-site-main {
   padding-bottom: calc(
-    2rem + var(--mobile-player-offset, 0px) + env(safe-area-inset-bottom, 0px)
+    2rem + var(--mobile-player-offset, 0px) + var(--mobile-nav-offset, 0px) + env(safe-area-inset-bottom, 0px)
   );
 }
 
 .floating-action-safe {
   bottom: calc(
-    1.5rem + var(--mobile-player-offset, 0px) + env(safe-area-inset-bottom, 0px)
+    1.5rem + var(--mobile-player-offset, 0px) + var(--mobile-nav-offset, 0px) + env(safe-area-inset-bottom, 0px)
   );
 }
 
 .chat-viewport {
   height: calc(
-    100dvh - var(--mobile-player-offset, 0px) -
+    100dvh - var(--mobile-player-offset, 0px) - var(--mobile-nav-offset, 0px) -
       env(safe-area-inset-bottom, 0px) - 1rem
   );
 }
@@ -74,6 +86,10 @@ body {
 @media (min-width: 769px) {
   .public-site-main {
     padding-bottom: 2rem;
+  }
+
+  :root {
+    --mobile-nav-offset: 0px;
   }
 
   .floating-action-safe {
@@ -337,12 +353,12 @@ body {
   }
 
   .nav-item {
-    @apply flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-all duration-200 hover:bg-primary-soft hover:pl-4 hover:text-primary;
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-200 hover:bg-primary-soft hover:text-primary;
     color: color-mix(in srgb, var(--foreground) 80%, transparent);
   }
 
   .nav-item-active {
-    @apply font-semibold text-primary;
+    @apply bg-primary-soft font-semibold text-primary;
   }
 
   /* Icon column - centered */

@@ -28,9 +28,9 @@
 ## 快速开始
 
 ```bash
-npm install
+pnpm install --frozen-lockfile
 cp .env.example .env.local   # 仓库未自带 .env.example，请按下方「环境变量」手动创建
-npm run dev
+pnpm run dev
 ```
 
 打开 [http://localhost:3000](http://localhost:3000)
