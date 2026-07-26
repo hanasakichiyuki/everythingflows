@@ -13,6 +13,7 @@ type PlaylistPanelProps = {
   onSelect: (index: number) => void;
   onClose: () => void;
   onRetry?: () => void;
+  variant?: "floating" | "embedded";
 };
 
 export function PlaylistPanel({
@@ -24,16 +25,22 @@ export function PlaylistPanel({
   onSelect,
   onClose,
   onRetry,
+  variant = "floating",
 }: PlaylistPanelProps) {
   const t = useTranslations("home.music");
+  const isEmbedded = variant === "embedded";
 
   return (
     <div
-      className="anim-bubble-in overflow-hidden rounded-2xl border border-border/70 bg-background/90 text-foreground shadow-xl backdrop-blur-2xl"
+      className={
+        isEmbedded
+          ? "overflow-hidden text-foreground"
+          : "anim-bubble-in overflow-hidden rounded-2xl border border-border/70 bg-background/90 text-foreground shadow-xl backdrop-blur-2xl"
+      }
       role="region"
       aria-label={t("playlist")}
     >
-      <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
+      <div className={`flex items-center justify-between border-b border-border/60 ${isEmbedded ? "pb-2" : "px-5 py-3"}`}>
         <p className="text-[11px] font-medium tracking-wider text-foreground/80">
           {t("playlistTitle", { count: songs.length })}
         </p>
@@ -47,7 +54,7 @@ export function PlaylistPanel({
         </button>
       </div>
 
-      <div className="max-h-[252px] overflow-y-auto playlist-scroll px-1">
+      <div className={`max-h-[252px] overflow-y-auto playlist-scroll ${isEmbedded ? "pr-1" : "px-1"}`}>
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted" role="status">
             <LoaderCircle className="h-4 w-4 animate-spin text-primary" aria-hidden />
@@ -68,7 +75,7 @@ export function PlaylistPanel({
             )}
           </div>
         ) : songs.length > 0 ? (
-          <ul className="py-1">
+          <ul className={isEmbedded ? "divide-y divide-border/45" : "py-1"}>
             {songs.map((song, index) => (
               <li key={`${song.url}-${index}`}>
                 <button
@@ -76,9 +83,11 @@ export function PlaylistPanel({
                   onClick={() => onSelect(index)}
                   disabled={isSwitchingTrack}
                   aria-current={currentIndex === index ? "true" : undefined}
-                  className={`flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60 ${
+                  className={`flex w-full items-center gap-3 ${isEmbedded ? "px-2 py-2.5" : "rounded-lg px-4 py-2"} text-left text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60 ${
                     currentIndex === index
-                      ? "bg-primary-soft text-primary"
+                      ? isEmbedded
+                        ? "bg-primary-soft/65 text-primary"
+                        : "bg-primary-soft text-primary"
                       : "text-foreground/75 hover:bg-foreground/[0.045] hover:text-foreground"
                   }`}
                 >

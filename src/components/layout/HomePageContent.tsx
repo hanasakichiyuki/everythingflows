@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { LatestPosts } from "./LatestPosts";
 import { Fragments } from "./Fragments";
 import { HomeDate } from "./HomeDate";
-import { MusicPlayer } from "./MusicPlayer";
 import type { PostMeta } from "@/types";
 import type { MemoryFragment } from "@/types/memory";
 import { Surface } from "@/components/ui/surface";
@@ -146,22 +145,21 @@ export async function HomePageContent({
 
       <aside className="grid gap-4 xl:sticky xl:top-28" aria-label={t("asideLabel")}>
         <HomeDate />
-        <MusicPlayer variant="home" />
 
-        <Surface className="anim-fade-up border-primary/25 bg-[var(--home-ai-surface)] p-5 text-[var(--home-ai-foreground)] shadow-[0_18px_45px_-28px_rgba(14,51,64,0.8)]" overlay={false}>
+        <Surface className="anim-fade-up p-5" overlay={false} tone="solid">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <Bot className="h-4 w-4 text-[var(--home-ai-accent)]" />
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Bot className="h-4 w-4 text-primary" />
               {t("ai.title")}
             </div>
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--home-ai-accent)_15%,transparent)] px-2 py-1 text-[9px] font-semibold tracking-wider text-[var(--home-ai-accent)]">{t("ai.availability")}</span>
+            <span className="rounded-full bg-primary-soft px-2 py-1 text-[9px] font-semibold tracking-wider text-primary">{t("ai.availability")}</span>
           </div>
-          <p className="mt-5 text-sm leading-6 text-[color-mix(in_srgb,var(--home-ai-foreground)_65%,transparent)]">
+          <p className="mt-4 text-sm leading-6 text-muted">
             {t("ai.description")}
           </p>
-          <Link href="/chat" className="group mt-5 flex min-h-11 items-center justify-between rounded-xl border border-white/15 bg-white/5 px-4 text-sm text-[color-mix(in_srgb,var(--home-ai-foreground)_85%,transparent)] transition-colors hover:border-[color-mix(in_srgb,var(--home-ai-accent)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--home-ai-accent)_10%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-ai-accent)]">
+          <Link href="/chat" className="group mt-5 flex min-h-11 items-center justify-between rounded-xl border border-border bg-primary-soft/70 px-4 text-sm font-medium text-primary transition-colors hover:border-primary/30 hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {t("ai.start")}
-            <ArrowRight className="h-4 w-4 text-[var(--home-ai-accent)] transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </Surface>
 

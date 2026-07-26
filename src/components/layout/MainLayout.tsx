@@ -9,10 +9,10 @@ import { RouteTransition } from "./RouteTransition";
 import { NavigationOverlay } from "./NavigationOverlay";
 import { PublicHeader } from "./PublicHeader";
 import { MobileNavigation } from "./MobileNavigation";
+import { MusicPlayer } from "./MusicPlayer";
 import { MusicPlayerProvider } from "./MusicPlayerProvider";
 import { siteConfig } from "@/config/site";
 
-const MusicPlayer = dynamic(() => import("./MusicPlayer").then((mod) => ({ default: mod.MusicPlayer })), { ssr: false });
 const SearchModal = dynamic(
   () => import("@/components/search/SearchModal").then((mod) => ({ default: mod.SearchModal })),
   { ssr: false }
@@ -187,12 +187,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           )}
         </main>
 
-        {siteConfig.music.enabled && !isHome && (
-          <MusicPlayer
-            collapsed={sidebarCollapsed}
-            hidden={isAdminWorkspace}
-          />
-        )}
+        <MusicPlayer hidden={isAdminWorkspace} />
 
         {!isAdminWorkspace && (
           <MobileNavigation onMoreClick={openNavigation} drawerOpen={isMobileNavigationOpen} />

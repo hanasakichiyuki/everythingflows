@@ -23,9 +23,6 @@
   --surface: rgba(255, 252, 247, 0.92);
   --surface-overlay: rgba(255, 255, 255, 0.18);
   --surface-border: rgba(55, 91, 101, 0.14);
-  --home-ai-surface: #14252b;
-  --home-ai-foreground: #f5fbfc;
-  --home-ai-accent: #7bd6e8;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --radius: 1.25rem;
@@ -47,9 +44,6 @@
   --surface: rgba(27, 36, 40, 0.94);
   --surface-overlay: rgba(255, 255, 255, 0.02);
   --surface-border: rgba(211, 233, 238, 0.11);
-  --home-ai-surface: #10252c;
-  --home-ai-foreground: #edf8fa;
-  --home-ai-accent: #79d5e6;
   --destructive: #f87171;
   --destructive-foreground: #201215;
 }
@@ -392,27 +386,6 @@ body {
   }
   .nav-item-text-active {
     @apply font-semibold text-primary;
-  }
-
-  /* Music player button */
-  .music-player-btn {
-    @apply relative cursor-pointer transition-all duration-300;
-  }
-  .music-player-btn::before {
-    content: "♪";
-    position: absolute;
-    top: -12px;
-    left: 30px;
-    transform: none;
-    font-size: 14px;
-    color: var(--primary);
-    opacity: 0;
-    transition: all 0.3s ease;
-    pointer-events: none;
-  }
-  .music-player-btn:hover::before {
-    top: -18px;
-    opacity: 0.8;
   }
 
   @keyframes slideDown {
