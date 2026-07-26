@@ -73,7 +73,7 @@ function ToolbarButton({
       aria-pressed={active}
       disabled={disabled}
       onClick={onClick}
-      className={cn("h-7 w-7", active && "bg-pink-500/15 text-pink-500")}
+      className={cn("h-7 w-7", active && "bg-primary-soft text-primary")}
     >
       {children}
     </Button>
@@ -87,16 +87,24 @@ export function EditorToolbar({
   const { editor } = useEditor();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<{
+    file: File;
+    message: string;
+  } | null>(null);
 
   const uploadAndInsert = useCallback(
     async (file: File) => {
       if (!editor) return;
       setUploading(true);
+      setUploadError(null);
       try {
         const src = await uploadEditorImage(file);
         editor.chain().focus().setImage({ src, alt: file.name }).run();
       } catch (error) {
-        window.alert(error instanceof Error ? error.message : "图片上传失败");
+        setUploadError({
+          file,
+          message: error instanceof Error ? error.message : "图片上传失败",
+        });
       } finally {
         setUploading(false);
       }
@@ -274,7 +282,7 @@ export function EditorToolbar({
               })
               .run()
           }
-          className="h-7 rounded-lg border border-border bg-background px-2 text-[11px] outline-none focus:border-pink-400"
+          className="h-7 rounded-lg border border-border bg-background px-2 text-[11px] outline-none focus:border-primary"
           aria-label="代码语言"
         >
           {hasCustomCodeLanguage && (
@@ -333,6 +341,27 @@ export function EditorToolbar({
         </div>
       </div>
       {uploading && <span className="ml-2 text-xs text-muted">上传中…</span>}
+      {uploadError && (
+        <div className="ml-2 flex items-center gap-2 text-xs" role="alert" aria-live="assertive">
+          <span className="max-w-52 truncate text-destructive" title={uploadError.message}>
+            图片未上传：{uploadError.message}
+          </span>
+          <button
+            type="button"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+            onClick={() => void uploadAndInsert(uploadError.file)}
+          >
+            重试
+          </button>
+          <button
+            type="button"
+            className="text-muted underline-offset-2 hover:text-foreground hover:underline"
+            onClick={() => setUploadError(null)}
+          >
+            关闭
+          </button>
+        </div>
+      )}
       <input
         ref={inputRef}
         type="file"

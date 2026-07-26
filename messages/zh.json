@@ -248,7 +248,7 @@
     "tagsField": "标签（逗号分隔）",
     "categoryField": "分类",
     "contentField": "正文",
-    "embedHint": "支持 Ctrl+V 粘贴截图，或点击「图片」上传；需先在 Supabase 执行 supabase/storage.sql。",
+    "embedHint": "支持 Ctrl+V 粘贴截图，或点击「图片」上传；请先完成 R2 图片存储配置。",
     "insertImage": "图片",
     "adminSecretField": "管理密钥",
     "adminSecretPlaceholder": "与 .env 中 ADMIN_SECRET 一致（本地开发未设置时可留空）",

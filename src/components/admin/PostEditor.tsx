@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Clock3,
+  Eye,
   Loader2,
   Save,
-  Send,
   Settings2,
   Trash2,
 } from "lucide-react";
@@ -13,6 +13,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { publishPostAction, saveDraftAction, deletePostAction } from "@/app/actions/posts";
 import { NovelPostEditor } from "./editor/NovelPostEditor";
+import { PostPreviewDialog } from "./PostPreviewDialog";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,13 +68,18 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     );
   const [editorRevision, setEditorRevision] = useState(0);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [postId, setPostId] = useState(initialData?.id);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [message, setMessage] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const isEditMode = !!initialData;
+  const isEditMode = Boolean(postId);
   const hasChangesRef = useRef(false);
   const changeTrackingReadyRef = useRef(false);
+  const changeVersionRef = useRef(0);
+  const saveInFlightRef = useRef(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const parsedTags = useMemo(
@@ -98,44 +104,68 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   );
 
   const saveDraft = useCallback(async () => {
+    if (saveInFlightRef.current) return;
     const contentIsEmpty =
       contentFormat === "tiptap"
         ? isTiptapDocumentEmpty(contentJson)
         : !legacyBody.trim();
     if (!title.trim() || contentIsEmpty) return;
+
+    const savedChangeVersion = changeVersionRef.current;
+    saveInFlightRef.current = true;
     setSaveStatus("saving");
     setMessage("");
 
-    const result = await saveDraftAction({
-      title: title.trim(),
-      description: description.trim(),
-      tags: parsedTags,
-      category: category.trim() || undefined,
-      body: contentFormat === "tiptap" ? "" : legacyBody,
-      contentJson: contentFormat === "tiptap" ? contentJson : null,
-      contentFormat,
-      locale,
-      id: initialData?.id,
-    });
+    try {
+      const result = await saveDraftAction({
+        title: title.trim(),
+        description: description.trim(),
+        tags: parsedTags,
+        category: category.trim() || undefined,
+        body: contentFormat === "tiptap" ? "" : legacyBody,
+        contentJson: contentFormat === "tiptap" ? contentJson : null,
+        contentFormat,
+        locale,
+        id: postId,
+      });
 
-    if (!result.ok) {
+      if (!result.ok) {
+        setSaveStatus("error");
+        setMessage(result.error);
+        return;
+      }
+
+      const hasNewChanges = changeVersionRef.current !== savedChangeVersion;
+      hasChangesRef.current = hasNewChanges;
+      setLastSavedAt(new Date());
+      setSaveStatus(hasNewChanges ? "idle" : "saved");
+      setMessage(
+        hasNewChanges
+          ? "保存完成，但保存期间还有新修改；请再次保存以保留它们。"
+          : ""
+      );
+
+      if (!postId && result.post.id) {
+        setPostId(result.post.id);
+        if (hasNewChanges) {
+          // Keep the newer local edits in place while making refreshes point at
+          // the draft that was just created. A router navigation here would
+          // remount the editor with the older saved snapshot.
+          window.history.replaceState(
+            window.history.state,
+            "",
+            `/admin/edit/${result.post.id}`
+          );
+        } else {
+          router.replace(`/admin/edit/${result.post.id}`);
+        }
+      }
+    } catch {
       setSaveStatus("error");
-      setMessage(result.error);
-      return;
+      setMessage("保存文章失败，请稍后重试");
+    } finally {
+      saveInFlightRef.current = false;
     }
-
-    setSaveStatus("saved");
-    setMessage("草稿已保存");
-    hasChangesRef.current = false;
-    if (!initialData?.id && result.post.id) {
-      router.replace(`/admin/edit/${result.post.id}`);
-      return;
-    }
-    // Reset to idle after 2s
-    setTimeout(() => {
-      setSaveStatus((s) => (s === "saved" ? "idle" : s));
-      setMessage("");
-    }, 2000);
   }, [
     title,
     contentFormat,
@@ -145,37 +175,48 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     parsedTags,
     category,
     locale,
-    initialData?.id,
+    postId,
     router,
   ]);
 
   const publish = async () => {
-    if (!title.trim() || !hasContent) return;
+    if (saveInFlightRef.current || !title.trim() || !hasContent) return;
     setSaveStatus("publishing");
     setMessage("");
 
-    const result = await publishPostAction({
-      title: title.trim(),
-      description: description.trim(),
-      tags: parsedTags,
-      category: category.trim() || undefined,
-      body: contentFormat === "tiptap" ? "" : legacyBody,
-      contentJson: contentFormat === "tiptap" ? contentJson : null,
-      contentFormat,
-      locale,
-      published: true,
-      id: initialData?.id,
-    });
+    try {
+      const result = await publishPostAction({
+        title: title.trim(),
+        description: description.trim(),
+        tags: parsedTags,
+        category: category.trim() || undefined,
+        body: contentFormat === "tiptap" ? "" : legacyBody,
+        contentJson: contentFormat === "tiptap" ? contentJson : null,
+        contentFormat,
+        locale,
+        published: true,
+        id: postId,
+      });
 
-    if (!result.ok) {
+      if (!result.ok) {
+        setSaveStatus("error");
+        setMessage(result.error);
+        setPreviewOpen(false);
+        return;
+      }
+
+      setSaveStatus("saved");
+      setMessage(isEditMode ? t("updated", { slug: result.post.slug }) : t("published", { slug: result.post.slug }));
+      // Publishing leaves the admin workspace and invalidates public-route data.
+      // A document navigation avoids an App Router transition retaining the stale
+      // admin segment while those routes are being revalidated.
+      hasChangesRef.current = false;
+      window.location.assign(`/blog/${encodeURIComponent(result.post.slug)}`);
+    } catch {
       setSaveStatus("error");
-      setMessage(result.error);
-      return;
+      setMessage("发布文章失败，请稍后重试");
+      setPreviewOpen(false);
     }
-
-    setSaveStatus("saved");
-    setMessage(isEditMode ? t("updated", { slug: result.post.slug }) : t("published", { slug: result.post.slug }));
-    router.push(`/blog/${result.post.slug}`);
   };
 
   // Ctrl+S keyboard shortcut
@@ -189,6 +230,70 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [saveDraft]);
+
+  // Warn before browser navigation or a tab close while content is unsaved.
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasChangesRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // App Router links do not trigger beforeunload, so protect header navigation
+  // and logout just like a browser refresh or tab close.
+  useEffect(() => {
+    const confirmLeaving = () => {
+      if (!hasChangesRef.current) return true;
+      const confirmed = window.confirm("当前修改可能尚未保存，确定要离开编辑器吗？");
+      if (confirmed) hasChangesRef.current = false;
+      return confirmed;
+    };
+
+    const handleLinkClick = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        !(event.target instanceof Element)
+      ) {
+        return;
+      }
+
+      const link = event.target.closest<HTMLAnchorElement>("a[href]");
+      if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+
+      const destination = new URL(link.href, window.location.href);
+      if (
+        destination.origin !== window.location.origin ||
+        (destination.pathname === window.location.pathname &&
+          destination.search === window.location.search)
+      ) {
+        return;
+      }
+
+      if (!confirmLeaving()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    const handleFormSubmit = (event: SubmitEvent) => {
+      if (!confirmLeaving()) event.preventDefault();
+    };
+
+    document.addEventListener("click", handleLinkClick, true);
+    document.addEventListener("submit", handleFormSubmit, true);
+    return () => {
+      document.removeEventListener("click", handleLinkClick, true);
+      document.removeEventListener("submit", handleFormSubmit, true);
+    };
+  }, []);
 
   // Auto-save timer
   useEffect(() => {
@@ -210,6 +315,8 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
       return;
     }
     hasChangesRef.current = true;
+    changeVersionRef.current += 1;
+    setSaveStatus((status) => (status === "saved" ? "idle" : status));
   }, [
     title,
     description,
@@ -237,16 +344,23 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   };
 
   const handleDelete = async () => {
-    if (!initialData?.id) return;
+    if (!postId) return;
     setDeleting(true);
-    const result = await deletePostAction(initialData.id);
-    setDeleting(false);
-    setDeleteConfirmOpen(false);
-    if (result.ok) {
-      router.push("/admin");
-    } else {
+    try {
+      const result = await deletePostAction(postId);
+      setDeleteConfirmOpen(false);
+      if (result.ok) {
+        hasChangesRef.current = false;
+        router.push("/admin");
+      } else {
+        setSaveStatus("error");
+        setMessage(result.error);
+      }
+    } catch {
       setSaveStatus("error");
-      setMessage(result.error);
+      setMessage("删除文章失败，请稍后重试");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -288,8 +402,8 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     !hasContent ||
     saveStatus === "saving" ||
     saveStatus === "publishing";
-  const articleIdentifier = initialData?.id
-    ? `post-${initialData.id.slice(0, 12)}`
+  const articleIdentifier = postId
+    ? `post-${postId.slice(0, 12)}`
     : "保存后生成文章标识";
 
   return (
@@ -311,7 +425,7 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
                 <span className="flex items-center gap-1.5 text-muted">
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      isEditMode ? "bg-emerald-400" : "bg-amber-400"
+                      isEditMode ? "bg-primary" : "bg-amber-400"
                     }`}
                   />
                   {isEditMode ? "已开启" : "首次保存后"}
@@ -374,7 +488,7 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
           </section>
         </div>
 
-        {isEditMode && (
+        {postId && (
           <div className="mt-auto border-t border-border/60 pt-3">
             <Button
               type="button"
@@ -421,8 +535,8 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
           <p
             className={`border-b border-border/60 px-4 py-2 text-[11px] ${
               saveStatus === "error"
-                ? "bg-red-500/5 text-red-600 dark:text-red-400"
-                : "bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
+                ? "bg-destructive/10 text-destructive"
+                : "bg-primary-soft text-primary"
             }`}
           >
             {message}
@@ -472,10 +586,13 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
               {isEditMode ? "每 30 秒自动保存" : "首次保存后开启自动保存"}
             </span>
             <span>⌘S / Ctrl+S 保存草稿</span>
+            {lastSavedAt && (
+              <span>最近保存于 {lastSavedAt.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</span>
+            )}
             {statusLabel && (
               <span
                 className={`flex items-center gap-1 ${
-                  saveStatus === "error" ? "text-red-500" : ""
+                  saveStatus === "error" ? "text-destructive" : ""
                 }`}
               >
                 {(saveStatus === "saving" ||
@@ -510,18 +627,18 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
             <Button
               type="button"
               size="sm"
-              onClick={publish}
+              onClick={() => setPreviewOpen(true)}
               disabled={actionDisabled}
               className="gap-1.5 rounded-full"
             >
-              <Send className="h-3.5 w-3.5" />
+              <Eye className="h-3.5 w-3.5" />
               {saveStatus === "publishing"
                 ? isEditMode
                   ? t("updating")
                   : t("publishing")
                 : isEditMode
-                  ? t("update")
-                  : t("publish")}
+                  ? "预览更新"
+                  : "预览发布"}
             </Button>
           </div>
         </footer>
@@ -536,6 +653,20 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirmOpen(false)}
         loading={deleting}
+      />
+      <PostPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        title={title}
+        description={description}
+        tags={parsedTags}
+        category={category}
+        contentFormat={contentFormat}
+        contentJson={contentJson}
+        legacyBody={legacyBody}
+        publishing={saveStatus === "publishing"}
+        isEditMode={isEditMode}
+        onPublish={publish}
       />
     </div>
   );

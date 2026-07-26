@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { SearchResultList } from "./SearchResultList";
 import type { SearchItem } from "./types";
 
@@ -29,6 +30,7 @@ export function SearchModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +55,7 @@ export function SearchModal({
     };
     void loadItems();
     return () => controller.abort();
-  }, [hasLoaded, open, t]);
+  }, [hasLoaded, loadAttempt, open, t]);
 
   const fuse = useMemo(
     () =>
@@ -143,7 +145,14 @@ export function SearchModal({
         {/* Results */}
         <div id="search-modal-results" className="max-h-[60vh] overflow-y-auto" aria-live="polite">
           {loading && <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted"><LoaderCircle className="h-4 w-4 animate-spin" />{t("loading")}</p>}
-          {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-center text-sm text-destructive">{error}</p>}
+          {error && (
+            <ErrorState
+              compact
+              title="搜索加载失败"
+              description={error}
+              onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+            />
+          )}
           {query.trim() && !error && results.length === 0 && (
             <p className="py-4 text-center text-sm text-muted">{t("noResults")}</p>
           )}

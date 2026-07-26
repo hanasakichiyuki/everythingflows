@@ -20,6 +20,7 @@ interface ChatPanelProps {
   models: AvailableModel[];
   isAuthenticated: boolean;
   canSwitchModel: boolean;
+  historyOpen: boolean;
   messagesLoading: boolean;
   onToggleSidebar: () => void;
   onSwitchModel: (modelId: string) => void;
@@ -46,6 +47,7 @@ export function ChatPanel({
   models,
   isAuthenticated,
   canSwitchModel,
+  historyOpen,
   messagesLoading,
   onToggleSidebar,
   onSwitchModel,
@@ -176,6 +178,10 @@ export function ChatPanel({
         <button
           type="button"
           onClick={onToggleSidebar}
+          id="chat-history-trigger"
+          aria-haspopup="dialog"
+          aria-expanded={historyOpen}
+          aria-controls="chat-history-dialog"
           className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={t("openHistory")}
         >

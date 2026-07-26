@@ -3,9 +3,10 @@
 ## Setup
 
 1. Create a project at [Supabase](https://supabase.com/dashboard).
-2. Run `supabase/schema.sql` then `supabase/storage.sql` in **SQL Editor**.
+2. Run `supabase/schema.sql`, `supabase/migrations/003_create_fragments.sql`, then `supabase/schema-chat.sql` in **SQL Editor**.
 3. Copy **Project URL**, **anon key**, and **service role key** into `.env.local` (see `.env.example`).
-4. Set `DATA_PROVIDER=supabase` and `ADMIN_SECRET` for `/admin` publish.
+4. Configure the R2 media variables from [`docs/R2_MEDIA_SETUP.md`](../../../../docs/R2_MEDIA_SETUP.md); Supabase does not store image objects.
+5. Set `DATA_PROVIDER=supabase` and `ADMIN_SECRET` for `/admin` publish.
 
 ## Table: `posts`
 

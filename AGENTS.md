@@ -23,15 +23,15 @@
 - Table `posts` (slug unique, legacy body, content_json, content_format `html`|`mdx`|`tiptap`, tags[], locale, published)
 - Table `fragments` (memory wall entries)
 - Table `chat_conversations` (user_id, title, model_id, system_prompt) + `chat_messages` (conversation_id, role, content, model_id) — see `schema-chat.sql`
-- Bucket `post-images` (public, max 5MB, jpeg/png/gif/webp)
-- Fresh installs: run `supabase/schema.sql`, `supabase/storage.sql`, then `supabase/schema-chat.sql`. Existing installs additionally run numbered files in `supabase/migrations/` manually.
+- Supabase does not store media objects. Article and fragment images are R2-only under the configured `R2_PUBLIC_BASE_URL/posts/` prefix.
+- Fresh installs: run `supabase/schema.sql`, `supabase/migrations/003_create_fragments.sql`, then `supabase/schema-chat.sql`. Existing installs additionally run applicable numbered files in `supabase/migrations/` manually.
 
 ## Conventions
 - Prefer Server Components; avoid `"use client"` unless necessary
 - Path alias: `@/` → `src/`
 - Dark mode via `next-themes` (`class` strategy), CSS variables in `globals.css`
 - `site.config.json` drives music player (MetingJS + APlayer), Giscus comments, social links, features
-- Images in posts auto-cleanup from Supabase storage on update/delete
+- Images in posts auto-cleanup from R2 on update/delete
 - TipTap JSON is canonical for `tiptap` posts; do not persist generated HTML or silently convert legacy MDX.
 
 ## Protected features (do not remove)

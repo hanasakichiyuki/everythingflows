@@ -21,9 +21,9 @@ export function EditorWorkspaceHeader({
           className="mr-1 hidden items-center gap-1.5 sm:flex"
           aria-hidden="true"
         >
-          <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-primary" />
         </span>
         <Button
           asChild
@@ -37,7 +37,7 @@ export function EditorWorkspaceHeader({
           </Link>
         </Button>
         <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground/75">
-          <PenLine className="h-3.5 w-3.5 text-emerald-500" />
+          <PenLine className="h-3.5 w-3.5 text-primary" />
           写作工作台
         </span>
         <span className="text-border">·</span>
@@ -51,7 +51,7 @@ export function EditorWorkspaceHeader({
           className="mr-1 hidden max-w-40 items-center gap-1.5 truncate text-[10px] text-muted md:flex"
           title={email ?? undefined}
         >
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
           已登录
         </span>
         {mode !== "create" && (

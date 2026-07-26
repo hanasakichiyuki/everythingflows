@@ -25,8 +25,20 @@ export function MobileNavigation({
   const t = useTranslations("nav");
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--mobile-nav-offset", "4.5rem");
-    return () => document.documentElement.style.setProperty("--mobile-nav-offset", "0px");
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const updateOffset = () => {
+      document.documentElement.style.setProperty(
+        "--mobile-nav-offset",
+        mediaQuery.matches ? "4.5rem" : "0px"
+      );
+    };
+
+    updateOffset();
+    mediaQuery.addEventListener("change", updateOffset);
+    return () => {
+      mediaQuery.removeEventListener("change", updateOffset);
+      document.documentElement.style.setProperty("--mobile-nav-offset", "0px");
+    };
   }, []);
 
   const isActive = (href: string) =>

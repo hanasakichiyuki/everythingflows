@@ -8,7 +8,8 @@ import { useMusicPlayerContext } from "./MusicPlayerProvider";
 
 export type { UseMusicPlayerReturn } from "@/hooks/useMusicPlayer";
 
-const mobileMediaQuery = "(max-width: 768px)";
+// Keep this in sync with Tailwind's `md` breakpoint: 768px starts the desktop shell.
+const mobileMediaQuery = "(max-width: 767px)";
 
 function subscribeToMobileViewport(onStoreChange: () => void) {
   const mediaQuery = window.matchMedia(mobileMediaQuery);

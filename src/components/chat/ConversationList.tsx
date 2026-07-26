@@ -163,25 +163,48 @@ export function ConversationList({
   const t = useTranslations("chat");
   const ref = useRef<HTMLDivElement>(null);
 
+  const closeAndRestoreFocus = useCallback(() => {
+    onClose();
+    requestAnimationFrame(() => {
+      document.getElementById("chat-history-trigger")?.focus();
+    });
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
+    const frame = requestAnimationFrame(() => {
+      ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    });
     const handleOutsideClick = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) onClose();
+      if ((event.target as Element).closest("#chat-history-trigger")) return;
+      if (ref.current && !ref.current.contains(event.target as Node)) closeAndRestoreFocus();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeAndRestoreFocus();
     };
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [onClose, open]);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeAndRestoreFocus, open]);
 
   if (!open) return null;
 
   return (
     <div
       ref={ref}
-      aria-label={t("history")}
+      id="chat-history-dialog"
+      role="dialog"
+      aria-labelledby="chat-history-title"
       className="anim-fade-in absolute left-4 top-14 z-30 w-[min(18rem,calc(100%-2rem))] overflow-hidden rounded-xl border border-surface-border bg-surface shadow-xl"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">{t("history")}</h2>
+        <h2 id="chat-history-title" className="text-sm font-semibold text-foreground">{t("history")}</h2>
         <button
           type="button"
           onClick={onNew}

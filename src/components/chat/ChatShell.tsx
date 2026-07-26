@@ -101,6 +101,7 @@ export function ChatShell({ initialConversationId }: ChatShellProps) {
             models={selectableModels}
             isAuthenticated={isAuthenticated}
             canSwitchModel
+            historyOpen={listOpen}
             messagesLoading={messagesLoading}
             onToggleSidebar={onToggleList}
             onSwitchModel={onSwitchModel}
@@ -113,6 +114,7 @@ export function ChatShell({ initialConversationId }: ChatShellProps) {
             models={selectableModels}
             isAuthenticated={isAuthenticated}
             canSwitchModel
+            historyOpen={listOpen}
             onToggleSidebar={onToggleList}
             onCreateAndSend={onCreateAndSend}
           />

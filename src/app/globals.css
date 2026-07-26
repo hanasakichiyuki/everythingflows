@@ -64,6 +64,21 @@ body {
   min-height: 100dvh;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .public-site-main {
   padding-bottom: calc(
     2rem + var(--mobile-player-offset, 0px) + var(--mobile-nav-offset, 0px) + env(safe-area-inset-bottom, 0px)
@@ -83,7 +98,7 @@ body {
   );
 }
 
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .public-site-main {
     padding-bottom: 2rem;
   }
@@ -297,7 +312,7 @@ body {
   }
 
   .tiptap-editor .ProseMirror-selectednode {
-    @apply rounded-lg ring-2 ring-pink-300/60;
+    @apply rounded-lg ring-2 ring-primary;
   }
 
   .prose-blog hr {

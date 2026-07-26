@@ -4,7 +4,10 @@ import { createClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { format } from "date-fns";
+import { FileText, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminWorkspaceShell } from "@/components/admin/AdminWorkspaceShell";
 
 export const dynamic = "force-dynamic";
@@ -35,32 +38,40 @@ export default async function DraftsPage({
         className="min-h-[calc(100vh-4.5rem)] overflow-y-auto px-5 py-6 sm:px-8 lg:h-[calc(100vh-4.5rem)] lg:min-h-0"
         aria-labelledby="drafts-title"
       >
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 flex items-end justify-between gap-4 border-b border-border/60 pb-5">
             <div>
-              <h2 id="drafts-title" className="text-xl font-semibold tracking-tight">草稿箱</h2>
-              <p className="mt-1 text-sm text-muted">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+                <FileText className="h-3.5 w-3.5" />
+                写作工作台
+              </span>
+              <h2 id="drafts-title" className="mt-2 text-2xl font-semibold tracking-tight">草稿箱</h2>
+              <p className="mt-1.5 text-sm text-muted">
                 {drafts.length} 篇未发布文章
               </p>
             </div>
-            <Button asChild size="sm">
-              <Link href="/admin">新建文章</Link>
+            <Button asChild size="sm" className="gap-1.5">
+              <Link href="/admin"><PenLine className="h-3.5 w-3.5" />新建文章</Link>
             </Button>
           </div>
 
           {drafts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border px-6 py-20 text-center">
-              <p className="text-sm text-muted">暂无草稿</p>
-              <Button asChild variant="outline" size="sm" className="mt-4">
-                <Link href="/admin">开始写作</Link>
-              </Button>
-            </div>
+            <EmptyState
+              title="还没有草稿"
+              description="第一篇文章会在首次保存后自动进入草稿箱。"
+              icon={<FileText className="h-5 w-5" />}
+              action={
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/admin">开始写作</Link>
+                </Button>
+              }
+            />
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-border/60 overflow-hidden rounded-[20px] border border-surface-border bg-surface">
               {drafts.map((post) => (
                 <article
                   key={post.id}
-                  className="group flex items-center gap-4 rounded-xl border border-border/70 bg-background/45 px-4 py-3 transition-colors hover:border-primary hover:bg-primary-soft"
+                  className="group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-primary-soft/65 sm:px-5"
                 >
                   <Link
                     href={`/admin/edit/${post.id}`}
@@ -75,12 +86,15 @@ export default async function DraftsPage({
                       </p>
                     )}
                   </Link>
-                  <time
-                    dateTime={post.updated || post.date}
-                    className="shrink-0 text-xs tabular-nums text-muted"
-                  >
-                    {format(new Date(post.updated || post.date), "yyyy-MM-dd")}
-                  </time>
+                  <div className="shrink-0 text-right">
+                    <Badge variant="warning">草稿</Badge>
+                    <time
+                      dateTime={post.updated || post.date}
+                      className="mt-1.5 block text-xs tabular-nums text-muted"
+                    >
+                      {format(new Date(post.updated || post.date), "yyyy-MM-dd")}
+                    </time>
+                  </div>
                 </article>
               ))}
             </div>

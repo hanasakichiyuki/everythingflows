@@ -12,6 +12,7 @@ interface ChatEmptyPanelProps {
   models: AvailableModel[];
   isAuthenticated: boolean;
   canSwitchModel: boolean;
+  historyOpen: boolean;
   onToggleSidebar: () => void;
   onCreateAndSend: (firstMessage: string, modelId?: string) => Promise<unknown>;
 }
@@ -20,6 +21,7 @@ export function ChatEmptyPanel({
   models,
   isAuthenticated,
   canSwitchModel,
+  historyOpen,
   onToggleSidebar,
   onCreateAndSend,
 }: ChatEmptyPanelProps) {
@@ -51,6 +53,10 @@ export function ChatEmptyPanel({
         <button
           type="button"
           onClick={onToggleSidebar}
+          id="chat-history-trigger"
+          aria-haspopup="dialog"
+          aria-expanded={historyOpen}
+          aria-controls="chat-history-dialog"
           className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={t("openHistory")}
         >

@@ -2,7 +2,11 @@ import nextConfig from "eslint-config-next";
 import { globalIgnores } from "eslint/config";
 
 const eslintConfig = [
-  globalIgnores(["public/libs/APlayer.min.js"]),
+  globalIgnores([
+    "public/libs/APlayer.min.js",
+    ".next/**",
+    ".next-e2e/**",
+  ]),
   ...nextConfig,
   {
     name: "everythingflows/typescript-extra",

@@ -80,11 +80,11 @@ ZHIPU_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 1. 在 [Supabase Dashboard](https://supabase.com/dashboard) 创建项目。
 2. 在 **SQL Editor** 按顺序执行：
 
-   | 顺序 | 文件 | 说明 |
-   |------|------|------|
-   | 1 | [`supabase/schema.sql`](supabase/schema.sql) | `posts` 等核心表 + RLS |
-   | 2 | [`supabase/storage.sql`](supabase/storage.sql) | `post-images` 存储桶 |
-   | 3 | [`supabase/schema-chat.sql`](supabase/schema-chat.sql) | `chat_conversations` / `chat_messages` + RLS |
+| 顺序 | 文件 | 说明 |
+|------|------|------|
+| 1 | [`supabase/schema.sql`](supabase/schema.sql) | `posts` 等核心表 + RLS |
+| 2 | [`supabase/migrations/003_create_fragments.sql`](supabase/migrations/003_create_fragments.sql) | 碎片墙表 + RLS |
+| 3 | [`supabase/schema-chat.sql`](supabase/schema-chat.sql) | `chat_conversations` / `chat_messages` + RLS |
 
 3. 启用 Email/Password 登录（Auth → Providers → Email），创建一个用户作为管理员。
 4. 用该用户登录后访问 `/admin` 即可写作，发布后点 **发布**。
@@ -235,7 +235,7 @@ ZHIPU_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 ## 部署 Vercel
 
 1. 导入 [GitHub 仓库](https://github.com/hanasakichiyuki/everythingflows)
-2. 环境变量：按上方「环境变量」全部填入（至少 Supabase 三件套 + `ADMIN_SECRET`）
+2. 环境变量：按上方「环境变量」全部填入（至少 Supabase 三件套、R2 五项配置 + `ADMIN_SECRET`）
 3. `NEXT_PUBLIC_SITE_URL=https://flows.xin`
 4. 域名 CNAME 到 Vercel
 
@@ -245,7 +245,6 @@ ZHIPU_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 ai-models.json            # AI 模型注册表（配置驱动，加模型改这里 + .env）
 supabase/
   schema.sql              # posts 等核心表
-  storage.sql             # post-images 存储桶
   schema-chat.sql         # AI 对话表 + RLS
 .env.example              # 环境变量模板
 site.config.json

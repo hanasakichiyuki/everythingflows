@@ -13,7 +13,7 @@ export function AdminWorkspaceShell({
   mode,
 }: AdminWorkspaceShellProps) {
   return (
-    <div className="anim-fade-up min-h-[calc(100vh-1.5rem)] overflow-hidden rounded-[22px] border border-black/5 bg-background/95 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.28)] dark:border-white/10 lg:h-[calc(100vh-1.5rem)] lg:min-h-0">
+    <div className="anim-fade-up min-h-[calc(100vh-1.5rem)] overflow-hidden rounded-[22px] border border-surface-border bg-surface shadow-[0_24px_80px_-38px_rgba(25,74,91,0.34)] dark:bg-background/95 lg:h-[calc(100vh-1.5rem)] lg:min-h-0">
       <EditorWorkspaceHeader email={email} mode={mode} />
       {children}
     </div>

@@ -16,7 +16,11 @@ export function ChatCapabilityNotice({
   const modelName = model?.name ?? t("selectModel");
 
   return (
-    <aside className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border bg-primary-soft/35 px-4 py-2.5 text-xs leading-5 text-muted">
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border bg-primary-soft/35 px-4 py-2.5 text-xs leading-5 text-muted"
+    >
       <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
       <p className="min-w-0 flex-1">
         {isAuthenticated
@@ -34,6 +38,6 @@ export function ChatCapabilityNotice({
           {t("signIn")}
         </Link>
       )}
-    </aside>
+    </div>
   );
 }

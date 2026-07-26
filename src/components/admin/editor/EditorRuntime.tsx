@@ -179,9 +179,9 @@ export function EditorRuntime() {
       <EditorSlashMenu />
 
       {aiState.status !== "idle" && (
-        <div className="m-3 rounded-xl border border-pink-300/40 bg-pink-50/60 p-3 text-sm dark:bg-pink-950/20">
+        <div className="m-3 rounded-xl border border-primary/25 bg-primary-soft/60 p-3 text-sm">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 font-medium text-pink-600 dark:text-pink-300">
+            <span className="flex items-center gap-2 font-medium text-primary">
               {aiBusy && <Loader2 className="h-4 w-4 animate-spin" />}
               AI {EDITOR_AI_ACTION_LABELS[aiState.action]}
             </span>
@@ -199,7 +199,7 @@ export function EditorRuntime() {
             </button>
           </div>
           {aiState.error ? (
-            <p className="text-red-600 dark:text-red-400">{aiState.error}</p>
+            <p className="text-destructive">{aiState.error}</p>
           ) : (
             <p className="max-h-52 overflow-y-auto whitespace-pre-wrap leading-7">
               {aiState.text || "正在生成…"}
@@ -217,7 +217,7 @@ export function EditorRuntime() {
               <button
                 type="button"
                 onClick={applyAiResult}
-                className="flex items-center gap-1 rounded-lg bg-pink-500 px-3 py-1.5 text-xs text-white hover:bg-pink-600"
+                className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:brightness-95"
               >
                 <Check className="h-3.5 w-3.5" />
                 应用

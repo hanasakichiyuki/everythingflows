@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckCircle2, XCircle } from "lucide-react";
+
 interface ToastProps {
   message: string;
   isVisible: boolean;
@@ -20,24 +22,25 @@ export function Toast({ message, isVisible, onClose, type = "error" }: ToastProp
       <div
         role="alert"
         aria-live={type === "error" ? "assertive" : "polite"}
-        className={`anim-fade-up flex items-center gap-3 rounded-xl px-6 py-3 shadow-2xl backdrop-blur-md ${
+        className={`anim-fade-up flex items-center gap-3 rounded-xl border px-4 py-3 shadow-xl backdrop-blur-md ${
           type === "error"
-            ? "bg-red-900/80 border border-red-700/50"
-            : "bg-green-900/80 border border-green-700/50"
+            ? "border-destructive/30 bg-background/95 text-destructive"
+            : "border-primary/25 bg-background/95 text-primary"
         }`}
       >
-        <span className={`text-sm font-light ${
-          type === "error" ? "text-red-100" : "text-green-100"
-        }`}>
+        {type === "error" ? (
+          <XCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+        ) : (
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+        )}
+        <span className="text-sm text-foreground">
           {message}
         </span>
         <button
           type="button"
           onClick={onClose}
           aria-label="关闭"
-          className={`text-xs hover:opacity-70 ${
-            type === "error" ? "text-red-300" : "text-green-300"
-          }`}
+          className="ml-auto text-xs text-muted transition-colors hover:text-foreground"
         >
           ✕
         </button>

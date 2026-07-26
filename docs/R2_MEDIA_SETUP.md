@@ -28,7 +28,7 @@ R2 API Token 至少需要该 bucket 的 **Object Read & Write** 权限。建议�
 1. 在 Cloudflare 为 bucket 绑定 HTTPS 公共域名，并先确认该域名可直接打开一张测试图片。
 2. 配置以上五个变量，重启开发或部署环境。
 3. 在后台上传一张图片：返回 URL 应为 `R2_PUBLIC_BASE_URL/posts/...`，并能在文章和碎片墙显示。
-4. 当前代码不会读取或清理 Supabase Storage。若数据库中还存在旧 Supabase 图片 URL，需要按你的决定手动替换为 R2 URL，或删除对应测试文章/碎片后重新上传图片。
-5. 确认旧内容不再引用 Supabase 图片后，再在 Supabase 控制台删除旧 bucket 对象。
+4. 当前代码不会读取或写入 Supabase Storage。若数据库中还存在旧 Supabase 图片 URL，应先移除对应文章图片节点，并将带文字说明的图片碎片转为文字碎片；无文字说明的旧图片碎片可以删除。
+5. 确认数据库不再引用旧 URL 后，删除旧 Supabase bucket 中的对象和 bucket 本身。当前站点已于 2026-07-27 完成这一步；不要重新创建 `post-images` bucket。
 
-回退只需撤销本次代码变更；不要在未确认数据库引用前删除 R2 或 Supabase 中的对象。
+回退只需撤销本次代码变更；不要在未确认数据库引用前删除 R2 对象。
