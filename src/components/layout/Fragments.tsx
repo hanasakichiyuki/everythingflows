@@ -1,26 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowRight, ImageOff, Sparkles } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { MemoryFragment } from "@/types/memory";
 import { Surface } from "@/components/ui/surface";
+import { getPostImageProxyUrl } from "@/lib/post-image-url";
 
 interface FragmentsProps {
   fragments: MemoryFragment[];
   unavailable?: boolean;
-}
-
-function shouldBypassImageOptimizer(src?: string) {
-  if (!src) return false;
-
-  try {
-    return new URL(src).hostname.endsWith(".supabase.co");
-  } catch {
-    return false;
-  }
 }
 
 export function Fragments({ fragments, unavailable = false }: FragmentsProps) {
@@ -58,14 +48,14 @@ export function Fragments({ fragments, unavailable = false }: FragmentsProps) {
               <Link href={`/fragments/${encodeURIComponent(fragment.id)}`} className="block">
                 {fragment.type === "image" && fragment.imageUrl && !failedImages.has(fragment.id) ? (
                   <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-primary-soft/40">
-                    <Image
-                      src={fragment.imageUrl}
+                    {/* 受管图片都经同源 R2 代理，避免 Next 优化器和客户端代理的网络限制。 */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getPostImageProxyUrl(fragment.imageUrl)}
                       alt={fragment.text || t("imageUnavailable")}
-                      fill
-                      sizes="(max-width: 1024px) 50vw, 220px"
                       loading={index < 2 ? "eager" : "lazy"}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      unoptimized={shouldBypassImageOptimizer(fragment.imageUrl)}
+                      decoding="async"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       onError={() => {
                         setFailedImages((current) => new Set(current).add(fragment.id));
                       }}

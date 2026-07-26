@@ -26,8 +26,8 @@ const nextConfig = {
     ],
   },
   experimental: {
-    // 开发环境（next dev），先改为false方便vibe coding
-    turbopackFileSystemCacheForDev: false,
+    // 保留开发缓存，加快重复编译和开发服务重启。
+    turbopackFileSystemCacheForDev: true,
   },
 };
 

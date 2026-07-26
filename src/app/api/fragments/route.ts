@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server-client";
+import { isR2PostImageUrl } from "@/lib/api/media";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { validateFragmentText } from "@/lib/fragment-validation";
@@ -6,17 +7,9 @@ import { validateFragmentText } from "@/lib/fragment-validation";
 const WIDTHS = ["sm", "md", "lg"] as const;
 const HEIGHTS = ["short", "medium", "tall"] as const;
 
-/** 图片 URL 只接受本站 Supabase storage，精确匹配项目域名。 */
+/** 图片 URL 仅接受当前站点 R2 公共域名下的受管对象。 */
 function isAllowedImageUrl(url: unknown): url is string {
-  if (typeof url !== "string" || !url) return false;
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return false;
-  try {
-    const allowedHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname;
-    const host = new URL(url).hostname;
-    return host === allowedHost;
-  } catch {
-    return false;
-  }
+  return typeof url === "string" && isR2PostImageUrl(url);
 }
 
 export async function GET() {

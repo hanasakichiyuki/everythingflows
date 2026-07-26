@@ -1,16 +1,6 @@
-const ALLOWED_IMAGE_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-]);
-
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export function validateEditorImage(file: File): void {
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    throw new Error("仅支持 JPEG、PNG、GIF 和 WebP 图片");
-  }
   if (file.size > MAX_IMAGE_BYTES) {
     throw new Error("图片不能超过 5MB");
   }

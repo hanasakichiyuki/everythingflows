@@ -3,7 +3,7 @@ import {
   listFragments as listSupabaseFragments,
 } from "./supabase/fragments";
 import type { MemoryFragment } from "@/types/memory";
-import { deletePostImage } from "./supabase/storage";
+import { deletePostImage } from "./media";
 
 export async function listFragments(limit?: number): Promise<MemoryFragment[]> {
   return listSupabaseFragments(limit);

@@ -8,7 +8,7 @@ import {
   deletePostImages,
   extractPostImageUrls,
   type StoredPostContent,
-} from "./storage";
+} from "../media";
 
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();

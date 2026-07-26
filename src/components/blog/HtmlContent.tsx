@@ -1,6 +1,7 @@
 import DOMPurify from "isomorphic-dompurify";
 import hljs from "highlight.js";
 import { CodeBlockEnhancer } from "./CodeBlockEnhancer";
+import { getPostImageSource, isManagedPostImageUrl } from "@/lib/post-image-proxy";
 
 /**
  * Server-rendered HTML content.
@@ -51,6 +52,18 @@ function highlightCodeBlock(currentNode: Node) {
 }
 
 function secureRenderedAttributes(node: Element) {
+  if (node.tagName === "IMG") {
+    const src = node.getAttribute("src") ?? "";
+    if (!isManagedPostImageUrl(src)) {
+      node.remove();
+      return;
+    }
+    node.setAttribute("src", getPostImageSource(src));
+    node.setAttribute("loading", "lazy");
+    node.setAttribute("decoding", "async");
+    node.setAttribute("referrerpolicy", "no-referrer");
+  }
+
   if (node.tagName === "A") {
     const href = node.getAttribute("href") ?? "";
     if (/^https?:\/\//.test(href)) {
@@ -107,6 +120,7 @@ export function sanitizeHtmlContent(content: string): string {
         "data-page",
         "data-autoplay",
         "data-callout-type",
+        "decoding",
       ],
     });
   } finally {
