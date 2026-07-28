@@ -27,6 +27,15 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
+  // With `localePrefix: "never"`, next-intl rewrites public URLs to the
+  // internal `/zh` route. Next.js 16 can run proxy again for that rewrite in
+  // development, so applying next-intl twice would redirect `/zh` back to `/`
+  // and create an infinite loop. Let the internal route reach the App Router.
+  const isInternalLocalePath = path === "/zh" || path.startsWith("/zh/");
+  if (isInternalLocalePath) {
+    return supabaseResponse;
+  }
+
   // Apply intl middleware
   const intlResponse = intlMiddleware(request);
 
