@@ -9,8 +9,8 @@ import { usePathname } from "@/i18n/navigation";
  *
  * 与旧 GlobalLoadingOverlay 的区别：
  *  - 不拦截链接、不 preventDefault → 保留 Next <Link> 的 prefetch。
- *  - 被动监听点击：导航开始后延迟 120ms 才显示遮罩。
- *    预取命中的快页面在 120ms 内就切换完，根本不显示遮罩；
+ *  - 被动监听点击：导航开始后短暂延迟再显示遮罩。
+ *    预取命中的瞬时页面不会闪烁遮罩；
  *    只有真正慢的页面才弹出吉祥物。
  *  - pathname 变化（导航完成）立即隐藏；另有 8s 兜底防卡死。
  */
@@ -84,10 +84,11 @@ export function NavigationOverlay() {
           <Image
             src="/loading.webp"
             alt=""
-            width={192}
-            height={192}
-            className="anim-pop-in relative z-10 w-32 h-32 md:w-48 md:h-48 object-contain select-none"
+            width={384}
+            height={384}
+            className="anim-pop-in relative z-10 h-64 w-64 select-none object-cover md:h-96 md:w-96"
             draggable={false}
+            unoptimized
           />
         </div>
       )}
