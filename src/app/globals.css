@@ -26,6 +26,11 @@
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --radius: 1.25rem;
+  /* 现有动效值的语义别名：先统一维护入口，不改变当前页面手感。 */
+  --motion-ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --motion-ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-duration-fast: 0.2s;
+  --motion-duration-route: 0.22s;
   --mobile-player-offset: 0px;
   --mobile-nav-offset: 0px;
 }
@@ -69,7 +74,6 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
   }
 }
 
@@ -372,7 +376,7 @@ body {
 
   /* Icon column - centered */
   .nav-item-icon {
-    @apply flex items-center justify-center rounded-lg p-2 text-sm transition-all duration-200 hover:bg-primary-soft hover:text-primary;
+    @apply flex items-center justify-center rounded-lg p-2 text-sm transition-[background-color,color] duration-200 hover:bg-primary-soft hover:text-primary;
     color: color-mix(in srgb, var(--foreground) 80%, transparent);
   }
   .nav-item-icon-active {
@@ -381,7 +385,7 @@ body {
 
   /* Text column - centered */
   .nav-item-text {
-    @apply block rounded-lg px-2 py-2 text-center text-sm transition-all duration-200 hover:bg-primary-soft hover:text-primary;
+    @apply block rounded-lg px-2 py-2 text-center text-sm transition-[background-color,color] duration-200 hover:bg-primary-soft hover:text-primary;
     color: color-mix(in srgb, var(--foreground) 80%, transparent);
   }
   .nav-item-text-active {
@@ -403,7 +407,7 @@ body {
     to { opacity: 1; }
   }
   .route-fade {
-    animation: routeFadeIn 0.22s ease-out both;
+    animation: routeFadeIn var(--motion-duration-route) ease-out both;
   }
   @media (prefers-reduced-motion: reduce) {
     .route-fade {
@@ -425,10 +429,10 @@ body {
     to { opacity: 1; transform: scale(1); }
   }
   .anim-fade-up {
-    animation: fadeInUp 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+    animation: fadeInUp 0.5s var(--motion-ease-standard) both;
   }
   .anim-fade-scale {
-    animation: fadeInScale 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+    animation: fadeInScale 0.4s var(--motion-ease-standard) both;
   }
 
   /* 纯淡入（替代 framer-motion 的 initial opacity:0 → animate opacity:1） */
@@ -449,7 +453,7 @@ body {
     to { opacity: 1; transform: translateX(0); }
   }
   .anim-fade-left {
-    animation: fadeInLeft 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+    animation: fadeInLeft 0.4s var(--motion-ease-standard) both;
   }
 
   /* 弹入（小按钮 scale 0.8→1） */
@@ -467,7 +471,7 @@ body {
     to { transform: translateY(0); }
   }
   .anim-slide-up {
-    animation: slideUpIn 0.32s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+    animation: slideUpIn 0.32s var(--motion-ease-standard) both;
   }
 
   /* 气泡入场（Live2D speech bubble / playlist 面板） */
@@ -476,7 +480,7 @@ body {
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
   .anim-bubble-in {
-    animation: bubbleIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: bubbleIn 0.45s var(--motion-ease-emphasized) both;
   }
 
   /* 主题图标旋转淡入（key 变化时重放，替代 ThemeToggle 的 AnimatePresence） */
@@ -536,3 +540,11 @@ body {
 .anim-delay-4 { animation-delay: 0.32s; }
 .anim-delay-5 { animation-delay: 0.40s; }
 .anim-delay-6 { animation-delay: 0.48s; }
+
+/* 保留桌面端现有 hover 手感；触屏与减少动效模式只取消位移/缩放。 */
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+.fine-pointer-hover:hover,
+  .group:hover .fine-pointer-group-hover {
+    transform: none !important;
+  }
+}

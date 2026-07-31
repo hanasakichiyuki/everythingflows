@@ -108,12 +108,15 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
               aria-valuemax={100}
               aria-valuenow={Math.round(progress)}
             >
-              <div className="h-full rounded-full bg-foreground/60 transition-[width] duration-200" style={{ width: `${progress}%` }} />
+              <div
+                className="h-full w-full origin-left rounded-full bg-foreground/60 transition-transform duration-200 motion-reduce:transition-none"
+                style={{ transform: `scaleX(${progress / 100})` }}
+              />
             </div>
           </div>
 
           {/* Controls */}
-          <button type="button" onClick={prevSong} disabled={controlsDisabled} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40" aria-label="上一首">
+          <button type="button" onClick={prevSong} disabled={controlsDisabled} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-[transform,background-color,color,opacity] hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:active:scale-100" aria-label="上一首">
             <svg className="h-[20px] w-[20px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
             </svg>
@@ -123,7 +126,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
             type="button"
             onClick={togglePlay}
             disabled={controlsDisabled}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-foreground/80 transition-transform hover:bg-foreground/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-foreground/80 transition-transform hover:bg-foreground/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:active:scale-100"
             aria-label={isPlaying ? "暂停" : "播放"}
           >
             {isPlaying ? (
@@ -137,7 +140,7 @@ export function MobilePlayer({ player }: MobilePlayerProps) {
             )}
           </button>
 
-          <button type="button" onClick={nextSong} disabled={controlsDisabled} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-all hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40" aria-label="下一首">
+          <button type="button" onClick={nextSong} disabled={controlsDisabled} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-foreground/45 transition-[transform,background-color,color,opacity] hover:bg-foreground/5 active:scale-95 active:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:active:scale-100" aria-label="下一首">
             <svg className="h-[20px] w-[20px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
             </svg>

@@ -55,7 +55,7 @@ export function Sidebar({
       aria-modal={isMobile && !collapsed ? true : undefined}
       aria-hidden={collapsed}
       inert={collapsed}
-      className={`fixed left-0 top-0 z-[60] flex h-[100dvh] w-[min(18rem,calc(100vw-3rem))] shrink-0 flex-col border-r border-border bg-sidebar px-4 py-6 shadow-[14px_0_40px_-38px_rgba(25,74,91,0.7)] transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] md:w-[220px] ${
+      className={`fixed left-0 top-0 z-[60] flex h-[100dvh] w-[min(18rem,calc(100vw-3rem))] shrink-0 flex-col border-r border-border bg-sidebar px-4 py-6 shadow-[14px_0_40px_-38px_rgba(25,74,91,0.7)] transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] motion-reduce:transition-none md:w-[220px] ${
         collapsed
           ? "pointer-events-none -translate-x-full"
           : isMobile

@@ -23,7 +23,7 @@ export function MemoryCard({ fragment }: { fragment: MemoryFragment }) {
       <Link
         href={href}
         aria-label={t("viewFragment")}
-        className="group block overflow-hidden rounded-2xl border border-surface-border bg-surface shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_18px_42px_-32px_rgba(25,74,91,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none"
+        className="group block overflow-hidden rounded-2xl border border-surface-border bg-surface shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {fragment.type === "image" ? (
           <div className="relative">
@@ -32,7 +32,7 @@ export function MemoryCard({ fragment }: { fragment: MemoryFragment }) {
               alt={fragment.text || t("imageAlt")}
               unavailableLabel={t("imageUnavailable")}
               className="min-h-32 w-full"
-              imageClassName="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transform-none"
+              imageClassName="h-auto w-full object-cover"
             />
             {fragment.text && (
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-10">

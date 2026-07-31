@@ -40,7 +40,7 @@ function CodeBlock({ children }: { children: ReactNode }) {
         <span className="font-mono">{language}</span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded px-2 py-1 text-muted transition-all hover:bg-black/10 hover:text-foreground dark:hover:bg-white/10"
+          className="flex items-center gap-1.5 rounded px-2 py-1 text-muted transition-[background-color,color] hover:bg-black/10 hover:text-foreground dark:hover:bg-white/10"
           title="复制代码"
         >
           {copied ? (

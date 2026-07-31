@@ -6,7 +6,6 @@ type SurfaceProps = HTMLAttributes<HTMLDivElement> & {
   contentClassName?: string;
   overlay?: boolean;
   tone?: "default" | "solid" | "subtle";
-  interactive?: boolean;
 };
 
 export function Surface({
@@ -15,7 +14,6 @@ export function Surface({
   contentClassName,
   overlay = true,
   tone = "default",
-  interactive = false,
   ...props
 }: SurfaceProps) {
   const toneClassName = {
@@ -29,7 +27,6 @@ export function Surface({
       className={cn(
         "relative overflow-hidden rounded-surface border border-surface-border backdrop-blur-lg",
         toneClassName,
-        interactive && "transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl motion-reduce:transform-none",
         className
       )}
       {...props}

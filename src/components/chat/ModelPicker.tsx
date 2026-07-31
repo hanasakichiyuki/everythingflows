@@ -55,7 +55,7 @@ export function ModelPicker({
       >
         {selected?.isFree && <Sparkles className="h-3 w-3 text-primary" />}
         <span className="max-w-[120px] truncate">{selected?.name ?? t("selectModel")}</span>
-        <ChevronDown className={cn("h-3 w-3 text-muted transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-3 w-3 text-muted transition-transform motion-reduce:transition-none", open && "rotate-180")} />
       </button>
 
       {open && !disabled && (

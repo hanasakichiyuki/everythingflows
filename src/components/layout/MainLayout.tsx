@@ -160,7 +160,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           tabIndex={-1}
           aria-hidden={isMobileNavigationOpen}
           inert={isMobileNavigationOpen}
-          className={`relative z-10 flex-1 transition-all duration-300 ${isAdminWorkspace ? "ml-0 bg-[#f1f2f5] px-3 py-3 dark:bg-[#101114]" : `public-site-main px-4 py-0 md:px-8 lg:px-10 ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[220px]"}`}`}
+          className={`relative z-10 flex-1 transition-[margin-left] duration-300 motion-reduce:transition-none ${isAdminWorkspace ? "ml-0 bg-[#f1f2f5] px-3 py-3 dark:bg-[#101114]" : `public-site-main px-4 py-0 md:px-8 lg:px-10 ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[220px]"}`}`}
         >
           {!isAdminWorkspace && (
             <PublicHeader

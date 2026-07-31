@@ -27,9 +27,9 @@ export async function LatestPosts({ posts, unavailable = false }: LatestPostsPro
           <FileText className="h-4 w-4 text-primary" />
           <h3 className="font-serif text-lg font-semibold text-foreground">{t("latest")}</h3>
         </div>
-        <Link href="/archive" className="group inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-accent">
+        <Link href="/archive" className="group -mr-2 inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary transition-[background-color,color] hover:bg-primary-soft hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {t("viewAll")}
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          <ArrowRight className="fine-pointer-group-hover h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
 

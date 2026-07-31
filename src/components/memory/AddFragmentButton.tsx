@@ -32,7 +32,7 @@ export function AddFragmentButton({ onAdd }: { onAdd: (fragment: MemoryFragment)
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="floating-action-safe anim-pop-in fixed right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-primary/25 bg-primary text-primary-foreground shadow-lg transition-transform duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none"
+        className="floating-action-safe fine-pointer-hover anim-pop-in fixed right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-primary/25 bg-primary text-primary-foreground shadow-lg transition-transform duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none"
         aria-label={t("add")}
       >
         <Plus className="h-5 w-5" />

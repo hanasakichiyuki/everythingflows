@@ -85,7 +85,7 @@ export function ChatComposer({
               <button
                 type="button"
                 onClick={onStop}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background transition-all hover:opacity-80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background transition-[transform,opacity,background-color,color] hover:opacity-80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:active:scale-100"
                 aria-label={t("stop")}
               >
                 <Square className="h-3.5 w-3.5 fill-current" />
@@ -96,7 +96,7 @@ export function ChatComposer({
                 onClick={handleSend}
                 disabled={!canSend}
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "flex h-10 w-10 items-center justify-center rounded-full transition-[transform,opacity,background-color,color] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:active:scale-100",
                   canSend
                     ? "bg-foreground text-background hover:opacity-80"
                     : "bg-muted/30 text-muted",

@@ -158,8 +158,8 @@ export function DesktopPlayer({ player }: DesktopPlayerProps) {
               aria-hidden
             >
               <div
-                className="h-full rounded-full bg-primary transition-[width] duration-200"
-                style={{ width: `${progress}%` }}
+                className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-200 motion-reduce:transition-none"
+                style={{ transform: `scaleX(${progress / 100})` }}
               />
             </div>
             <input
@@ -194,7 +194,7 @@ export function DesktopPlayer({ player }: DesktopPlayerProps) {
               type="button"
               onClick={togglePlay}
               disabled={controlsDisabled}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none disabled:cursor-not-allowed disabled:opacity-40"
+              className="fine-pointer-hover flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={isPlaying ? t("pause") : t("play")}
             >
               {isPlaying ? (
@@ -252,7 +252,7 @@ export function DesktopPlayer({ player }: DesktopPlayerProps) {
       <button
         type="button"
         onClick={() => (isExpanded ? closePlayer() : setIsExpanded(true))}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full text-foreground shadow-[0_14px_28px_-14px_rgba(17,70,84,0.55)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transform-none"
+        className="fine-pointer-hover fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full text-foreground shadow-[0_14px_28px_-14px_rgba(17,70,84,0.55)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transform-none"
         aria-label={isExpanded ? "收起音乐播放器" : "展开音乐播放器"}
         aria-expanded={isExpanded}
         aria-controls="desktop-player-panel"

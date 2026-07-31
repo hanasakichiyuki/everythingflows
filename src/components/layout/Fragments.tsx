@@ -32,9 +32,9 @@ export function Fragments({ fragments, unavailable = false }: FragmentsProps) {
         </div>
         <Link
           href="/fragments"
-          className="group inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-accent"
+          className="group -mr-2 inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary transition-[background-color,color] hover:bg-primary-soft hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {t("viewAll")} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          {t("viewAll")} <ArrowRight className="fine-pointer-group-hover h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
 
@@ -55,7 +55,7 @@ export function Fragments({ fragments, unavailable = false }: FragmentsProps) {
                       alt={fragment.text || t("imageUnavailable")}
                       loading={index < 2 ? "eager" : "lazy"}
                       decoding="async"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="absolute inset-0 h-full w-full object-cover"
                       onError={() => {
                         setFailedImages((current) => new Set(current).add(fragment.id));
                       }}
@@ -74,7 +74,7 @@ export function Fragments({ fragments, unavailable = false }: FragmentsProps) {
                     <p className="text-xs leading-relaxed">{t("imageUnavailable")}</p>
                   </div>
                 ) : (
-                  <div className="flex aspect-[4/3] flex-col justify-between rounded-xl border border-border bg-primary-soft/45 p-3 transition-colors duration-300 group-hover:bg-primary-soft">
+                  <div className="flex aspect-[4/3] flex-col justify-between rounded-xl border border-border bg-primary-soft/45 p-3">
                     <p className="line-clamp-4 font-serif text-xs font-light leading-relaxed tracking-wide text-foreground/85">
                       {fragment.text}
                     </p>

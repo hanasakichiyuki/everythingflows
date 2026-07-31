@@ -89,16 +89,16 @@ export async function HomePageContent({
               {featuredPost && (
                 <Link
                   href={`/blog/${encodeURIComponent(featuredPost.slug)}`}
-                  className="group inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none"
+                  className="group fine-pointer-hover inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-[transform,background-color] duration-200 hover:brightness-95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none motion-reduce:active:scale-100"
                 >
                   <PenLine className="h-4 w-4" />
                   {t("actions.readLatest")}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  <ArrowRight className="fine-pointer-group-hover h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               )}
               <Link
                 href="/fragments"
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-accent/45 bg-accent/5 px-5 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="fine-pointer-hover inline-flex min-h-11 items-center gap-2 rounded-xl border border-accent/40 bg-background/55 px-5 py-2.5 text-sm font-medium text-accent transition-[transform,background-color] duration-200 hover:bg-accent/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none motion-reduce:active:scale-100"
               >
                 <Sparkles className="h-4 w-4" />
                 {t("actions.browseFragments")}
@@ -109,7 +109,7 @@ export async function HomePageContent({
         </Surface>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <Surface className="anim-fade-up p-5 sm:p-6" tone="solid" overlay={false} interactive>
+          <Surface className="anim-fade-up p-5 sm:p-6" tone="solid" overlay={false}>
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">{t("featured.label")}</span>
@@ -117,7 +117,7 @@ export async function HomePageContent({
               </div>
               {featuredPost ? (
                 <Link href={`/blog/${encodeURIComponent(featuredPost.slug)}`} className="group mt-5 flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <h2 className="font-serif text-2xl font-semibold leading-tight text-foreground transition-colors group-hover:text-primary">
+                    <h2 className="font-serif text-2xl font-semibold leading-tight text-foreground">
                     {featuredPost.title}
                   </h2>
                   <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">{featuredPost.description}</p>
@@ -127,7 +127,7 @@ export async function HomePageContent({
                     <span>{featuredPost.readingTime}</span>
                   </div>
                   <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    {t("featured.continueReading")} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    {t("featured.continueReading")} <ArrowRight className="h-4 w-4" />
                   </span>
                 </Link>
               ) : (
@@ -157,9 +157,9 @@ export async function HomePageContent({
           <p className="mt-4 text-sm leading-6 text-muted">
             {t("ai.description")}
           </p>
-          <Link href="/chat" className="group mt-5 flex min-h-11 items-center justify-between rounded-xl border border-border bg-primary-soft/70 px-4 text-sm font-medium text-primary transition-colors hover:border-primary/30 hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link href="/chat" className="group mt-5 flex min-h-11 items-center justify-between rounded-xl border border-primary/15 bg-primary-soft/55 px-4 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {t("ai.start")}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="fine-pointer-group-hover h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </Surface>
 
@@ -167,7 +167,7 @@ export async function HomePageContent({
           <p className="text-sm font-semibold">{t("stats.title")}</p>
           <div className="mt-5 grid grid-cols-3 gap-2">
             {stats.map(({ value, label }) => (
-              <div key={label} className="text-center">
+              <div key={label} className="home-stat text-center">
                 <div className="font-serif text-2xl font-semibold text-primary">{value}</div>
                 <div className="mt-1 text-[11px] text-muted">{label}</div>
               </div>

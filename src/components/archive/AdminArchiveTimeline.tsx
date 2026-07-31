@@ -135,10 +135,10 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                       <li key={post.slug}>
                         <Link
                           href={`/blog/${encodeURIComponent(post.slug)}`}
-                          className="group relative grid grid-cols-[3.5rem_1fr_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
+                          className="group relative grid grid-cols-[3.5rem_1fr_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-3 py-2 transition-colors duration-200 hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
                         >
                           <span
-                            className="absolute -left-[1.625rem] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-pink-400/40 transition-all duration-200 group-hover:h-5 group-hover:w-0.5 group-hover:rounded-sm group-hover:bg-pink-400"
+                            className="fine-pointer-group-hover absolute -left-[1.625rem] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-pink-400/40 transition-[transform,border-radius,background-color] duration-200 group-hover:scale-x-[0.333] group-hover:scale-y-[3.333] group-hover:rounded-sm group-hover:bg-pink-400"
                             aria-hidden
                           />
                           <time
@@ -147,7 +147,7 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                           >
                             {formatMonthDay(post.date)}
                           </time>
-                          <span className="min-w-0 text-[15px] font-medium leading-snug text-foreground/75 transition-all duration-200 group-hover:text-pink-500 group-hover:pl-4 truncate">
+                          <span className="fine-pointer-group-hover min-w-0 truncate text-[15px] font-medium leading-snug text-foreground/75 transition-[transform,color] duration-200 group-hover:translate-x-4 group-hover:text-pink-500">
                             {post.title}
                           </span>
                           {post.tags.length > 0 && (
@@ -167,7 +167,7 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                   return (
                     <li key={post.slug} className="group relative">
                       <div
-                        className="grid grid-cols-[auto_3.5rem_1fr_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
+                        className="grid grid-cols-[auto_3.5rem_1fr_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-3 py-2 transition-colors duration-200 hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
                       >
                         <input
                           type="checkbox"
@@ -177,7 +177,7 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                         />
 
                         <span
-                          className="absolute -left-[1.625rem] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-pink-400/40 transition-all duration-200 group-hover:h-5 group-hover:w-0.5 group-hover:rounded-sm group-hover:bg-pink-400"
+                          className="fine-pointer-group-hover absolute -left-[1.625rem] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-pink-400/40 transition-[transform,border-radius,background-color] duration-200 group-hover:scale-x-[0.333] group-hover:scale-y-[3.333] group-hover:rounded-sm group-hover:bg-pink-400"
                           aria-hidden
                         />
 
@@ -188,7 +188,7 @@ export function AdminArchiveTimeline({ archive, postsLabel }: Props) {
                           {formatMonthDay(post.date)}
                         </time>
 
-                        <span className="min-w-0 text-[15px] font-medium leading-snug text-foreground/75 transition-all duration-200 group-hover:text-pink-500 group-hover:pl-4 truncate">
+                        <span className="fine-pointer-group-hover min-w-0 truncate text-[15px] font-medium leading-snug text-foreground/75 transition-[transform,color] duration-200 group-hover:translate-x-4 group-hover:text-pink-500">
                           {post.title}
                         </span>
 

@@ -181,7 +181,7 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
             type="button"
             onClick={() => setMode("text")}
             aria-pressed={mode === "text"}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm transition-all ${
+            className={`flex-1 rounded-lg px-4 py-2 text-sm transition-[background-color,color] ${
               mode === "text"
                 ? "bg-primary-soft text-primary"
                 : "text-muted hover:bg-foreground/[0.045] hover:text-foreground"
@@ -193,7 +193,7 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
             type="button"
             onClick={() => setMode("image")}
             aria-pressed={mode === "image"}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm transition-all ${
+            className={`flex-1 rounded-lg px-4 py-2 text-sm transition-[background-color,color] ${
               mode === "image"
                 ? "bg-primary-soft text-primary"
                 : "text-muted hover:bg-foreground/[0.045] hover:text-foreground"

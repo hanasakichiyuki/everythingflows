@@ -62,7 +62,7 @@ export function ArchiveTimeline({ archive, postsLabel }: Props) {
                           href={`/blog/${encodeURIComponent(post.slug)}`}
                           className="group relative grid min-h-12 grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-4 rounded-xl px-3 py-2 transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[3rem_minmax(0,1fr)_auto]"
                         >
-                          <span className="absolute -left-[1.52rem] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border-2 border-background bg-primary transition-transform group-hover:scale-125 sm:-left-[1.78rem]" aria-hidden />
+                          <span className="fine-pointer-group-hover absolute -left-[1.52rem] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border-2 border-background bg-primary transition-transform group-hover:scale-125 sm:-left-[1.78rem]" aria-hidden />
                           <time className="text-right text-sm tabular-nums text-muted" dateTime={post.date}>{formatDay(post.date)} 日</time>
                           <span className="truncate text-[15px] font-medium leading-snug text-foreground transition-colors group-hover:text-primary">{post.title}</span>
                           {post.tags.length > 0 && <span className="hidden max-w-52 truncate text-xs text-muted sm:block">{post.tags.slice(0, 3).map((tag) => `#${tag}`).join(" · ")}</span>}

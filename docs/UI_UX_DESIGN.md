@@ -1,10 +1,22 @@
 # 万物流转 UI/UX 设计规范与优化路线
 
-> 本文是项目唯一的 UI/UX 设计基线、现状审计和后续优化路线。审查依据综合 Emil Kowalski 的设计工程方法、Apple 的界面与物理动效原则，以及项目内的动画机会发现、改进与审查规范。
+> 本文是项目唯一的 UI/UX 设计基线、现状审计和后续优化路线。**当前页面的整体结构、模块顺序和信息架构已经由站主确认并冻结；后续工作是在现有设计语言内优化视觉细节，不进行结构重构。** 色调比例、按钮质感、卡片层次、留白和动效可在确有美观或可用性收益时局部调整，但不得把页面改造成另一种设计风格。
 >
 > 本次结论来自源码静态审计。涉及弹性、速度、材质厚度和触摸手感的判断必须在浏览器与真实设备上复核，不能仅凭代码标记为完成。
 
 ## 1. 产品气质与设计原则
+
+### 1.0 已确认的设计基线
+
+以下内容构成项目当前的设计基线：
+
+- 保留暖色画布、青蓝主色和玫红强调这一色彩关系；允许在同一色彩体系内微调透明度、阴影和局部层次。
+- 保留桌面侧栏、公共页头、首页分区、移动底部导航、音乐播放器、卡片与内容页的总体结构。
+- 保留当前圆角、Surface、字体组合和内容密度形成的整体观感；允许对阴影、留白和控件质感做局部精修。
+- 保留现有适度的淡入、上浮、卡片 hover、音乐视觉反馈等动效性格；只有在无障碍、性能或明显交互错误成立时才局部调整。
+- 不以“更像 Apple”“更现代”“更极简”作为改动理由。外部设计原则必须服从万物流转现有视觉。
+
+任何会改变布局层级、模块顺序、导航位置、卡片结构或页面密度的提案默认禁止。可见的色彩、阴影、留白与动效优化必须制作同视口前后对照，确认收益后保留，不能作为代码清理顺手实施。
 
 ### 1.1 目标气质
 
@@ -40,7 +52,7 @@
 
 ### 2.1 颜色语义
 
-当前颜色方向以 `src/app/globals.css` 中的语义变量为基线：
+当前颜色方向以 `src/app/globals.css` 中的实际表现为基线。下表用于指导新组件融入现有设计，不授权重新配色：
 
 | Token | 亮色角色 | 暗色角色 | 使用规则 |
 | --- | --- | --- | --- |
@@ -56,15 +68,15 @@
 规则：
 
 - 新组件只使用语义变量或由其派生的 `color-mix()`，不增加散落的品牌 hex。
-- 后台与公共页面共享语义色；后台可提高密度，但不得另建一套粉色交互语言。
+- 后台已有粉色强调属于现有视觉的一部分，不因 token 整理改变其观感；只有出现暗色主题失真、对比度不足或同义状态明显冲突时才调整映射。
 - 代码块的固定深色背景属于内容语义，可保留独立色值。
 - 状态不能只依赖颜色表达；选中、错误和成功同时使用文本、图标或结构变化。
 
 ### 2.2 Surface、材质与深度
 
-- 页面画布、内容卡片、浮动控件和模态层最多形成四级深度，不堆叠多个浅色半透明表面。
-- 固定导航、移动播放器、搜索弹层可使用 `backdrop-filter`；普通正文卡片优先稳定实色或高不透明度表面。
-- 大表面允许更强 blur 与更深阴影，小 chip 和按钮使用轻阴影，避免所有组件都“浮起来”。
+- 保留当前页面画布、内容卡片、浮动控件和模态层形成的深度关系，不统一重设 blur、透明度或阴影。
+- 固定导航、移动播放器、搜索弹层继续使用现有 `backdrop-filter` 与 Surface；普通正文卡片继续沿用当前实现。
+- 新增组件应从已有 Surface 中选择最接近的样式，不引入新的材质层级。
 - 模态任务使用遮罩聚焦；并行、非阻塞面板不使用强遮罩。
 - 浮动 header 与滚动内容相交时，优先考虑轻微渐变或 blur edge，而非处处添加硬分割线。
 - 为以下偏好提供降级：
@@ -81,7 +93,7 @@
 
 ### 2.3 圆角、阴影与间距
 
-- `--radius: 1.25rem` 是大 Surface 基线；内部控件使用 `0.5–0.75rem`，避免每层同样圆。
+- `--radius: 1.25rem` 与现有内部控件圆角是已确认基线；仅要求新组件沿用，不批量重调旧组件。
 - 阴影只表达层级，不表达可点击性；可点击性还需明确 hover、focus 和按压反馈。
 - 页面间距使用 `rem` 与响应式 token，避免字体放大后固定 px 布局失衡。
 - 正文阅读宽度保持约 `42–48rem`；集合页可放宽到约 `80rem`，首页可使用约 `93.75rem` 的复合布局。
@@ -89,9 +101,8 @@
 
 ### 2.4 排版
 
-- 正文优先系统 sans-serif；品牌标题和适合阅读的情绪段落可使用现有 serif，但不能牺牲中文回退稳定性。
-- 大标题使用更紧 leading 与轻微负 tracking；正文保持接近 `line-height: 1.6–1.75`；小字号标签可增加少量 tracking。
-- 建议基线：
+- 保留当前 sans-serif 正文、serif 品牌标题与中文字体组合，不更换字体风格。
+- 标题 tracking、正文 leading 和标签字距以当前页面实际效果为准；下列值只用于新增的大展示标题，不批量套用现有标题：
 
 ```css
 .display-title {
@@ -122,9 +133,9 @@
 ### 3.1 全局导航与 Header
 
 - 桌面保留完整左侧栏，不改为纯图标窄栏；导航顺序围绕首页、博客、归档、碎片和 AI 组织。
-- 搜索是 Header 的主要全局动作，主题切换为次要动作；管理与外部社交入口降低优先级。
+- 保留当前 Header 动作、管理入口和外部社交入口的位置与优先级，不重新编排信息架构。
 - 当前页面必须通过 `aria-current`、色彩和字重共同标识。
-- 高频导航应即时响应，不为每次路由切换播放装饰性位移动画。
+- 保留当前轻量路由淡入；只有监测到 INP、闪烁或 reduced-motion 问题时才调整，不改为更强位移动画。
 - 移动端保留 4–5 个核心入口；“更多”打开抽屉，抽屉关闭后焦点返回触发器。
 
 ### 3.2 按钮与可点击元素
@@ -159,8 +170,8 @@
 
 ### 3.5 卡片、文章、归档与碎片
 
-- 首页仅 Featured 内容拥有更强层级，普通文章使用更轻、可扫描的列表或卡片。
-- 卡片 hover 位移最多 `2px`，并仅在精细指针启用；触屏依赖按压与 focus，不保留粘滞 hover。
+- 保留当前 Featured、普通文章、碎片和翻页卡片的层级与形态，不重新设计卡片结构。
+- 保留当前卡片 hover 位移与图片缩放幅度；仅补充触屏兼容，避免粘滞 hover，不改变桌面观感。
 - 文章正文约 `42–48rem`，代码、图片和 Bilibili 可在正文范围内安全溢出但不得造成页面横向滚动。
 - 归档强调年、月、日的结构关系，不通过改变 padding、宽高等布局属性制造 hover 动效。
 - 碎片图像统一 loading、失败占位与裁切规则；详情必须可深链接、复制链接并保持返回位置可理解。
@@ -264,32 +275,34 @@
 
 ## 5. 当前源码审计
 
-以下为已由源码确认的问题；视觉手感仍需浏览器和真机复核。
+以下为源码确认的优化候选。执行时分为两类：**隐形修复**不得改变正常桌面视觉；**观感调整**默认不执行，必须先做前后截图或交互对照并由站主确认。
 
 | Priority | Location | Before | After | Why | Verification |
 | --- | --- | --- | --- | --- | --- |
-| P0 | `src/app/globals.css:375,384`；ChatComposer、MobilePlayer、AddFragmentModal 等 | 多处 `transition-all` | 逐项声明 `transform 140ms var(--ease-out)`、`color/background-color 180–220ms ease` 等实际属性 | `all` 会意外动画布局或其他非 GPU 属性，难以保持一致 | `rg "transition-all" src` 应归零或仅剩有明确注释的例外 |
-| P0 | `src/app/globals.css:427–538` | 多套手写 cubic-bezier、duration 与 80–480ms stagger | 增加共享 easing/duration token；stagger 改为每项 `30–80ms`，总等待不阻塞交互 | 当前词汇分散且最长延迟让列表显慢 | 检查 token 引用；10% 慢放确认节奏一致 |
-| P0 | `src/components/layout/Sidebar.tsx:66–171`、`RouteTransition.tsx` | 高频导航及 route 内容反复播放入场动画 | 高频与键盘路径即时响应；仅保留能防止突变的短 opacity | 日常操作频率高，重复位移动画降低响应感 | 连续切换 10 次路由，无等待、无内容滑入 |
+| P0 | `src/app/globals.css:375,384`；ChatComposer、MobilePlayer、AddFragmentModal 等 | 多处 `transition-all` | 按各组件当前 computed style 逐项声明属性、时长与曲线，不统一改成另一组数值 | `all` 会意外动画布局或其他非 GPU 属性；修复不应改变当前手感 | `rg "transition-all" src` 应归零；前后 computed style 与录屏一致 |
+| P0 | `src/app/globals.css:427–538` | 多套手写 cubic-bezier 与 duration | 在不改变计算值和当前手感的前提下提取共享 token | 先改善维护性，不能借 token 化重新调速 | 重构前后 computed style 与截图/录屏一致 |
+| Optional | `src/app/globals.css:533–538`、Sidebar/PostCard 等 | 当前使用 80–480ms stagger，形成现有入场性格 | 默认保留；仅在真机确认明显拖慢后，单独实验更短 stagger | 这会直接改变页面气质，不属于隐形优化 | 前后录屏由站主确认后才可合并 |
+| P0 | `RouteTransition.tsx` | 当前 220ms 纯 opacity 路由淡入 | 保留现有效果；只验证 reduced-motion 与性能 | 当前实现已克制且不使用位移，不应为理论规则删除 | 连续路由无卡顿，reduce 下无强制动画 |
+| Optional | `src/components/layout/Sidebar.tsx:66–171` | 侧栏分组带现有 fade-up/fade-left 入场 | 默认保留；只有重挂载频繁或阻塞操作时再缩短 | 这是可见风格的一部分，不应自动移除 | 必须通过前后录屏确认观感 |
 | P0 | PostCard、MemoryCard、Fragments、DesktopPlayer 等 | ungated `hover:-translate-*`、`hover:scale-*`、`group-hover:*` | 变换 hover 放入 `(hover: hover) and (pointer: fine)`；触屏只保留按压/焦点反馈 | 触屏会产生粘滞 hover，且装饰位移不应影响高频浏览 | Chrome touch emulation 与真机点击后无残留 hover |
 | P0 | `MobilePlayer.tsx:111`、`DesktopPlayer.tsx:161` | `transition-[width] duration-200` 跟随播放进度 | 使用 `scaleX()` + `transform-origin:left`，或直接更新进度而不 tween | 持续 width 动画触发布局且造成进度追赶 | Performance 面板无持续 layout；进度紧跟音频 |
 | P0 | `AdminArchiveTimeline.tsx:138–191` | `transition-all` 同时改变点的宽高与标题 padding | 保持行几何稳定，只动画颜色、opacity 或 transform | hover 造成布局重排和文字位移，降低表格扫描稳定性 | 快速扫过多行时无文字横跳与 layout shift |
 | P0 | `globals.css:61–72` | reduced motion 将全局 animation/transition 近乎全部清零 | 移除位置和弹性，保留短 opacity/color/border 状态反馈 | 无障碍模式仍需要理解状态变化 | 模拟 reduce，状态仍清晰且无位移动画 |
-| P1 | `ModelPicker.tsx:66`、`ConversationList.tsx:204`、DesktopPlayer 面板 | 锚定面板统一纯淡入或固定方向入场 | 从触发器方向以 `opacity + scale(0.97)` 进入，`180ms var(--ease-out)`，设置对应 origin | 空间来源不清；Popover 应与触发器建立关系 | 10% 慢放确认缩放原点位于触发器 |
-| P1 | `src/components/ui/dialog.tsx:19,53` | Overlay 与 Content 使用相同通用 fade keyframe | Modal 居中使用 `opacity + scale(0.96)`；退出同路径、更快；保持中心 origin | Modal 是中心任务，纯淡入缺少材质感，但不能从触发器缩放 | 快速开关不闪跳，Escape 后焦点恢复 |
-| P1 | `src/components/ui/Toast.tsx:17–42` | 条件卸载 + `anim-fade-up`，只有进入没有可观察退出 | 使用可中断 transition/存在状态；同一边缘进入退出，进入约 `220ms`、退出约 `160ms` | 动态 Toast 的 keyframe 无法平滑反转，消失突兀 | 连续触发和手动关闭均从当前状态继续 |
-| P1 | Button 与散落图标按钮 | Button primitive 为 `scale(0.97)`，业务按钮混用 `scale(0.95)` 或无 active | 统一常规按压为 `scale(0.97)`、`100–160ms var(--ease-out)`；特殊值需说明 | 一致的按压反馈是产品触感基础 | 对比常用按钮，按压幅度与节奏一致 |
-| P1 | `MainLayout.tsx:163`、后台 EditorMenus/Archive | 公共背景和交互状态混有 `#f1f2f5`、`#101114`、`pink-*` | 映射到 `background/surface/primary/accent/destructive` 语义 token | 后台局部形成第二套视觉语言，明暗主题难统一 | 搜索硬编码品牌色并完成人工对比度检查 |
-| P1 | `globals.css:418–538` 与多个首页/列表组件 | 大量区块首次渲染统一 `fade-up` | 首屏只在低频、能说明层级的组保留短入场；普通内容直接可见 | 所有内容都动会稀释重点并影响感知速度 | 禁用动画与启用动画的 LCP/INP 不出现可感知回退 |
+| Optional | `ModelPicker.tsx:66`、`ConversationList.tsx:204`、DesktopPlayer 面板 | 锚定面板使用当前纯淡入或固定方向入场 | 可实验 origin-aware `opacity + scale(0.97)`，但默认不改 | 新效果可能更“正确”却不符合当前页面气质 | 先制作交互对照，由站主选择 |
+| Optional | `src/components/ui/dialog.tsx:19,53` | Dialog 使用当前纯淡入 | 可实验中心 `opacity + scale(0.96)`，但默认不改 | 纯淡入本身没有功能错误，新增 scale 是观感变化 | 先制作交互对照，由站主选择 |
+| Optional | `src/components/ui/Toast.tsx:17–42` | 条件卸载 + `anim-fade-up`，只有进入没有可观察退出 | 若实际观察到消失突兀，再实验保持现有造型与入场感的同边缘退出 | 增加退出会改变现有节奏，不能只凭代码判定更好 | 先制作连续触发与手动关闭对照，由站主选择 |
+| Optional | Button 与散落图标按钮 | Button primitive 为 `scale(0.97)`，部分业务按钮为 `scale(0.95)` 或无 active | 默认保留当前差异；只有同类按钮出现明显手感冲突时才局部对齐 | 不同尺寸和用途可以拥有不同按压幅度，机械统一可能变差 | 同场景实机对比后再决定，不全局替换 |
+| P1 | `MainLayout.tsx:163`、后台 EditorMenus/Archive | 局部存在硬编码背景和 `pink-*` | 仅在保持当前可见颜色不变时映射为语义 token；若颜色会变化则不做 | 改善主题维护性，但现有粉色强调不是待删除问题 | 前后取色值与截图一致，暗色主题无回归 |
+| Optional | `globals.css:418–538` 与多个首页/列表组件 | 多个区块使用当前 `fade-up` 入场 | 默认保留；只针对被性能数据或真机体验证明有问题的组件调整 | 入场动效是当前页面整体观感的一部分 | 单组件实验，不允许全局批量删除 |
 | P1 | 全局 Surface、搜索、移动 chrome | 透明材质有 reduced-motion，但无 reduced-transparency/contrast 方案 | 增加透明度与对比度媒体查询的设计与实现规范 | blur 在部分用户和复杂背景上会降低可读性 | 模拟对应媒体特性，文本与边界保持清晰 |
 
 ### 5.1 审计结论
 
-当前 UI 已具备明确品牌方向、语义颜色、状态组件和移动安全区基础，不需要重做视觉。最高杠杆是先统一动效 token 并清除 `transition-all`、布局属性动画与高频重复入场；在这些基础问题完成前，不应新增复杂 spring 或装饰性动效。
+当前 UI 的品牌、色调、结构、组件形态和动效性格均已确认，不需要重做，也不需要向其他设计体系靠拢。最高杠杆是完成不改变外观的维护性、性能、触屏和无障碍修复；凡是会改变当前观感的动效、颜色、材质或布局调整都属于可选实验，而不是默认路线。
 
-## 6. 值得增加的动效机会
+## 6. 可选动效实验（默认不实施）
 
-所有机会均通过频率、目的、速度和功能性筛选，最多实施以下六项。
+以下机会仅供未来单独试验，不属于当前优化任务。每项必须提供现状/实验版对照，由站主确认后才能实施。
 
 | # | Location | Today | Purpose | Frequency | Suggested motion |
 | --- | --- | --- | --- | --- | --- |
@@ -312,11 +325,11 @@
 
 ### P0 — 先修正确性与一致性
 
-1. 在全局样式建立共享 easing/duration token，并为 Tailwind 任意值提供统一引用方式。
-2. 清理 `transition-all`，按组件明确 transform、opacity、color、background、border 和 shadow。
-3. 把所有 hover transform 放入精细指针媒体查询；触屏保留 focus/active。
-4. 将 reduced-motion 从“清零一切”改为“移除运动、保留短状态反馈”。
-5. 把播放器进度与后台时间线从 width/padding/height 动画迁移到 transform/opacity 或即时状态。
+1. 在保持当前 computed timing 不变的前提下建立共享 easing/duration token。
+2. 清理 `transition-all`，但保持正常桌面状态下的颜色、位移、阴影、时长和曲线不变。
+3. 为现有 hover transform 补充精细指针限制；桌面 hover 视觉不变。
+4. 修正 reduced-motion，使其移除运动同时保留必要状态反馈；默认模式视觉不变。
+5. 优化播放器进度与后台时间线的布局性能，结果外观和交互语义不变。
 
 边界：不改变 DOM 信息架构、不引入 Motion 依赖、不修改业务状态和 API。
 
@@ -326,14 +339,14 @@
 - DevTools Performance 检查播放器进度和后台 hover 无持续 layout。
 - 模拟 touch、reduced motion，确认无粘滞 hover且状态仍可理解。
 
-### P1 — 收敛组件 craft
+### P1 — 在现有风格内补齐细节
 
-1. 统一 Button 与图标按钮按压反馈。
-2. 区分居中 Modal 与锚定 Popover 的 transform origin 和进入路径。
-3. 为 Toast 增加可中断、同路径进入退出。
-4. 收敛后台硬编码粉色/背景色到语义 token。
+1. 保留 Button 与图标按钮当前按压反馈；只修复同一组件在相同状态下的不一致或缺失 focus。
+2. 保留 Dialog、Popover 当前视觉；只修复焦点、快速开关或退出状态等实际问题。
+3. 先验证 Toast 是否存在真实的退出/连续触发问题；只有问题成立且实验版获确认后才调整。
+4. 在取色值不变的前提下整理后台硬编码颜色；保留当前粉色强调。
 5. 增加 reduced-transparency 与 prefers-contrast 设计降级。
-6. 重新评估首屏和列表动画，仅保留低频且有目的的 stagger。
+6. 保留首屏和列表动画；只记录真实性能问题，不做全局删减。
 
 边界：不扩张组件库，不为纯视觉优化改数据库或数据 seam。
 
@@ -353,12 +366,13 @@
 - 默认临界阻尼、无 bounce；只有 flick 等带动量操作允许轻微 `bounce: 0.1–0.2`。
 - 多指保护、取消手势、旋转和 safe area 全部纳入真机验证。
 
-边界：P2 不因“更像 Apple”自动成立；没有清晰用户收益就不实现。
+边界：P2 不因“更像 Apple”自动成立；没有清晰用户收益和站主对实验版的明确选择就不实现。
 
 ## 8. 验收标准
 
 ### 8.1 视觉与响应式
 
+- 每项隐形优化必须通过修改前后截图对比；除目标 bug 外，页面结构、色调、间距、卡片形态和总体动效观感保持一致。
 - 在 `320 / 375 / 768 / 1024 / 1440px` 下无横向滚动、遮挡或断点冲突。
 - 亮色/暗色下正文、muted、边框、primary、accent 和 destructive 具备足够对比度。
 - 无文章、无碎片、长标题、无封面、音乐失败、AI 失败时布局仍完整。
