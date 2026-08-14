@@ -20,20 +20,13 @@ export default async function ArchivePage({
 
   return (
     <PageCanvas>
-      <section aria-labelledby="archive-page-title">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("eyebrow")}</p>
-        <div className="mt-3 border-b border-border pb-7">
-          <h1 id="archive-page-title" className="font-serif text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{t("title")}</h1>
-          <p className="mt-2 text-sm leading-6 text-muted">{t("subtitle")}</p>
-        </div>
-        <div className="mt-8">
-          {archive.length === 0 ? (
-            <EmptyState title={t("empty")} description={t("emptyDescription")} />
-          ) : (
-            <ArchiveView archive={archive} postsLabel={t("posts")} />
-          )}
-        </div>
-      </section>
+      <div className="space-y-8">
+        {archive.length === 0 ? (
+          <EmptyState title={t("empty")} description={t("emptyDescription")} />
+        ) : (
+          <ArchiveView archive={archive} postsLabel={t("posts")} />
+        )}
+      </div>
     </PageCanvas>
   );
 }

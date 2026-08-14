@@ -43,10 +43,7 @@ export function PublicHeader({
         </button>
 
         <div className="min-w-0 flex-1 md:min-w-44 md:flex-none">
-          <p className="truncate text-base font-semibold tracking-tight md:text-xl">{pageTitle}</p>
-          <p className="hidden truncate text-xs text-muted md:block">
-            {isHome ? header("homeSubtitle", { siteName: siteConfig.name }) : header("sectionSubtitle")}
-          </p>
+          <p className="truncate font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl md:text-4xl">{pageTitle}</p>
         </div>
 
         <button

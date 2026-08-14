@@ -67,10 +67,6 @@ export async function HomePageContent({
           overlay={false}
         >
           <div className="relative z-10">
-            <p className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("hero.eyebrow")}
-            </p>
             <h1 className="max-w-2xl font-serif text-[2.65rem] font-semibold leading-[1.08] tracking-[-0.035em] text-foreground sm:text-5xl lg:text-[3.35rem]">
               {t("hero.title")}
               <br />
@@ -85,25 +81,6 @@ export async function HomePageContent({
               <br />
               {t("hero.line4")}
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              {featuredPost && (
-                <Link
-                  href={`/blog/${encodeURIComponent(featuredPost.slug)}`}
-                  className="group fine-pointer-hover inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-[transform,background-color] duration-200 hover:brightness-95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none motion-reduce:active:scale-100"
-                >
-                  <PenLine className="h-4 w-4" />
-                  {t("actions.readLatest")}
-                  <ArrowRight className="fine-pointer-group-hover h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              )}
-              <Link
-                href="/fragments"
-                className="fine-pointer-hover inline-flex min-h-11 items-center gap-2 rounded-xl border border-accent/40 bg-background/55 px-5 py-2.5 text-sm font-medium text-accent transition-[transform,background-color] duration-200 hover:bg-accent/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none motion-reduce:active:scale-100"
-              >
-                <Sparkles className="h-4 w-4" />
-                {t("actions.browseFragments")}
-              </Link>
-            </div>
           </div>
           <FlowIllustration />
         </Surface>
@@ -152,7 +129,6 @@ export async function HomePageContent({
               <Bot className="h-4 w-4 text-primary" />
               {t("ai.title")}
             </div>
-            <span className="rounded-full bg-primary-soft px-2 py-1 text-[9px] font-semibold tracking-wider text-primary">{t("ai.availability")}</span>
           </div>
           <p className="mt-4 text-sm leading-6 text-muted">
             {t("ai.description")}

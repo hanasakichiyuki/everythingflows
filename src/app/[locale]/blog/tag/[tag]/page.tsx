@@ -18,10 +18,8 @@ export default async function TagPage({
 
   return (
     <PageCanvas>
-      <section aria-labelledby="tag-page-title">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("tags")}</p>
-        <h1 id="tag-page-title" className="mt-3 font-serif text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">#{decoded}</h1>
-        <p className="mb-9 mt-3 text-sm leading-7 text-muted sm:text-[15px]">{t("postCount", { count: posts.length })}</p>
+      <div className="space-y-8">
+        <p className="text-sm text-muted">{t("postCount", { count: posts.length })}</p>
         {posts.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2">
             {posts.map((post, index) => (
@@ -31,7 +29,7 @@ export default async function TagPage({
         ) : (
           <EmptyState title={t("tagEmptyTitle")} description={t("tagEmptyDescription")} />
         )}
-      </section>
+      </div>
     </PageCanvas>
   );
 }

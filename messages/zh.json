@@ -26,7 +26,6 @@
     "empty": "还没有文章，去写一篇吧。",
     "fragmentsEmpty": "还没有留下碎片。",
     "hero": {
-      "eyebrow": "个人内容空间",
       "title": "Everything",
       "titleAccent": "Flows",
       "line1": "或许鸟儿",
@@ -39,7 +38,7 @@
       "browseFragments": "浏览全部碎片"
     },
     "featured": {
-      "label": "精选文章",
+      "label": "文章",
       "empty": "新的文章会在这里出现。",
       "unavailable": "文章暂时无法加载，请稍后刷新页面重试。",
       "continueReading": "继续阅读"
@@ -50,7 +49,6 @@
     "asideLabel": "首页状态与快捷入口",
     "ai": {
       "title": "顾砚雪",
-      "availability": "匿名可用",
       "description": "和 AI 聊聊正在思考的事，整理灵感，或者从一个问题开始新的探索。",
       "start": "开始一场对话"
     },
@@ -141,10 +139,9 @@
     "skipToContent": "跳到主要内容",
     "openNavigation": "打开导航菜单",
     "closeNavigation": "关闭导航菜单",
-    "footer": "© {year} {siteName}. 保留所有权利。"
+    "footer": "© {year} Everythingflows. All rights reserved."
   },
   "archive": {
-    "eyebrow": "时间线",
     "title": "归档",
     "posts": "篇文章",
     "subtitle": "按年份与月份回看每一次记录。",
@@ -152,7 +149,6 @@
     "emptyDescription": "新的文章发布后，会按时间沉淀在这里。"
   },
   "search": {
-    "eyebrow": "内容检索",
     "title": "搜索",
     "placeholder": "搜索标题、标签、摘要…",
     "pageSubtitle": "从已发布的文章中快速定位主题、标题和标签。",
@@ -167,7 +163,6 @@
     "article": "文章"
   },
   "fragments": {
-    "eyebrow": "即时记录",
     "title": "碎片",
     "subtitle": "收集不必成为文章的念头、片刻与画面；每一条都可以被单独保存和分享。",
     "emptyTitle": "还没有留下碎片",
@@ -209,7 +204,6 @@
     "createError": "保存失败，请稍后重试。"
   },
   "blog": {
-    "eyebrow": "阅读与记录",
     "title": "文章",
     "subtitle": "草木蔓发，春山可望。",
     "postCount": "共 {count} 篇",

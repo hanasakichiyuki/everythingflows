@@ -18,13 +18,6 @@ function getAboutContent() {
 
 世界万物也平安无事
 
-In my beginning is my end
-
-In my end is my beginning
-
-在互联网的幽暗角落，烧着属于我的火。
-
-
 `;
 }
 

@@ -40,11 +40,8 @@ export function SearchBox({ items }: { items: SearchItem[] }) {
   };
 
   return (
-    <section aria-labelledby="search-page-title">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("eyebrow")}</p>
-      <h1 id="search-page-title" className="mt-3 font-serif text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{t("title")}</h1>
-      <p className="mt-2 text-sm text-muted">{t("pageSubtitle")}</p>
-      <div className="relative mb-7 mt-7">
+    <section>
+      <div className="relative mb-7 mt-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input
           type="search"
