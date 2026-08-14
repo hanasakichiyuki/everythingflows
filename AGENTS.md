@@ -41,3 +41,23 @@ Netease music player, Live2D engine/resources (retain for the future desktop pro
 - Modify `.env*` files or commit secrets
 - Run automatic DB migrations
 - Delete or bypass `src/lib/api/` abstraction layer
+
+## Cursor Cloud specific instructions
+
+Standard commands live in `## Commands` above and in `README.md`. Notes below cover only non-obvious setup/run caveats for this VM.
+
+### The app needs Supabase to run
+Every page that reads posts (home, blog, archive, admin) throws without Supabase env vars. Dev here uses a **local Supabase stack** (Supabase CLI + Docker), configured via a gitignored `.env.local` (`NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321`, plus the CLI's default anon/service-role demo keys). If `.env.local` is missing, recreate it from `.env.example` pointing at the local stack.
+
+### Bootstrapping local Supabase (only if not already running)
+`docker` + the `supabase` CLI are installed at the system level. Bring the stack up with:
+- Start the docker daemon if `docker ps` fails: `sudo dockerd` (run in a background tmux session), then `sudo chmod 666 /var/run/docker.sock`.
+- `supabase start` (from repo root; config is `supabase/config.toml`).
+- **Non-obvious gotcha — schema + grants:** `supabase start` only auto-applies files in `supabase/migrations/` (just `003_create_fragments.sql`). The core tables live in `supabase/schema.sql`, `supabase/storage.sql`, `supabase/schema-chat.sql` and must be applied manually: `docker exec -i supabase_db_workspace psql -U postgres -d postgres < supabase/<file>.sql`. After that you MUST grant table privileges to the API roles (hosted Supabase does this automatically, local does not — otherwise every read returns `42501 permission denied`): `grant select,insert,update,delete on all tables in schema public to anon, authenticated, service_role;` (plus `grant usage on schema public ...`).
+- Create an admin login via the Auth admin API (service-role key): `POST http://127.0.0.1:54321/auth/v1/admin/users` with `{"email":...,"password":...,"email_confirm":true}`. Admin credentials used during setup: `admin@example.com` / `admin123456`. Then log in at `/login` and write posts at `/admin`.
+
+### Dev/build gotcha
+Do NOT run `npm run build` while `npm run dev` is running — both write to `.next` (Turbopack) and the dev server starts returning "Internal Server Error". If the dev server shows that error, stop it, `rm -rf .next`, and restart `npm run dev`.
+
+### AI chat (`/chat`)
+`/chat` pages load without AI keys, but sending a message needs a configured provider from `ai-models.json` (its `apiKeyEnv` set in `.env.local`, e.g. `GOOGLE_GENERATIVE_AI_API_KEY`). No key was configured during setup, so chat responses are not exercised locally.
