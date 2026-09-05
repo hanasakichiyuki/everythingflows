@@ -106,8 +106,8 @@ export function useMusicPlayer(containerRef: RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     if (!music.enabled) return;
     const apiMap: Record<string, string> = {
-      netease: "https://api.i-meto.com/meting/api?server=netease&type=playlist&id=",
-      tencent: "https://api.i-meto.com/meting/api?server=tencent&type=playlist&id=",
+      netease: "https://api.injahow.cn/meting/?server=netease&type=playlist&id=",
+      tencent: "https://api.injahow.cn/meting/?server=tencent&type=playlist&id=",
     };
     const apiUrl = apiMap[music.server] || apiMap.netease;
     const controller = new AbortController();
