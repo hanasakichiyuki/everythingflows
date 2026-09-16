@@ -4,11 +4,33 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import type { ContentFormat } from "@/types";
-import type { TiptapDocument } from "@/lib/editor/types";
-import { extractTiptapImageUrls } from "@/lib/editor/serialization";
+import {
+  extractImageUrls,
+  extractPostImageUrls,
+  findUnusedPostImageUrls,
+  type StoredPostContent,
+} from "@/lib/post-image-content";
+import {
+  getPostImageKey,
+  isR2PostImageUrl,
+  MediaConfigurationError,
+  normalizePublicBaseUrl,
+  R2_POST_IMAGE_PREFIX,
+} from "@/lib/r2-post-image-url";
 
-const R2_POST_IMAGE_PREFIX = "posts/";
+/**
+ * 本模块只保留真正需要 AWS SDK 的 R2 操作（上传／删除）。
+ * 纯 URL 判定已迁到 `lib/r2-post-image-url.ts`，纯内容解析已迁到
+ * `lib/post-image-content.ts`；这里把它们同名转发一次，调用方无需改动，
+ * 同时避免公开文章页被迫把 S3 客户端拉进服务端渲染的依赖图。
+ */
+export { isR2PostImageUrl, MediaConfigurationError };
+export {
+  extractImageUrls,
+  extractPostImageUrls,
+  findUnusedPostImageUrls,
+  type StoredPostContent,
+};
 
 const CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -24,33 +46,6 @@ type R2MediaConfig = {
   bucket: string;
   publicBaseUrl: URL;
 };
-
-export class MediaConfigurationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "MediaConfigurationError";
-  }
-}
-
-function normalizePublicBaseUrl(value: string): URL {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new MediaConfigurationError("R2_PUBLIC_BASE_URL must be a valid URL");
-  }
-
-  if (url.protocol !== "https:" || url.username || url.password) {
-    throw new MediaConfigurationError(
-      "R2_PUBLIC_BASE_URL must be an HTTPS URL without credentials"
-    );
-  }
-
-  url.search = "";
-  url.hash = "";
-  if (!url.pathname.endsWith("/")) url.pathname += "/";
-  return url;
-}
 
 function getR2Config(): R2MediaConfig {
   const accountId = process.env.R2_ACCOUNT_ID?.trim();
@@ -72,17 +67,6 @@ function getR2Config(): R2MediaConfig {
     bucket,
     publicBaseUrl: normalizePublicBaseUrl(publicBaseUrl),
   };
-}
-
-function getConfiguredPublicBaseUrl(): URL | null {
-  const value = process.env.R2_PUBLIC_BASE_URL?.trim();
-  if (!value) return null;
-
-  try {
-    return normalizePublicBaseUrl(value);
-  } catch {
-    return null;
-  }
 }
 
 function createR2Client(config: R2MediaConfig): S3Client {
@@ -108,31 +92,6 @@ function createPostImageKey(contentType: string): string {
   return `${R2_POST_IMAGE_PREFIX}${Date.now()}-${randomUUID()}.${getImageExtension(contentType)}`;
 }
 
-function getPostImageKey(url: string): string | null {
-  const publicBaseUrl = getConfiguredPublicBaseUrl();
-  if (!publicBaseUrl) return null;
-
-  try {
-    const source = new URL(url);
-    if (
-      source.protocol !== "https:" ||
-      source.origin !== publicBaseUrl.origin ||
-      !source.pathname.startsWith(publicBaseUrl.pathname)
-    ) {
-      return null;
-    }
-
-    const key = source.pathname.slice(publicBaseUrl.pathname.length);
-    return key.startsWith(R2_POST_IMAGE_PREFIX) ? key : null;
-  } catch {
-    return null;
-  }
-}
-
-export function isR2PostImageUrl(url: string): boolean {
-  return getPostImageKey(url) !== null;
-}
-
 export async function uploadPostImage(
   file: Buffer,
   _filename: string,
@@ -153,32 +112,6 @@ export async function uploadPostImage(
   );
 
   return new URL(key, config.publicBaseUrl).toString();
-}
-
-export function extractImageUrls(html: string): string[] {
-  const regex = /<img[^>]+src=["']([^"']+)["']/gi;
-  const urls: string[] = [];
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(html)) !== null) {
-    urls.push(match[1]);
-  }
-  return urls;
-}
-
-export type StoredPostContent = {
-  body: string;
-  contentJson?: TiptapDocument | null;
-  contentFormat: ContentFormat;
-};
-
-export function extractPostImageUrls(content: StoredPostContent): string[] {
-  if (content.contentFormat === "tiptap" && content.contentJson) {
-    return extractTiptapImageUrls(content.contentJson);
-  }
-  if (content.contentFormat === "html") {
-    return extractImageUrls(content.body);
-  }
-  return [];
 }
 
 export async function deletePostImage(url: string): Promise<void> {
@@ -215,13 +148,4 @@ export async function cleanupUnusedPostImages(
   if (toDelete.length > 0) {
     await deletePostImages(toDelete);
   }
-}
-
-export function findUnusedPostImageUrls(
-  oldContent: StoredPostContent,
-  newContent: StoredPostContent
-): string[] {
-  const oldUrls = extractPostImageUrls(oldContent);
-  const newUrls = new Set(extractPostImageUrls(newContent));
-  return oldUrls.filter((url) => !newUrls.has(url));
 }

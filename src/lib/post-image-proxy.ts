@@ -1,9 +1,13 @@
-import { isR2PostImageUrl } from "@/lib/api/media";
+import { isR2PostImageUrl } from "@/lib/r2-post-image-url";
 import { getPostImageProxyUrl } from "@/lib/post-image-url";
 
 /**
  * Only proxy public images uploaded by this site. Keeping this allowlist here
  * prevents the image endpoint from becoming an arbitrary remote-fetch proxy.
+ *
+ * Imports the zero-dependency URL helper rather than `lib/api/media` on purpose:
+ * this module is pulled into the public article render path (`HtmlContent`), and
+ * `lib/api/media` would drag the whole AWS S3 client into that server bundle.
  */
 export function isManagedPostImageUrl(value: string): boolean {
   return isR2PostImageUrl(value);

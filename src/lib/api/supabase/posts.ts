@@ -3,12 +3,7 @@ import type { ContentFormat, Post, PostMeta } from "@/types";
 import type { TiptapDocument } from "@/lib/editor/types";
 import { extractTiptapText } from "@/lib/editor/serialization";
 import { getSupabaseAdmin, getSupabasePublic, type PostRow } from "./client";
-import {
-  cleanupUnusedPostImages,
-  deletePostImages,
-  extractPostImageUrls,
-  type StoredPostContent,
-} from "../media";
+import { extractPostImageUrls, type StoredPostContent } from "@/lib/post-image-content";
 
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -318,6 +313,8 @@ export async function deletePost(id: string): Promise<void> {
       )
     );
     if (urls.length > 0) {
+      // 删除 R2 对象需要 AWS SDK，按需加载：公开读路径不应静态引入它。
+      const { deletePostImages } = await import("@/lib/api/media");
       deletePostImages(urls).catch((e) =>
         console.warn("Image cleanup failed on post delete:", e)
       );
@@ -348,6 +345,7 @@ export async function deletePosts(ids: string[]): Promise<void> {
       allUrls.push(...urls);
     }
     if (allUrls.length > 0) {
+      const { deletePostImages } = await import("@/lib/api/media");
       deletePostImages(allUrls).catch((e) =>
         console.warn("Image cleanup failed on posts delete:", e)
       );
@@ -419,6 +417,7 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     if (error) throw error;
 
     if (existingContent) {
+      const { cleanupUnusedPostImages } = await import("@/lib/api/media");
       cleanupUnusedPostImages(existingContent, {
         body: row.body,
         contentJson: row.content_json,
