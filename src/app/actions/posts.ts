@@ -1,10 +1,9 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { publishPost, deletePost, deletePosts } from "@/lib/api/posts";
-import { SEARCH_INDEX_CACHE_TAG } from "@/lib/cache-tags";
+import { revalidatePublicPostRoutes } from "@/lib/revalidate-public-posts";
 import { createClient } from "@/lib/supabase/server-client";
-import type { ContentFormat } from "@/types";
 import type { TiptapDocument } from "@/lib/editor/types";
 import {
   isTiptapDocumentEmpty,
@@ -16,9 +15,7 @@ export type PublishPostPayload = {
   description: string;
   tags: string[];
   category?: string;
-  body: string;
   contentJson?: TiptapDocument | null;
-  contentFormat: ContentFormat;
   locale: string;
   published?: boolean;
   slug?: string;
@@ -29,21 +26,7 @@ type ValidatedContent =
   | { ok: true; contentJson: TiptapDocument | null }
   | { ok: false; error: string };
 
-function revalidatePublicPostRoutes() {
-  revalidatePath("/", "layout");
-  revalidatePath("/blog");
-  revalidatePath("/blog/[slug]", "page");
-  revalidatePath("/archive");
-  revalidatePath("/search");
-  revalidatePath("/blog/tag/[tag]", "page");
-  revalidatePath("/sitemap.xml");
-  updateTag(SEARCH_INDEX_CACHE_TAG);
-}
-
 function validatePostPayload(payload: PublishPostPayload): ValidatedContent {
-  if (!["html", "mdx", "tiptap"].includes(payload.contentFormat)) {
-    return { ok: false, error: "文章内容格式无效" };
-  }
   if (!payload.title.trim() || payload.title.length > 200) {
     return { ok: false, error: "标题不能为空且不能超过 200 个字符" };
   }
@@ -60,19 +43,13 @@ function validatePostPayload(payload: PublishPostPayload): ValidatedContent {
     return { ok: false, error: "标签最多 20 个，且每个不能超过 50 个字符" };
   }
 
-  if (payload.contentFormat === "tiptap") {
-    const result = validateTiptapDocument(payload.contentJson);
-    if (!result.success) return { ok: false, error: result.error };
-    if (isTiptapDocumentEmpty(result.data)) {
-      return { ok: false, error: "文章内容不能为空" };
-    }
-    return { ok: true, contentJson: result.data };
+  // 正文只有结构化内容一种格式：白名单校验 + 非空校验，非法链接协议会在这里被拒绝。
+  const result = validateTiptapDocument(payload.contentJson);
+  if (!result.success) return { ok: false, error: result.error };
+  if (isTiptapDocumentEmpty(result.data)) {
+    return { ok: false, error: "文章内容不能为空" };
   }
-
-  if (!payload.body.trim() || payload.body.length > 1_000_000) {
-    return { ok: false, error: "文章内容不能为空且不能超过 100 万个字符" };
-  }
-  return { ok: true, contentJson: null };
+  return { ok: true, contentJson: result.data };
 }
 
 export async function saveDraftAction(payload: PublishPostPayload) {
@@ -129,9 +106,7 @@ export async function publishPostAction(payload: PublishPostPayload) {
       description: payload.description,
       tags: payload.tags,
       category: payload.category,
-      body: payload.body,
       contentJson: validated.contentJson,
-      contentFormat: payload.contentFormat,
       locale: payload.locale,
       published: payload.published,
       slug: payload.slug,

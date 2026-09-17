@@ -1,4 +1,4 @@
-import { generateHTML, generateJSON } from "@tiptap/html";
+import { generateJSON } from "@tiptap/html";
 import type { JSONContent } from "@tiptap/core";
 import { serverEditorExtensions } from "./extensions";
 import {
@@ -16,10 +16,6 @@ const BLOCK_NODE_TYPES = new Set([
   "taskItem",
   "callout",
 ]);
-
-export function tiptapDocumentToHtml(doc: TiptapDocument): string {
-  return generateHTML(doc, serverEditorExtensions);
-}
 
 export function htmlToTiptapDocument(html: string): TiptapDocument {
   if (!html.trim()) return structuredClone(EMPTY_TIPTAP_DOCUMENT);

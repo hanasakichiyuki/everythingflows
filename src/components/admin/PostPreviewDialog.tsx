@@ -2,14 +2,9 @@
 
 import { useMemo } from "react";
 import { generateHTML } from "@tiptap/core";
-import DOMPurify from "isomorphic-dompurify";
 import { Eye, Loader2, Send } from "lucide-react";
 import { createEditorExtensions } from "@/lib/editor/extensions";
-import {
-  isTiptapDocumentEmpty,
-  type TiptapDocument,
-} from "@/lib/editor/types";
-import type { ContentFormat } from "@/types";
+import { isTiptapDocumentEmpty, type TiptapDocument } from "@/lib/editor/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,9 +20,7 @@ type PostPreviewDialogProps = {
   description: string;
   tags: string[];
   category: string;
-  contentFormat: ContentFormat;
   contentJson: TiptapDocument;
-  legacyBody: string;
   publishing: boolean;
   isEditMode: boolean;
   onPublish: () => void;
@@ -35,38 +28,15 @@ type PostPreviewDialogProps = {
 
 const previewExtensions = createEditorExtensions();
 
-function getPreviewHtml(
-  contentFormat: ContentFormat,
-  contentJson: TiptapDocument,
-  legacyBody: string
-) {
-  if (contentFormat === "mdx") return "";
-
-  const source =
-    contentFormat === "tiptap" && !isTiptapDocumentEmpty(contentJson)
-      ? generateHTML(contentJson, previewExtensions)
-      : legacyBody;
-
-  return DOMPurify.sanitize(source, {
-    ADD_TAGS: ["aside", "iframe"],
-    ADD_ATTR: [
-      "target",
-      "rel",
-      "allow",
-      "allowfullscreen",
-      "sandbox",
-      "loading",
-      "referrerpolicy",
-      "data-bilibili-embed",
-      "data-bvid",
-      "data-aid",
-      "data-cid",
-      "data-page",
-      "data-autoplay",
-      "data-callout-type",
-      "decoding",
-    ],
-  });
+/**
+ * 预览不需要再走净化：内容来自本机编辑器实例，节点与标记已被 TipTap schema
+ * 约束（粘贴进来的 HTML 也先经 schema 解析，未知节点会被丢弃），`generateHTML`
+ * 只输出白名单内的元素且会转义文本。真正对外发布时服务端还会再跑一次
+ * `validateTiptapDocument`，非法链接协议在那一层被拒绝。
+ */
+function getPreviewHtml(contentJson: TiptapDocument) {
+  if (isTiptapDocumentEmpty(contentJson)) return "";
+  return generateHTML(contentJson, previewExtensions);
 }
 
 export function PostPreviewDialog({
@@ -76,19 +46,15 @@ export function PostPreviewDialog({
   description,
   tags,
   category,
-  contentFormat,
   contentJson,
-  legacyBody,
   publishing,
   isEditMode,
   onPublish,
 }: PostPreviewDialogProps) {
   const previewHtml = useMemo(
     () =>
-      typeof window === "undefined"
-        ? ""
-        : getPreviewHtml(contentFormat, contentJson, legacyBody),
-    [contentFormat, contentJson, legacyBody]
+      typeof window === "undefined" ? "" : getPreviewHtml(contentJson),
+    [contentJson]
   );
   const publishLabel = isEditMode ? "确认更新" : "确认发布";
 
@@ -151,22 +117,11 @@ export function PostPreviewDialog({
               </div>
             )}
             <div className="mt-8 border-t border-border/60 pt-7">
-              {contentFormat === "mdx" ? (
-                <div>
-                  <p className="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-                    旧版 MDX 内容会在发布后由服务端渲染；这里展示原始内容，避免预览与正式页面不一致。
-                  </p>
-                  <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-foreground/[0.045] p-4 font-mono text-xs leading-6 text-foreground/80">
-                    {legacyBody}
-                  </pre>
-                </div>
-              ) : (
-                <div
-                  className="prose-blog"
-                  data-rich-content
-                  dangerouslySetInnerHTML={{ __html: previewHtml }}
-                />
-              )}
+              <div
+                className="prose-blog"
+                data-rich-content
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
             </div>
           </article>
         </div>

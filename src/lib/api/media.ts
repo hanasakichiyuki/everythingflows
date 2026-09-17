@@ -5,7 +5,6 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import {
-  extractImageUrls,
   extractPostImageUrls,
   findUnusedPostImageUrls,
   type StoredPostContent,
@@ -26,7 +25,6 @@ import {
  */
 export { isR2PostImageUrl, MediaConfigurationError };
 export {
-  extractImageUrls,
   extractPostImageUrls,
   findUnusedPostImageUrls,
   type StoredPostContent,

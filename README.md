@@ -10,7 +10,7 @@
 |------|------|
 | 写文章 | `/admin` 富文本 → 发布到 **Supabase** |
 | 标签 / 归档 / 搜索 | 从 Supabase 查询 |
-| B 站视频 | 旧 MDX 文章仍支持 `<Bilibili />`；新文章可嵌入 iframe |
+| B 站视频 | 编辑器内直接插入 B 站卡片，正文以结构化节点渲染 |
 | 评论 | Giscus（`site.config.json`） |
 | 暗色模式 | next-themes |
 | 网易云音乐 | MetingJS + APlayer（`site.config.json`） |

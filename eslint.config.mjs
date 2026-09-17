@@ -4,8 +4,9 @@ import { globalIgnores } from "eslint/config";
 const eslintConfig = [
   globalIgnores([
     "public/libs/APlayer.min.js",
-    ".next/**",
-    ".next-e2e/**",
+    // 所有 Next 构建产物目录：`.next` 以及各种验证用 distDir（`NEXT_DIST_DIR` 可指向任意
+    // `.next-*` 目录）。用通配符是为了避免新增验证目录时 ESLint 误扫打包产物。
+    ".next*/**",
   ]),
   ...nextConfig,
   {

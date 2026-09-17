@@ -5,6 +5,7 @@
 - `pnpm run build` — production build (also verifies TS + lint)
 - `pnpm run lint` — ESLint (flat config: `eslint.config.mjs` 扩展 `eslint-config-next` + 自定义规则)
 - `pnpm run test` — Vitest unit tests
+- **需要 Node ≥ 22.13** — `packageManager` 固定 `pnpm@11.5.3`，该版本依赖内置 `node:sqlite`；在 Node 20 上会直接崩溃（`ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: node:sqlite`）。`engines.node` 已声明该下限，Vercel 会据此选版本；本地若默认 Node 过旧，先 `fnm use 24`（本机 fnm 默认已是 24）或把 Node 22+ 的目录提到 PATH 最前面。
 
 ## Architecture
 - Next.js 16 App Router, React 19, TS 5, Tailwind CSS
@@ -13,18 +14,18 @@
 - **Supabase clients**: `server-client.ts` (SSR session, anon key, reads cookies), `browser-client.ts` (client login), `middleware.ts` (session refresh). In `lib/api/supabase/client.ts`: `getSupabaseAdmin()` uses `SUPABASE_SERVICE_ROLE_KEY` (writes + draft reads, bypasses RLS); `getSupabasePublic()` uses anon key (public reads, subject to RLS `published=true`, no cookies → ISR-safe).
 - **Auth**: Supabase email/password. Admin Server Actions in `src/app/actions/posts.ts` and `src/app/actions/chat.ts` check session via `supabase.auth.getUser()`. `ADMIN_SECRET` / `verifyAdminSecret` in `lib/auth/admin.ts` is vestigial and currently unused.
 - **Middleware order**: Supabase session refresh → protect `/admin` (redirect to /login) → next-intl routing. `/chat` is deliberately open to anonymous users (server-side enforces free-model-only + rate limit).
-- **Post editor**: Novel supplies the UI primitives; TipTap 2 extensions and JSON schema live in `src/lib/editor/`. New posts store canonical TipTap JSON and render HTML on demand.
+- **Post editor**: Novel supplies the UI primitives; TipTap 2 extensions and JSON schema live in `src/lib/editor/`. TipTap JSON is the only canonical content format; `src/components/blog/TiptapContent.tsx` maps it straight into React elements on the server (no HTML string, no sanitizer, no browser DOM emulation in the render path).
 
 ## Data provider
 - Backend is Supabase (the only implementation). `lib/api/provider.ts` is a vestigial seam: `getDataProvider()` returns `"supabase"`. The legacy filesystem/MDX provider was removed (2026-06-12).
 - Public reads go through anon key + RLS (`getSupabasePublic`); writes/draft reads use service role (`getSupabaseAdmin`).
 
 ## Supabase
-- Table `posts` (slug unique, legacy body, content_json, content_format `html`|`mdx`|`tiptap`, tags[], locale, published)
+- Table `posts` (slug unique, `content_json` is the canonical body, `content_format` is always `tiptap`, legacy `body` column disabled, tags[], locale, published)
 - Table `fragments` (memory wall entries)
 - Table `chat_conversations` (user_id, title, model_id, system_prompt) + `chat_messages` (conversation_id, role, content, model_id) — see `schema-chat.sql`
 - Supabase does not store media objects. Article and fragment images are R2-only under the configured `R2_PUBLIC_BASE_URL/posts/` prefix.
-- Fresh installs: run `supabase/schema.sql`, `supabase/migrations/003_create_fragments.sql`, then `supabase/schema-chat.sql`. Existing installs additionally run applicable numbered files in `supabase/migrations/` manually.
+- Fresh installs: run `supabase/schema.sql`, `supabase/migrations/003_create_fragments.sql`, then `supabase/schema-chat.sql`. Existing installs additionally run applicable numbered files in `supabase/migrations/` manually — including `005_posts_tiptap_only.sql`, which **refuses to run** until every row has been migrated to TipTap.
 
 ## Conventions
 - Prefer Server Components; avoid `"use client"` unless necessary
@@ -32,7 +33,7 @@
 - Dark mode via `next-themes` (`class` strategy), CSS variables in `globals.css`
 - `site.config.json` drives music player (MetingJS + APlayer), Giscus comments, social links, features
 - Images in posts auto-cleanup from R2 on update/delete
-- TipTap JSON is canonical for `tiptap` posts; do not persist generated HTML or silently convert legacy MDX.
+- TipTap JSON is the only canonical post body. Render it as React elements — never persist generated HTML, inject it with `dangerouslySetInnerHTML`, or introduce a sanitizer / DOM emulator into the article render path.
 
 ## Protected features (do not remove)
 Netease music player, Live2D engine/resources (retain for the future desktop project; do not mount it in the website public layout by default), Memory wall, Giscus comments, custom editor, timeline archive, i18n, AI chat (anonymous free-model-only + rate limit, login for history & model switching)

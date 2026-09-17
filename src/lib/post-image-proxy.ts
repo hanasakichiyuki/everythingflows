@@ -6,7 +6,7 @@ import { getPostImageProxyUrl } from "@/lib/post-image-url";
  * prevents the image endpoint from becoming an arbitrary remote-fetch proxy.
  *
  * Imports the zero-dependency URL helper rather than `lib/api/media` on purpose:
- * this module is pulled into the public article render path (`HtmlContent`), and
+ * this module is pulled into the public article render path (`TiptapContent`), and
  * `lib/api/media` would drag the whole AWS S3 client into that server bundle.
  */
 export function isManagedPostImageUrl(value: string): boolean {

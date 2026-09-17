@@ -13,8 +13,8 @@
 | Column | Type | Notes |
 |--------|------|-------|
 | slug | text unique | URL path |
-| body | text | HTML (new posts) or MDX (legacy) |
-| content_format | `html` \| `mdx` | Default `html` |
+| body | text | 历史列，已停用（恒为空）；正文在 `content_json` |
+| content_format | `tiptap` | Default `tiptap` |
 | tags | text[] | Search & tag pages |
 | locale | text | `zh` / `en` |
 | published | boolean | Only `true` shown on site |

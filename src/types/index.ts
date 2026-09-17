@@ -1,6 +1,10 @@
 import type { TiptapDocument } from "@/lib/editor/types";
 
-export type ContentFormat = "html" | "mdx" | "tiptap";
+/**
+ * 正文格式。历史 `html` / `mdx` 内容已一次性迁移为结构化内容，现在只有一种格式。
+ * 保留该字段是因为数据库仍有 `content_format` 列，便于日后扩展新的存储格式。
+ */
+export type ContentFormat = "tiptap";
 
 export interface Post {
   id?: string;
@@ -13,9 +17,7 @@ export interface Post {
   category?: string;
   published: boolean;
   readingTime: string;
-  content: string;
   contentJson: TiptapDocument | null;
-  contentFormat: ContentFormat;
   locale: string;
 }
 
@@ -30,7 +32,6 @@ export interface PostMeta {
   category?: string;
   published: boolean;
   readingTime: string;
-  contentFormat: ContentFormat;
   locale: string;
 }
 

@@ -15,22 +15,23 @@ The current `schema.sql` already includes TipTap support.
 
 ## Existing project
 
-Run each missing file in `migrations/` in numeric order. For the Novel editor,
-run `004_posts_tiptap_content.sql`; it:
+Run each missing file in `migrations/` in numeric order:
 
-- adds `posts.content_json jsonb`;
-- allows `content_format = 'tiptap'`;
-- requires JSON content for TipTap rows.
-
-Existing `html` and `mdx` rows are not rewritten. HTML articles can be
-explicitly converted in the admin editor; MDX remains on its source path.
+- `004_posts_tiptap_content.sql` — adds `posts.content_json jsonb` and allows
+  `content_format = 'tiptap'`.
+- `005_posts_tiptap_only.sql` — collapses the content format to TipTap only.
+  It **refuses to run while any non-TipTap row remains** (guard at the top of the
+  file). The one-off `html` → `tiptap` conversion has already been completed for
+  every existing row, and its tooling was deleted afterwards to avoid keeping an
+  unreachable code path around. If legacy rows somehow reappear, convert them
+  out-of-band (a throwaway script that runs the HTML through the editor schema to
+  produce a TipTap document) before running this file.
 
 ## Post content contract
 
-- `html`: canonical content remains in `body`.
-- `mdx`: canonical source remains in `body`.
-- `tiptap`: canonical ProseMirror document is in `content_json`; `body` is not
-  used for rendering.
+- `tiptap`: the canonical ProseMirror document lives in `content_json`. `body` is
+  a disabled legacy column and stays empty for rows written after the migration.
 
-The public application generates HTML from TipTap JSON on the server and then
-passes it through DOMPurify. Image cleanup walks TipTap image nodes directly.
+The public application renders `content_json` straight into React elements on the
+server — no HTML string, no sanitizer, no browser DOM emulation in the render
+path. Image cleanup walks TipTap image nodes directly.

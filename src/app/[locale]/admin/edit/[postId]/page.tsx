@@ -39,9 +39,7 @@ export default async function EditPostPage({
           description: post.description,
           tags: post.tags,
           category: post.category,
-          body: post.content,
           contentJson: post.contentJson,
-          contentFormat: post.contentFormat,
         }}
       />
     </AdminWorkspaceShell>

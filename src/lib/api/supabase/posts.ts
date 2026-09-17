@@ -1,36 +1,22 @@
 import readingTime from "reading-time";
-import type { ContentFormat, Post, PostMeta } from "@/types";
-import type { TiptapDocument } from "@/lib/editor/types";
+import type { Post, PostMeta } from "@/types";
+import {
+  EMPTY_TIPTAP_DOCUMENT,
+  type TiptapDocument,
+} from "@/lib/editor/types";
 import { extractTiptapText } from "@/lib/editor/serialization";
 import { getSupabaseAdmin, getSupabasePublic, type PostRow } from "./client";
 import { extractPostImageUrls, type StoredPostContent } from "@/lib/post-image-content";
 
-function stripHtml(html: string) {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function computeReadingTime(
-  body: string,
-  format: ContentFormat,
-  contentJson?: TiptapDocument | null
-) {
-  const text =
-    format === "tiptap" && contentJson
-      ? extractTiptapText(contentJson)
-      : format === "html"
-        ? stripHtml(body)
-        : body;
+function computeReadingTime(contentJson?: TiptapDocument | null) {
+  const text = extractTiptapText(contentJson ?? EMPTY_TIPTAP_DOCUMENT);
   return readingTime(text || " ").text;
 }
 
 function rowToStoredContent(
-  row: Pick<PostRow, "body" | "content_json" | "content_format">
+  row: Pick<PostRow, "content_json">
 ): StoredPostContent {
-  return {
-    body: row.body ?? "",
-    contentJson: row.content_json ?? null,
-    contentFormat: row.content_format,
-  };
+  return { contentJson: row.content_json ?? null };
 }
 
 function rowToPost(row: PostRow): Post {
@@ -45,18 +31,19 @@ function rowToPost(row: PostRow): Post {
     category: row.category ?? undefined,
     published: row.published,
     readingTime: row.reading_time,
-    content: row.body,
     contentJson: row.content_json,
-    contentFormat: row.content_format,
     locale: row.locale,
   };
 }
 
 /** Columns needed to build a PostMeta — excludes the heavy `body` field. */
 const META_COLUMNS =
-  "id,slug,title,description,date,updated,tags,category,published,reading_time,content_format,locale";
+  "id,slug,title,description,date,updated,tags,category,published,reading_time,locale";
 
-type MetaRow = Omit<PostRow, "body" | "content_json" | "created_at">;
+type MetaRow = Omit<
+  PostRow,
+  "body" | "content_json" | "content_format" | "created_at"
+>;
 
 function metaRowToMeta(row: MetaRow): PostMeta {
   return {
@@ -70,7 +57,6 @@ function metaRowToMeta(row: MetaRow): PostMeta {
     category: row.category ?? undefined,
     published: row.published,
     readingTime: row.reading_time,
-    contentFormat: row.content_format,
     locale: row.locale,
   };
 }
@@ -255,9 +241,7 @@ export type UpsertPostInput = {
   slug?: string;
   title: string;
   description: string;
-  body: string;
   contentJson?: TiptapDocument | null;
-  contentFormat: ContentFormat;
   tags: string[];
   category?: string;
   locale: string;
@@ -298,7 +282,7 @@ export async function deletePost(id: string): Promise<void> {
   // Fetch canonical content before deleting, to clean up associated images.
   const { data: post } = await supabase
     .from("posts")
-    .select("body,content_json,content_format")
+    .select("content_json")
     .eq("id", id)
     .maybeSingle();
 
@@ -308,9 +292,7 @@ export async function deletePost(id: string): Promise<void> {
   // Clean up images from storage
   if (post) {
     const urls = extractPostImageUrls(
-      rowToStoredContent(
-        post as Pick<PostRow, "body" | "content_json" | "content_format">
-      )
+      rowToStoredContent(post as Pick<PostRow, "content_json">)
     );
     if (urls.length > 0) {
       // 删除 R2 对象需要 AWS SDK，按需加载：公开读路径不应静态引入它。
@@ -328,7 +310,7 @@ export async function deletePosts(ids: string[]): Promise<void> {
   // Fetch canonical content before deleting, to clean up associated images.
   const { data: posts } = await supabase
     .from("posts")
-    .select("body,content_json,content_format")
+    .select("content_json")
     .in("id", ids);
 
   const { error } = await supabase.from("posts").delete().in("id", ids);
@@ -337,10 +319,7 @@ export async function deletePosts(ids: string[]): Promise<void> {
   // Clean up images from storage
   if (posts && posts.length > 0) {
     const allUrls: string[] = [];
-    for (const row of posts as Pick<
-      PostRow,
-      "body" | "content_json" | "content_format"
-    >[]) {
+    for (const row of posts as Pick<PostRow, "content_json">[]) {
       const urls = extractPostImageUrls(rowToStoredContent(row));
       allUrls.push(...urls);
     }
@@ -356,12 +335,7 @@ export async function deletePosts(ids: string[]): Promise<void> {
 export async function upsertPost(input: UpsertPostInput): Promise<Post> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
-  const contentFormat = input.contentFormat;
-  const reading_time = computeReadingTime(
-    input.body,
-    contentFormat,
-    input.contentJson
-  );
+  const reading_time = computeReadingTime(input.contentJson);
 
   let slug: string;
   let published: boolean;
@@ -371,7 +345,7 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     // Fetch existing post data in one query
     const { data: existing, error: existingError } = await supabase
       .from("posts")
-      .select("slug,published,body,content_json,content_format")
+      .select("slug,published,content_json")
       .eq("id", input.id)
       .maybeSingle();
     if (existingError) throw existingError;
@@ -379,10 +353,7 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     published = input.published !== undefined ? input.published : (existing?.published ?? false);
     if (existing) {
       existingContent = rowToStoredContent(
-        existing as Pick<
-          PostRow,
-          "body" | "content_json" | "content_format"
-        >
+        existing as Pick<PostRow, "content_json">
       );
     }
   } else {
@@ -395,9 +366,10 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     slug,
     title: input.title,
     description: input.description,
-    body: contentFormat === "tiptap" ? "" : input.body,
-    content_json: contentFormat === "tiptap" ? input.contentJson ?? null : null,
-    content_format: contentFormat,
+    // 历史 `body` 列保留但不再写入：正文只存在于 content_json。
+    body: "",
+    content_json: input.contentJson ?? null,
+    content_format: "tiptap",
     date: now,
     updated: now,
     tags: input.tags,
@@ -419,9 +391,7 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
     if (existingContent) {
       const { cleanupUnusedPostImages } = await import("@/lib/api/media");
       cleanupUnusedPostImages(existingContent, {
-        body: row.body,
         contentJson: row.content_json,
-        contentFormat,
       }).catch((e) =>
         console.warn("Image cleanup failed:", e)
       );
@@ -434,3 +404,5 @@ export async function upsertPost(input: UpsertPostInput): Promise<Post> {
   if (error) throw error;
   return rowToPost(data as PostRow);
 }
+
+

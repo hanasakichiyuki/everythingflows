@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { generateHTML } from "@tiptap/html";
+import { serverEditorExtensions } from "./extensions";
 import {
   extractTiptapImageUrls,
   extractTiptapText,
   htmlToTiptapDocument,
   plainTextToTiptapContent,
-  tiptapDocumentToHtml,
 } from "./serialization";
 import {
   isTiptapDocumentEmpty,
@@ -47,18 +48,16 @@ const document: TiptapDocument = {
 };
 
 describe("TipTap serialization", () => {
-  it("validates and serializes custom nodes", () => {
+  it("accepts the canonical document shape", () => {
     expect(validateTiptapDocument(document).success).toBe(true);
-
-    const html = tiptapDocumentToHtml(document);
-    expect(html).toContain("data-callout-type=\"info\"");
-    expect(html).toContain("data-bvid=\"BV1xx411c7mD\"");
-    expect(html).toContain("player.bilibili.com");
-    expect(html).toContain("language-typescript");
   });
 
   it("round-trips generated HTML through the shared schema", () => {
-    const converted = htmlToTiptapDocument(tiptapDocumentToHtml(document));
+    // 一次性内容迁移依赖这条链路：HTML 文本 → 结构化内容 → 白名单校验。
+    const converted = htmlToTiptapDocument(
+      generateHTML(document, serverEditorExtensions)
+    );
+
     expect(validateTiptapDocument(converted).success).toBe(true);
     expect(converted.content?.some((node) => node.type === "callout")).toBe(
       true
@@ -128,6 +127,38 @@ describe("TipTap serialization", () => {
       expect(result.data.attrs).toBeUndefined();
       expect(result.data.content?.[0]?.attrs).toBeUndefined();
       expect(result.data.content?.[0]?.content?.[0]?.marks).toBeUndefined();
+    }
+  });
+
+  it("drops link marks without a target and rejects unsafe protocols", () => {
+    const withoutHref = validateTiptapDocument({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "伪链接", marks: [{ type: "link" }] }],
+        },
+      ],
+    });
+    expect(withoutHref.success).toBe(true);
+    if (withoutHref.success) {
+      expect(withoutHref.data.content?.[0]?.content?.[0]?.marks).toBeUndefined();
+    }
+
+    for (const href of ["javascript:alert(1)", "data:text/html,x", "vbscript:x"]) {
+      expect(
+        validateTiptapDocument({
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "bad", marks: [{ type: "link", attrs: { href } }] },
+              ],
+            },
+          ],
+        }).success
+      ).toBe(false);
     }
   });
 

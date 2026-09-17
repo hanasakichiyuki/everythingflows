@@ -23,11 +23,7 @@ import {
   isTiptapDocumentEmpty,
   type TiptapDocument,
 } from "@/lib/editor/types";
-import {
-  extractTiptapText,
-  htmlToTiptapDocument,
-} from "@/lib/editor/serialization";
-import type { ContentFormat } from "@/types";
+import { extractTiptapText } from "@/lib/editor/serialization";
 
 const AUTO_SAVE_INTERVAL = 30_000; // 30s
 
@@ -40,9 +36,7 @@ type Props = {
     description: string;
     tags: string[];
     category?: string;
-    body: string;
     contentJson: TiptapDocument | null;
-    contentFormat: ContentFormat;
   };
 };
 
@@ -55,18 +49,13 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [tags, setTags] = useState(initialData?.tags.join(", ") ?? "");
   const [category, setCategory] = useState(initialData?.category ?? "");
-  const [contentFormat, setContentFormat] = useState<ContentFormat>(
-    initialData?.contentFormat ?? "tiptap"
-  );
-  const [legacyBody, setLegacyBody] = useState(initialData?.body ?? "");
   const [contentJson, setContentJson] = useState<TiptapDocument>(
     initialData?.contentJson ?? EMPTY_TIPTAP_DOCUMENT
   );
-  const [editorInitialContent, setEditorInitialContent] =
-    useState<TiptapDocument>(
-      initialData?.contentJson ?? EMPTY_TIPTAP_DOCUMENT
-    );
-  const [editorRevision, setEditorRevision] = useState(0);
+  // 编辑器只在挂载时读取一次初始内容，之后由编辑器实例自己维护。
+  const [editorInitialContent] = useState<TiptapDocument>(
+    initialData?.contentJson ?? EMPTY_TIPTAP_DOCUMENT
+  );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [postId, setPostId] = useState(initialData?.id);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -91,25 +80,15 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     [tags]
   );
 
-  const hasContent =
-    contentFormat === "tiptap"
-      ? !isTiptapDocumentEmpty(contentJson)
-      : Boolean(legacyBody.trim());
+  const hasContent = !isTiptapDocumentEmpty(contentJson);
   const contentCharacters = useMemo(
-    () =>
-      contentFormat === "tiptap"
-        ? extractTiptapText(contentJson).replace(/\s/g, "").length
-        : legacyBody.replace(/\s/g, "").length,
-    [contentFormat, contentJson, legacyBody]
+    () => extractTiptapText(contentJson).replace(/\s/g, "").length,
+    [contentJson]
   );
 
   const saveDraft = useCallback(async () => {
     if (saveInFlightRef.current) return;
-    const contentIsEmpty =
-      contentFormat === "tiptap"
-        ? isTiptapDocumentEmpty(contentJson)
-        : !legacyBody.trim();
-    if (!title.trim() || contentIsEmpty) return;
+    if (!title.trim() || isTiptapDocumentEmpty(contentJson)) return;
 
     const savedChangeVersion = changeVersionRef.current;
     saveInFlightRef.current = true;
@@ -122,9 +101,7 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         description: description.trim(),
         tags: parsedTags,
         category: category.trim() || undefined,
-        body: contentFormat === "tiptap" ? "" : legacyBody,
-        contentJson: contentFormat === "tiptap" ? contentJson : null,
-        contentFormat,
+        contentJson,
         locale,
         id: postId,
       });
@@ -168,9 +145,7 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     }
   }, [
     title,
-    contentFormat,
     contentJson,
-    legacyBody,
     description,
     parsedTags,
     category,
@@ -190,9 +165,7 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         description: description.trim(),
         tags: parsedTags,
         category: category.trim() || undefined,
-        body: contentFormat === "tiptap" ? "" : legacyBody,
-        contentJson: contentFormat === "tiptap" ? contentJson : null,
-        contentFormat,
+        contentJson,
         locale,
         published: true,
         id: postId,
@@ -322,26 +295,8 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     description,
     tags,
     category,
-    contentFormat,
     contentJson,
-    legacyBody,
   ]);
-
-  const convertLegacyHtml = () => {
-    try {
-      const converted = htmlToTiptapDocument(legacyBody);
-      setContentJson(converted);
-      setEditorInitialContent(converted);
-      setContentFormat("tiptap");
-      setEditorRevision((value) => value + 1);
-      setSaveStatus("idle");
-      setMessage("已转换为新版编辑器，保存后才会写入数据库");
-      hasChangesRef.current = true;
-    } catch (error) {
-      setSaveStatus("error");
-      setMessage(error instanceof Error ? error.message : "HTML 转换失败");
-    }
-  };
 
   const handleDelete = async () => {
     if (!postId) return;
@@ -429,12 +384,6 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
                     }`}
                   />
                   {isEditMode ? "已开启" : "首次保存后"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span>内容格式</span>
-                <span className="rounded-md bg-foreground/5 px-1.5 py-0.5 font-mono text-[9px] uppercase text-muted">
-                  {contentFormat}
                 </span>
               </div>
             </div>
@@ -544,38 +493,11 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {contentFormat === "tiptap" ? (
-            <NovelPostEditor
-              key={`${initialData?.id ?? "new"}-${editorRevision}`}
-              onChange={setContentJson}
-              initialContent={editorInitialContent}
-            />
-          ) : (
-            <section className="space-y-3 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs">
-                <span>
-                  当前文章使用 {contentFormat.toUpperCase()} 格式，将保持原格式保存。
-                </span>
-                {contentFormat === "html" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={convertLegacyHtml}
-                  >
-                    转换为新版编辑器
-                  </Button>
-                )}
-              </div>
-              <textarea
-                value={legacyBody}
-                onChange={(event) => setLegacyBody(event.target.value)}
-                className="min-h-[calc(100vh-15rem)] w-full border-0 bg-transparent px-4 py-3 font-mono text-sm leading-6 outline-none"
-                spellCheck={false}
-                aria-label={`${contentFormat.toUpperCase()} 源码`}
-              />
-            </section>
-          )}
+          <NovelPostEditor
+            key={initialData?.id ?? "new"}
+            onChange={setContentJson}
+            initialContent={editorInitialContent}
+          />
         </div>
 
         <footer className="z-30 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border/60 bg-background/90 px-3 py-2 backdrop-blur-xl sm:px-4">
@@ -661,9 +583,7 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         description={description}
         tags={parsedTags}
         category={category}
-        contentFormat={contentFormat}
         contentJson={contentJson}
-        legacyBody={legacyBody}
         publishing={saveStatus === "publishing"}
         isEditMode={isEditMode}
         onPublish={publish}

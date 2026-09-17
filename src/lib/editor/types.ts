@@ -40,6 +40,24 @@ const ALLOWED_MARK_TYPES = new Set([
   "underline",
 ]);
 
+/**
+ * 链接协议白名单，与 `extensions.ts` 中 Link 的 `validate` 保持一致。
+ *
+ * 正文改为结构化渲染后，`href` 是唯一还能承载可执行内容的字段（`javascript:`、
+ * `data:`、`vbscript:` 等），必须在进入渲染器之前于校验层拦掉。
+ */
+const SAFE_LINK_HREF = /^(https?:\/\/|mailto:|\/|#)/i;
+
+export function isSafeLinkHref(value: unknown): value is string {
+  return typeof value === "string" && SAFE_LINK_HREF.test(value.trim());
+}
+
+/** 是否携带了非空的链接目标（用于区分"空标记"与"非法协议"两种情况）。 */
+function hasLinkTarget(attrs: unknown): boolean {
+  const href = isRecord(attrs) ? attrs.href : undefined;
+  return typeof href === "string" && href.trim() !== "";
+}
+
 // TipTap/ProseMirror 会根据扩展及导入来源省略 attrs，部分文档还会将其
 // 序列化为 null。两者都等价于没有属性，先规范化后再做节点白名单校验。
 const attrsSchema = z
@@ -84,13 +102,26 @@ function normalizeTiptapNode(value: unknown): unknown {
     node.content = value.content.map(normalizeTiptapNode);
   }
   if (Array.isArray(value.marks)) {
-    node.marks = value.marks.map((mark) => {
-      if (!isRecord(mark)) return mark;
-      const normalizedMark: Record<string, unknown> = {};
-      if (typeof mark.type === "string") normalizedMark.type = mark.type;
-      if (isRecord(mark.attrs)) normalizedMark.attrs = mark.attrs;
-      return normalizedMark;
-    });
+    node.marks = value.marks
+      // 历史数据里存在只有 {"type":"link"}、没有 href 的空链接标记：旧管线会把它渲染成
+      // 「看起来是链接却点不动」的伪链接。这里直接丢弃，让文字退化为普通文本。
+      // 注意只丢弃「没有目标」的情况；带非法协议（如 javascript:）的标记会保留下来，
+      // 由下方的语义校验明确报错，而不是被静默吞掉。
+      .filter(
+        (mark) =>
+          !(
+            isRecord(mark) &&
+            mark.type === "link" &&
+            !hasLinkTarget(mark.attrs)
+          )
+      )
+      .map((mark) => {
+        if (!isRecord(mark)) return mark;
+        const normalizedMark: Record<string, unknown> = {};
+        if (typeof mark.type === "string") normalizedMark.type = mark.type;
+        if (isRecord(mark.attrs)) normalizedMark.attrs = mark.attrs;
+        return normalizedMark;
+      });
   }
   if (typeof value.text === "string") node.text = value.text;
 
@@ -113,6 +144,10 @@ function validateSemantics(
   for (const mark of node.marks ?? []) {
     if (!ALLOWED_MARK_TYPES.has(mark.type)) {
       return `不支持的编辑器标记：${mark.type}`;
+    }
+
+    if (mark.type === "link" && !isSafeLinkHref(mark.attrs?.href)) {
+      return "链接地址无效：仅支持 http(s)、mailto、站内路径与锚点";
     }
   }
 

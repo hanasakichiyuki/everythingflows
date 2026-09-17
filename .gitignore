@@ -14,8 +14,8 @@
 
 # next.js
 /.next/
-/.next-e2e*/
-/.next-ui-verify*/
+# 所有验证用 distDir（NEXT_DIST_DIR 可指向任意 .next-* 目录）
+/.next-*/
 /out/
 
 # production
@@ -24,6 +24,9 @@
 # misc
 .DS_Store
 *.pem
+
+# 编辑器/工具的项目级本地状态（CodeBuddy 会在工作区写 .codebuddy/）
+.codebuddy/
 
 # debug
 npm-debug.log*

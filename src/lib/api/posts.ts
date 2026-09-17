@@ -75,7 +75,7 @@ export function getPostSaveErrorMessage(error: unknown): string {
       schemaMessage
     )
   ) {
-    return "数据库尚未启用新版编辑器：请在 Supabase SQL Editor 手动执行 supabase/migrations/004_posts_tiptap_content.sql 后重试";
+    return "数据库结构未就绪：请在 Supabase SQL Editor 手动执行 supabase/migrations/004_posts_tiptap_content.sql 与 005_posts_tiptap_only.sql 后重试";
   }
   if (code === "23505") {
     return "保存文章失败：文章链接标识已存在，请修改标题后重试";

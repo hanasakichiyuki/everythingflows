@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  findUnusedPostImageUrls,
-  isR2PostImageUrl,
-} from "./media";
+import { findUnusedPostImageUrls, isR2PostImageUrl } from "./media";
 import type { TiptapDocument } from "@/lib/editor/types";
 
 const originalR2PublicBaseUrl = process.env.R2_PUBLIC_BASE_URL;
@@ -25,9 +22,7 @@ const oldDocument: TiptapDocument = {
 
 const newDocument: TiptapDocument = {
   type: "doc",
-  content: [
-    { type: "image", attrs: { src: "https://example.com/keep.png" } },
-  ],
+  content: [{ type: "image", attrs: { src: "https://example.com/keep.png" } }],
 };
 
 describe("R2 media", () => {
@@ -47,33 +42,13 @@ describe("R2 media", () => {
   it("diffs TipTap image nodes", () => {
     expect(
       findUnusedPostImageUrls(
-        {
-          body: "",
-          contentJson: oldDocument,
-          contentFormat: "tiptap",
-        },
-        {
-          body: "",
-          contentJson: newDocument,
-          contentFormat: "tiptap",
-        }
+        { contentJson: oldDocument },
+        { contentJson: newDocument }
       )
     ).toEqual(["https://example.com/remove.png"]);
   });
 
-  it("preserves an image when converting legacy HTML to TipTap", () => {
-    expect(
-      findUnusedPostImageUrls(
-        {
-          body: '<p><img src="https://example.com/keep.png"></p>',
-          contentFormat: "html",
-        },
-        {
-          body: "",
-          contentJson: newDocument,
-          contentFormat: "tiptap",
-        }
-      )
-    ).toEqual([]);
+  it("treats missing content as having no images", () => {
+    expect(findUnusedPostImageUrls({}, { contentJson: newDocument })).toEqual([]);
   });
 });

@@ -18,10 +18,24 @@ declare module "@tiptap/core" {
   }
 }
 
+/**
+ * Bilibili iframe 的固定安全属性。编辑器渲染（下方 renderHTML）与文章渲染器
+ * 共用这两个常量，避免两处各自硬编码后出现漂移。
+ */
+export const BILIBILI_IFRAME_SANDBOX =
+  "allow-top-navigation allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox";
+export const BILIBILI_IFRAME_ALLOW =
+  "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+
 function clampPage(value: unknown): number {
   const page = Number(value);
   if (!Number.isFinite(page)) return 1;
   return Math.max(1, Math.min(1000, Math.floor(page)));
+}
+
+/** 导出版本供文章渲染器复用，保证 data-page 与播放器 URL 用的是同一套归一化规则。 */
+export function clampBilibiliPage(value: unknown): number {
+  return clampPage(value);
 }
 
 export function buildBilibiliPlayerUrl(
@@ -186,10 +200,8 @@ export const BilibiliNode = Node.create({
           title: "Bilibili video",
           loading: "lazy",
           allowfullscreen: "true",
-          allow:
-            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-          sandbox:
-            "allow-top-navigation allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox",
+          allow: BILIBILI_IFRAME_ALLOW,
+          sandbox: BILIBILI_IFRAME_SANDBOX,
         },
       ],
     ];

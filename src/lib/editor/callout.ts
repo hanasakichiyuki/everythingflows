@@ -19,7 +19,8 @@ declare module "@tiptap/core" {
   }
 }
 
-function normalizeKind(value: unknown): CalloutKind {
+/** 归一化 callout 类型；非法值退回 "info"。渲染器必须复用此函数，避免与编辑器行为漂移。 */
+export function normalizeCalloutKind(value: unknown): CalloutKind {
   return CALLOUT_KINDS.includes(value as CalloutKind)
     ? (value as CalloutKind)
     : "info";
@@ -36,7 +37,7 @@ export const CalloutNode = Node.create({
       kind: {
         default: "info",
         parseHTML: (element) =>
-          normalizeKind(element.getAttribute("data-callout-type")),
+          normalizeCalloutKind(element.getAttribute("data-callout-type")),
       },
     };
   },
@@ -46,7 +47,7 @@ export const CalloutNode = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const kind = normalizeKind(HTMLAttributes.kind);
+    const kind = normalizeCalloutKind(HTMLAttributes.kind);
     return [
       "aside",
       mergeAttributes(HTMLAttributes, {
@@ -62,11 +63,11 @@ export const CalloutNode = Node.create({
       setCallout:
         (kind: CalloutKind = "info") =>
         ({ commands }: CommandProps) =>
-          commands.wrapIn(this.name, { kind: normalizeKind(kind) }),
+          commands.wrapIn(this.name, { kind: normalizeCalloutKind(kind) }),
       toggleCallout:
         (kind: CalloutKind = "info") =>
         ({ commands }: CommandProps) =>
-          commands.toggleWrap(this.name, { kind: normalizeKind(kind) }),
+          commands.toggleWrap(this.name, { kind: normalizeCalloutKind(kind) }),
       unsetCallout:
         () =>
         ({ commands }: CommandProps) =>

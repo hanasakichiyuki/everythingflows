@@ -134,11 +134,7 @@ export default async function BlogPostPage({
           </div>
         </header>
         <div className="mx-auto max-w-[42rem]">
-          <PostContent
-            content={post.content}
-            contentJson={post.contentJson}
-            contentFormat={post.contentFormat}
-          />
+          <PostContent contentJson={post.contentJson} />
         </div>
         <PostNavigation prev={prev} next={next} />
         <section className="mx-auto mt-16 max-w-[52rem] border-t border-border pt-9">

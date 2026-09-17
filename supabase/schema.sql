@@ -9,7 +9,7 @@ create table if not exists public.posts (
   description text not null default '',
   body text not null default '',
   content_json jsonb,
-  content_format text not null default 'html' check (content_format in ('html', 'mdx', 'tiptap')),
+  content_format text not null default 'tiptap' check (content_format = 'tiptap'),
   date timestamptz not null default now(),
   updated timestamptz,
   tags text[] not null default '{}',
