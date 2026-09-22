@@ -102,7 +102,7 @@ function normalizeTiptapNode(value: unknown): unknown {
     node.content = value.content.map(normalizeTiptapNode);
   }
   if (Array.isArray(value.marks)) {
-    node.marks = value.marks
+    const marks = value.marks
       // 历史数据里存在只有 {"type":"link"}、没有 href 的空链接标记：旧管线会把它渲染成
       // 「看起来是链接却点不动」的伪链接。这里直接丢弃，让文字退化为普通文本。
       // 注意只丢弃「没有目标」的情况；带非法协议（如 javascript:）的标记会保留下来，
@@ -122,6 +122,10 @@ function normalizeTiptapNode(value: unknown): unknown {
         if (isRecord(mark.attrs)) normalizedMark.attrs = mark.attrs;
         return normalizedMark;
       });
+
+    // 空数组与"没有标记"语义相同（TipTap 对无标记的文本根本不写这个字段）。统一成缺省，
+    // 否则同一篇文档两次规范化会得到不同的 JSON 形态，比较/存储都不可靠。
+    if (marks.length > 0) node.marks = marks;
   }
   if (typeof value.text === "string") node.text = value.text;
 
@@ -172,6 +176,17 @@ function validateSemantics(
     const src = node.attrs?.src;
     if (typeof src !== "string" || !/^https?:\/\//i.test(src)) {
       return "图片节点地址无效";
+    }
+
+    // 原图地址（可选）：会被渲染成可点击的"查看原图"入口，因此和链接一样只放行 http(s)。
+    // 是否属于本站托管交给服务端判断 —— 本模块会被客户端引入，读不到 R2_PUBLIC_BASE_URL。
+    const originalSrc = node.attrs?.originalSrc;
+    if (
+      originalSrc !== undefined &&
+      originalSrc !== null &&
+      (typeof originalSrc !== "string" || !/^https?:\/\//i.test(originalSrc))
+    ) {
+      return "图片原图地址无效";
     }
   }
 

@@ -75,6 +75,85 @@ describe("TipTap serialization", () => {
     ]);
   });
 
+  it("keeps originalSrc across an HTML round-trip", () => {
+    // 这条断言守护的是"属性已声明"：ProseMirror 会按节点 schema 过滤属性，未声明的键
+    // 在 updateAttributes / 粘贴 / 重新加载时会被静默丢弃，表现为"写得进去、存不下来"。
+    const html = generateHTML(
+      {
+        type: "doc",
+        content: [
+          {
+            type: "image",
+            attrs: {
+              src: "https://example.com/display.webp",
+              originalSrc: "https://example.com/display.orig.png",
+            },
+          },
+        ],
+      },
+      serverEditorExtensions
+    );
+
+    expect(html).toContain('data-original-src="https://example.com/display.orig.png"');
+
+    const converted = htmlToTiptapDocument(html);
+    expect(converted.content?.[0]?.attrs?.originalSrc).toBe(
+      "https://example.com/display.orig.png"
+    );
+  });
+
+  it("collects the original image URL and validates its protocol", () => {
+    const withOriginal: TiptapDocument = {
+      type: "doc",
+      content: [
+        {
+          type: "image",
+          attrs: {
+            src: "https://example.com/display.webp",
+            originalSrc: "https://example.com/display.orig.png",
+          },
+        },
+      ],
+    };
+
+    // 原图必须一起收集：漏掉它，删除图片时的 R2 清理就会留下孤儿对象，
+    // 写入侧的"非本站图片"校验也会漏检这一处。
+    expect(extractTiptapImageUrls(withOriginal)).toEqual([
+      "https://example.com/display.webp",
+      "https://example.com/display.orig.png",
+    ]);
+    expect(validateTiptapDocument(withOriginal).success).toBe(true);
+
+    // 原图会被渲染成可点击的"查看原图"入口，所以和链接一样只放行 http(s)。
+    for (const originalSrc of [
+      "javascript:alert(1)",
+      "data:image/svg+xml,%3Csvg/%3E",
+      "/local.png",
+    ]) {
+      expect(
+        validateTiptapDocument({
+          type: "doc",
+          content: [
+            {
+              type: "image",
+              attrs: { src: "https://example.com/display.webp", originalSrc },
+            },
+          ],
+        }).success
+      ).toBe(false);
+    }
+
+    // 旧数据（没有这个字段）必须照常通过。
+    expect(
+      validateTiptapDocument({
+        type: "doc",
+        content: [
+          { type: "image", attrs: { src: "https://example.com/plain.webp" } },
+        ],
+      }).success
+    ).toBe(true);
+  });
+
   it("rejects unsupported content and detects empty documents", () => {
     expect(
       validateTiptapDocument({

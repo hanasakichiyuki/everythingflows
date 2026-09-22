@@ -9,6 +9,9 @@ import {
   isTiptapDocumentEmpty,
   validateTiptapDocument,
 } from "@/lib/editor/types";
+import { extractTiptapImageUrls } from "@/lib/editor/serialization";
+import { isManagedPostImageUrl } from "@/lib/post-image-proxy";
+import { isPostImageHostConfigured } from "@/lib/r2-post-image-url";
 
 export type PublishPostPayload = {
   title: string;
@@ -25,6 +28,35 @@ export type PublishPostPayload = {
 type ValidatedContent =
   | { ok: true; contentJson: TiptapDocument | null }
   | { ok: false; error: string };
+
+/**
+ * 正文里的图片是否都来自本站托管。
+ *
+ * 公开渲染器 `renderImage` 会**丢弃**非本站托管的图片（`isManagedPostImageUrl`），
+ * 所以放行这类图片等于"后台看得见、保存成功、发布后消失"。保存阶段直接拦掉，
+ * 让作者当场改用"上传图片"重新插入。
+ *
+ * 覆盖面：`extractTiptapImageUrls` 同时收集 `src` 与原图的 `originalSrc`，两者走同一道
+ * 校验。原图会被渲染成可点击的"查看原图"入口（href 是注入面），不能漏检。
+ *
+ * 未配置图片托管域名时跳过校验：此时渲染器同样无法判定"本站"，判断没有意义。
+ */
+function findUnmanagedImageError(contentJson: TiptapDocument): string | null {
+  if (!isPostImageHostConfigured()) return null;
+
+  const offending = extractTiptapImageUrls(contentJson).find(
+    (url) => !isManagedPostImageUrl(url)
+  );
+  if (!offending) return null;
+
+  let host = offending;
+  try {
+    host = new URL(offending).host;
+  } catch {
+    // 地址本身无法解析时直接用原串，便于定位
+  }
+  return `正文里有非本站托管的图片（${host}），发布后不会显示。请用编辑器的“上传图片”重新插入后再保存。`;
+}
 
 function validatePostPayload(payload: PublishPostPayload): ValidatedContent {
   if (!payload.title.trim() || payload.title.length > 200) {
@@ -49,6 +81,9 @@ function validatePostPayload(payload: PublishPostPayload): ValidatedContent {
   if (isTiptapDocumentEmpty(result.data)) {
     return { ok: false, error: "文章内容不能为空" };
   }
+  const imageError = findUnmanagedImageError(result.data);
+  if (imageError) return { ok: false, error: imageError };
+
   return { ok: true, contentJson: result.data };
 }
 

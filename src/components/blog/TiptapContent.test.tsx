@@ -71,7 +71,9 @@ describe("TiptapContent 结构化渲染", () => {
 
     expect(html).toContain("player.bilibili.com");
     expect(html).toContain("sandbox=");
-    expect(html).toContain("allowfullscreen");
+    // React 19 输出的是 DOM 属性名（`allowFullScreen=""`）；HTML 解析对属性名大小写不敏感，
+    // 因此这里按小写比较，避免把 React 的写法当成契约。
+    expect(html.toLowerCase()).toContain("allowfullscreen");
     expect(html).toContain('data-bvid="BV1xx411c7mD"');
     // 非法编号只输出占位文案，不产生 iframe
     expect(html).toContain("无效的 Bilibili 视频");
@@ -170,6 +172,47 @@ describe("TiptapContent 结构化渲染", () => {
     );
     expect(html).not.toContain("project.supabase.co");
     expect((html.match(/<img/g) ?? []).length).toBe(1);
+  });
+
+  it("保留了原图的图片包一层按钮，供浮层查看原图", () => {
+    process.env.R2_PUBLIC_BASE_URL = "https://media.example.com";
+
+    const display = "https://media.example.com/posts/display.webp";
+    const original = "https://media.example.com/posts/display.orig.png";
+
+    const html = render({
+      type: "doc",
+      content: [
+        {
+          type: "image",
+          attrs: { src: display, originalSrc: original, alt: "示例" },
+        },
+        // 没有原图：保持原样，不产生按钮。
+        { type: "image", attrs: { src: "https://media.example.com/posts/plain.webp" } },
+        // 原图不是本站托管：同样不产生按钮（渲染器只渲染/链接本站图片）。
+        {
+          type: "image",
+          attrs: {
+            src: "https://media.example.com/posts/other.webp",
+            originalSrc: "https://evil.example/orig.png",
+          },
+        },
+      ],
+    });
+
+    expect(html).toContain(
+      `src="/api/post-image?src=${encodeURIComponent(display)}"`
+    );
+    // 原图的代理地址必须在服务端算好写进 data 属性：浏览器读不到 R2_PUBLIC_BASE_URL。
+    expect(html).toContain(
+      `data-lightbox-src="/api/post-image?src=${encodeURIComponent(original)}"`
+    );
+    expect(html).toContain('data-lightbox-alt="示例"');
+    expect(html).toContain("<button");
+    // 只有第一张图被包按钮，且不泄漏非本站原图地址。
+    expect((html.match(/<button/g) ?? []).length).toBe(1);
+    expect((html.match(/<img/g) ?? []).length).toBe(3);
+    expect(html).not.toContain("evil.example");
   });
 
   it("未配置 R2 域名时不渲染任何图片", () => {

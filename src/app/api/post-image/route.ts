@@ -4,7 +4,13 @@ import { isManagedPostImageUrl } from "@/lib/post-image-proxy";
 
 export const runtime = "nodejs";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+/**
+ * 代理上限，与编辑器允许保留的原图上限保持一致。
+ *
+ * 读者看到的是压缩后的展示图，只有点开"查看原图"才会请求到这个尺寸的对象；
+ * 该路由是流式转发（不把整张图读进内存），所以放宽到 30MB 不会带来内存压力。
+ */
+const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
 
 export async function GET(request: NextRequest) {
   const source = request.nextUrl.searchParams.get("src");

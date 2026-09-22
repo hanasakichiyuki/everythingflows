@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Editor } from "@tiptap/core";
+import { useEditorState } from "@tiptap/react";
 import {
   Bold,
   Code,
@@ -37,18 +39,54 @@ import {
   type EditorAiAction,
 } from "@/lib/editor/ai";
 import { parseBilibiliInput } from "@/lib/editor/bilibili";
+import { isSafeLinkHref } from "@/lib/editor/types";
 import {
   CODE_BLOCK_LANGUAGES,
   isSafeCodeLanguage,
 } from "@/lib/editor/code-block";
 import { cn } from "@/lib/utils";
+import { EditorInputDialog } from "./EditorInputDialog";
 import { editorSuggestionItems } from "./slash-command";
 import { uploadEditorImage } from "./upload";
+import { useEditorImageUpload } from "./use-image-upload";
 
 type EditorMenusProps = {
   onRequestAi: (action: EditorAiAction) => void;
   aiBusy: boolean;
 };
+
+type EditorInputDialogKind = "link" | "bilibili";
+
+/** 当前链接地址（用于回填输入框）；没有链接时给一个可直接编辑的默认值。 */
+function readLinkHref(editor: Editor): string {
+  const href = editor.getAttributes("link").href;
+  return typeof href === "string" && href.length > 0 ? href : "https://";
+}
+
+/**
+ * 提交链接：留空表示移除链接，非法协议就地报错。
+ * 工具栏与浮动菜单共用同一份逻辑，避免两处校验漂移。
+ */
+function applyLink(editor: Editor, input: string): string | null {
+  const href = input.trim();
+  if (!href) {
+    editor.chain().focus().unsetLink().run();
+    return null;
+  }
+  if (!isSafeLinkHref(href)) {
+    return "链接格式无效：仅支持 http(s)、mailto、站内路径（/）与锚点（#）";
+  }
+  editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+  return null;
+}
+
+/** 提交 Bilibili 视频：解析失败就地报错，不插入。 */
+function applyBilibili(editor: Editor, input: string): string | null {
+  const attrs = parseBilibiliInput(input);
+  if (!attrs) return "无法识别该地址，请输入 BV 号、av 号或视频链接";
+  editor.chain().focus().insertBilibili(attrs).run();
+  return null;
+}
 
 function ToolbarButton({
   label,
@@ -87,19 +125,30 @@ export function EditorToolbar({
   const { editor } = useEditor();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [dialog, setDialog] = useState<EditorInputDialogKind | null>(null);
   const [uploadError, setUploadError] = useState<{
     file: File;
     message: string;
   } | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const { scheduleOriginal } = useEditorImageUpload(setUploadNotice);
 
   const uploadAndInsert = useCallback(
     async (file: File) => {
       if (!editor) return;
       setUploading(true);
       setUploadError(null);
+      setUploadNotice(null);
       try {
-        const src = await uploadEditorImage(file);
-        editor.chain().focus().setImage({ src, alt: file.name }).run();
+        const uploaded = await uploadEditorImage(file);
+        editor
+          .chain()
+          .focus()
+          .setImage({ src: uploaded.displayUrl, alt: file.name })
+          .run();
+        // 节点已经插入，原图在后台补传并写回 originalSrc —— 与粘贴/拖拽走同一条链路，
+        // 否则从工具栏插入的图片永远没有原图。
+        scheduleOriginal(editor.view, uploaded);
       } catch (error) {
         setUploadError({
           file,
@@ -109,7 +158,7 @@ export function EditorToolbar({
         setUploading(false);
       }
     },
-    [editor]
+    [editor, scheduleOriginal]
   );
 
   useEffect(() => {
@@ -130,55 +179,58 @@ export function EditorToolbar({
     };
   }, [onRequestAi]);
 
+  /**
+   * 工具栏的激活态必须**订阅**编辑器状态。
+   *
+   * `useEditor()`（= tiptap 的 `useCurrentEditor`）只读 context、不订阅 transaction；
+   * 以前按钮高亮能刷新，是因为父组件每次输入都重渲把它顺带带了起来 —— 既脆弱又昂贵
+   * （等于把菜单绑死在"每按一个键整页重渲"上）。改为按需订阅后，输入路径才能安全节流
+   * 而不会让高亮失灵。
+   */
+  const toolbarState = useEditorState({
+    editor,
+    selector: ({ editor: current }) => {
+      if (!current) return null;
+      const language = current.getAttributes("codeBlock").language;
+
+      return {
+        canUndo: current.can().undo(),
+        canRedo: current.can().redo(),
+        heading2: current.isActive("heading", { level: 2 }),
+        bold: current.isActive("bold"),
+        italic: current.isActive("italic"),
+        strike: current.isActive("strike"),
+        link: current.isActive("link"),
+        bulletList: current.isActive("bulletList"),
+        orderedList: current.isActive("orderedList"),
+        taskList: current.isActive("taskList"),
+        blockquote: current.isActive("blockquote"),
+        codeBlock: current.isActive("codeBlock"),
+        callout: current.isActive("callout"),
+        codeLanguage: isSafeCodeLanguage(language) ? language : "plaintext",
+      };
+    },
+  });
+
   if (!editor) return null;
 
-  const codeLanguageAttribute = editor.getAttributes("codeBlock").language;
-  const currentCodeLanguage = isSafeCodeLanguage(codeLanguageAttribute)
-    ? codeLanguageAttribute
-    : "plaintext";
+  const currentCodeLanguage = toolbarState?.codeLanguage ?? "plaintext";
   const hasCustomCodeLanguage = !CODE_BLOCK_LANGUAGES.some(
     (option) => option.value === currentCodeLanguage
   );
-
-  const insertBilibili = () => {
-    const input = window.prompt("请输入 BV 号、av 号或 Bilibili 视频链接");
-    if (!input) return;
-    const attrs = parseBilibiliInput(input);
-    if (!attrs) {
-      window.alert("无法识别该 Bilibili 视频地址");
-      return;
-    }
-    editor.chain().focus().insertBilibili(attrs).run();
-  };
-
-  const editLink = () => {
-    const previous = editor.getAttributes("link").href as string | undefined;
-    const href = window.prompt("链接地址", previous ?? "https://");
-    if (href === null) return;
-    if (!href.trim()) {
-      editor.chain().focus().unsetLink().run();
-      return;
-    }
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange("link")
-      .setLink({ href: href.trim() })
-      .run();
-  };
 
   return (
     <div className="sticky top-0 z-30 flex min-h-10 flex-wrap items-center gap-0.5 border-b border-border/60 bg-background/95 px-3 py-1 backdrop-blur-xl">
       <ToolbarButton
         label="撤销"
-        disabled={!editor.can().undo()}
+        disabled={!toolbarState?.canUndo}
         onClick={() => editor.chain().focus().undo().run()}
       >
         <Undo2 />
       </ToolbarButton>
       <ToolbarButton
         label="重做"
-        disabled={!editor.can().redo()}
+        disabled={!toolbarState?.canRedo}
         onClick={() => editor.chain().focus().redo().run()}
       >
         <Redo2 />
@@ -186,7 +238,7 @@ export function EditorToolbar({
       <span className="mx-1 h-5 w-px bg-border" />
       <ToolbarButton
         label="二级标题"
-        active={editor.isActive("heading", { level: 2 })}
+        active={toolbarState?.heading2}
         onClick={() =>
           editor.chain().focus().toggleHeading({ level: 2 }).run()
         }
@@ -195,57 +247,57 @@ export function EditorToolbar({
       </ToolbarButton>
       <ToolbarButton
         label="粗体"
-        active={editor.isActive("bold")}
+        active={toolbarState?.bold}
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
         <Bold />
       </ToolbarButton>
       <ToolbarButton
         label="斜体"
-        active={editor.isActive("italic")}
+        active={toolbarState?.italic}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
         <Italic />
       </ToolbarButton>
       <ToolbarButton
         label="删除线"
-        active={editor.isActive("strike")}
+        active={toolbarState?.strike}
         onClick={() => editor.chain().focus().toggleStrike().run()}
       >
         <Strikethrough />
       </ToolbarButton>
       <ToolbarButton
         label="链接"
-        active={editor.isActive("link")}
-        onClick={editLink}
+        active={toolbarState?.link}
+        onClick={() => setDialog("link")}
       >
         <LinkIcon />
       </ToolbarButton>
       <span className="mx-1 h-5 w-px bg-border" />
       <ToolbarButton
         label="无序列表"
-        active={editor.isActive("bulletList")}
+        active={toolbarState?.bulletList}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
       >
         <List />
       </ToolbarButton>
       <ToolbarButton
         label="有序列表"
-        active={editor.isActive("orderedList")}
+        active={toolbarState?.orderedList}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       >
         <ListOrdered />
       </ToolbarButton>
       <ToolbarButton
         label="任务列表"
-        active={editor.isActive("taskList")}
+        active={toolbarState?.taskList}
         onClick={() => editor.chain().focus().toggleTaskList().run()}
       >
         <ListTodo />
       </ToolbarButton>
       <ToolbarButton
         label="引用"
-        active={editor.isActive("blockquote")}
+        active={toolbarState?.blockquote}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
       >
         <Quote />
@@ -259,7 +311,7 @@ export function EditorToolbar({
       <span className="mx-1 h-5 w-px bg-border" />
       <ToolbarButton
         label="代码块"
-        active={editor.isActive("codeBlock")}
+        active={toolbarState?.codeBlock}
         onClick={() =>
           editor
             .chain()
@@ -270,7 +322,7 @@ export function EditorToolbar({
       >
         <Code2 />
       </ToolbarButton>
-      {editor.isActive("codeBlock") && (
+      {toolbarState?.codeBlock && (
         <select
           value={currentCodeLanguage}
           onChange={(event) =>
@@ -305,12 +357,15 @@ export function EditorToolbar({
       >
         <ImagePlus />
       </ToolbarButton>
-      <ToolbarButton label="插入 Bilibili 视频" onClick={insertBilibili}>
+      <ToolbarButton
+        label="插入 Bilibili 视频"
+        onClick={() => setDialog("bilibili")}
+      >
         <Video />
       </ToolbarButton>
       <ToolbarButton
         label="提示块"
-        active={editor.isActive("callout")}
+        active={toolbarState?.callout}
         onClick={() => editor.chain().focus().toggleCallout("info").run()}
       >
         <Lightbulb />
@@ -341,6 +396,25 @@ export function EditorToolbar({
         </div>
       </div>
       {uploading && <span className="ml-2 text-xs text-muted">上传中…</span>}
+      {/* 仅"原图被放弃/补传失败"这类不影响正文的提示，故用 status 而非 alert。 */}
+      {uploadNotice && (
+        <div
+          className="ml-2 flex items-center gap-2 text-xs"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="max-w-72 text-amber-700 dark:text-amber-300">
+            {uploadNotice}
+          </span>
+          <button
+            type="button"
+            className="text-muted underline-offset-2 hover:text-foreground hover:underline"
+            onClick={() => setUploadNotice(null)}
+          >
+            关闭
+          </button>
+        </div>
+      )}
       {uploadError && (
         <div className="ml-2 flex items-center gap-2 text-xs" role="alert" aria-live="assertive">
           <span className="max-w-52 truncate text-destructive" title={uploadError.message}>
@@ -373,6 +447,27 @@ export function EditorToolbar({
           event.target.value = "";
         }}
       />
+      {dialog === "bilibili" && (
+        <EditorInputDialog
+          title="插入 Bilibili 视频"
+          description="支持 BV 号、av 号，或直接粘贴视频链接。"
+          label="视频编号或链接"
+          placeholder="BV1xx411c7mD / av170001 / 视频链接"
+          onSubmit={(value) => applyBilibili(editor, value)}
+          onCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === "link" && (
+        <EditorInputDialog
+          title="插入链接"
+          description="留空并确认可移除当前链接。"
+          label="链接地址"
+          placeholder="https://example.com"
+          defaultValue={readLinkHref(editor)}
+          onSubmit={(value) => applyLink(editor, value)}
+          onCancel={() => setDialog(null)}
+        />
+      )}
     </div>
   );
 }
@@ -382,37 +477,56 @@ export function EditorBubbleMenu({
   aiBusy,
 }: EditorMenusProps) {
   const { editor } = useEditor();
+
+  // 与工具栏同理：浮动菜单的激活态也要订阅编辑器状态（见 EditorToolbar 的说明）。
+  const bubbleState = useEditorState({
+    editor,
+    selector: ({ editor: current }) =>
+      current
+        ? {
+            bold: current.isActive("bold"),
+            italic: current.isActive("italic"),
+            underline: current.isActive("underline"),
+            strike: current.isActive("strike"),
+            code: current.isActive("code"),
+            link: current.isActive("link"),
+          }
+        : null,
+  });
+
+  const [dialog, setDialog] = useState<EditorInputDialogKind | null>(null);
+
   if (!editor) return null;
 
   const items = [
     {
       label: "粗体",
       icon: <Bold />,
-      active: editor.isActive("bold"),
+      active: bubbleState?.bold ?? false,
       run: () => editor.chain().focus().toggleBold().run(),
     },
     {
       label: "斜体",
       icon: <Italic />,
-      active: editor.isActive("italic"),
+      active: bubbleState?.italic ?? false,
       run: () => editor.chain().focus().toggleItalic().run(),
     },
     {
       label: "下划线",
       icon: <Underline />,
-      active: editor.isActive("underline"),
+      active: bubbleState?.underline ?? false,
       run: () => editor.chain().focus().toggleUnderline().run(),
     },
     {
       label: "删除线",
       icon: <Strikethrough />,
-      active: editor.isActive("strike"),
+      active: bubbleState?.strike ?? false,
       run: () => editor.chain().focus().toggleStrike().run(),
     },
     {
       label: "行内代码",
       icon: <Code />,
-      active: editor.isActive("code"),
+      active: bubbleState?.code ?? false,
       run: () => editor.chain().focus().toggleCode().run(),
     },
   ];
@@ -437,32 +551,14 @@ export function EditorBubbleMenu({
           </button>
         </EditorBubbleItem>
       ))}
-      <EditorBubbleItem
-        onSelect={() => {
-          const previous = editor.getAttributes("link").href as
-            | string
-            | undefined;
-          const href = window.prompt("链接地址", previous ?? "https://");
-          if (href === null) return;
-          if (!href.trim()) {
-            editor.chain().focus().unsetLink().run();
-            return;
-          }
-          editor
-            .chain()
-            .focus()
-            .extendMarkRange("link")
-            .setLink({ href: href.trim() })
-            .run();
-        }}
-      >
+      <EditorBubbleItem onSelect={() => setDialog("link")}>
         <button
           type="button"
           title="链接"
           aria-label="链接"
           className={cn(
             "rounded-lg p-2 hover:bg-black/5 dark:hover:bg-white/10 [&_svg]:h-4 [&_svg]:w-4",
-            editor.isActive("link") && "bg-pink-500/15 text-pink-500"
+            bubbleState?.link && "bg-pink-500/15 text-pink-500"
           )}
         >
           <LinkIcon />
@@ -479,6 +575,18 @@ export function EditorBubbleMenu({
       >
         <Sparkles />
       </button>
+      {/* BubbleMenu 的子元素始终挂载（只切 CSS 可见性），对话框放这里不会被卸载 */}
+      {dialog === "link" && (
+        <EditorInputDialog
+          title="插入链接"
+          description="留空并确认可移除当前链接。"
+          label="链接地址"
+          placeholder="https://example.com"
+          defaultValue={readLinkHref(editor)}
+          onSubmit={(value) => applyLink(editor, value)}
+          onCancel={() => setDialog(null)}
+        />
+      )}
     </EditorBubble>
   );
 }

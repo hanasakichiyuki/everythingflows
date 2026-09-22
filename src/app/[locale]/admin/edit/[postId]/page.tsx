@@ -5,6 +5,7 @@ import { isSupabaseMode } from "@/lib/api/posts";
 import { getPostById } from "@/lib/api/posts";
 import { createClient } from "@/lib/supabase/server-client";
 import { AdminWorkspaceShell } from "@/components/admin/AdminWorkspaceShell";
+import { getConfiguredPostImageOrigin } from "@/lib/r2-post-image-url";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function EditPostPage({
       <PostEditor
         locale={locale}
         supabaseMode={isSupabaseMode()}
+        managedImageOrigin={getConfiguredPostImageOrigin()}
         initialData={{
           id: post.id!,
           title: post.title,

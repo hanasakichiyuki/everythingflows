@@ -106,9 +106,10 @@ function normalizeHighlightLanguage(
  * 渲染代码块内容。语言未注册时退回自动检测（对齐旧的 `hljs.highlightAuto`），
  * 任何异常都降级为纯文本 —— React 会把文本当文本节点输出，天然转义。
  *
- * 注意：lowlight 只加载了 `common` 语法集（编辑器同一套）。旧实现用的是
- * highlight.js 全量语法集，因此极冷门语言的高亮结果可能与历史输出不同；
- * 语言 class 始终保留，不影响结构与样式。
+ * 注意：lowlight 只注册了语言菜单里出现过的语法（编辑器与文章页共用同一份注册表，
+ * 见 `code-block.ts` 里 `createLowlight(...)` 上方的说明），旧实现用的是 highlight.js
+ * 全量语法集，因此菜单外语言的高亮结果可能与历史输出不同；`highlightAuto()` 这条
+ * 降级路径就是为此保留的，语言 class 也始终保留，不影响结构与样式。
  */
 export function highlightCodeToReact(
   code: string,

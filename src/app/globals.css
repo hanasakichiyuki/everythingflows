@@ -309,6 +309,22 @@ body {
     @apply my-4 max-h-[480px] w-auto max-w-full rounded-lg;
   }
 
+  /* 上传中的本地占位（novel 的 UploadImagesPlugin 渲染的 decoration）。
+     只用虚线框表达"这里会有一张图"，不加底色：本地预览图会立刻盖满它。 */
+  .prose-blog .img-placeholder {
+    @apply flex min-h-[120px] w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-border;
+  }
+
+  /* 保留了原图的图片外面包了一层按钮（点击查看原图）：清掉按钮默认样式，
+     让图片的排版与没有原图时完全一致。 */
+  .prose-blog button[data-lightbox-src] {
+    @apply block w-auto max-w-full cursor-zoom-in border-0 bg-transparent p-0 text-left;
+  }
+
+  .prose-blog button[data-lightbox-src]:focus-visible {
+    @apply outline-none ring-2 ring-primary;
+  }
+
   .tiptap-editor .ProseMirror-selectednode {
     @apply rounded-lg ring-2 ring-primary;
   }

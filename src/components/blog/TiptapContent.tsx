@@ -1,6 +1,7 @@
 import type { JSONContent } from "@tiptap/core";
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { CodeBlockEnhancer } from "./CodeBlockEnhancer";
+import { ImageLightbox } from "./ImageLightbox";
 import {
   BILIBILI_IFRAME_ALLOW,
   BILIBILI_IFRAME_SANDBOX,
@@ -195,20 +196,40 @@ function renderImage(node: JSONContent, key: string): ReactNode {
   // 只保留本站已托管的 R2 图片，其余一律不渲染（与旧净化的 remove() 等价）。
   if (!src || !isManagedPostImageUrl(src)) return null;
 
-  return (
+  const alt = asString(node.attrs?.alt);
+
+  const image = (
     // 受管图片统一经同源 R2 代理读取（尺寸不可预知），且渲染结果需与历史 HTML 逐节点
     // 保持一致，因此保留原生 img，交给 Next 图片优化器反而会改变输出结构。
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      key={key}
       className="tiptap-image"
       loading="lazy"
       src={getPostImageSource(src)}
-      alt={asString(node.attrs?.alt)}
+      alt={alt}
       title={asString(node.attrs?.title)}
       decoding="async"
       referrerPolicy="no-referrer"
     />
+  );
+
+  // 有原图时包一层按钮作为"查看原图"的触发点，`ImageLightbox` 用事件委托消费它。
+  // 代理地址必须在服务端算好写进 data 属性：`getPostImageSource` 依赖非公开环境变量，
+  // 浏览器里算不出来，而正文要保持服务端组件。
+  const originalSrc = asString(node.attrs?.originalSrc);
+  if (!originalSrc || !isManagedPostImageUrl(originalSrc)) {
+    return cloneElement(image, { key });
+  }
+
+  return (
+    <button
+      key={key}
+      type="button"
+      data-lightbox-src={getPostImageSource(originalSrc)}
+      data-lightbox-alt={alt ?? ""}
+    >
+      {image}
+    </button>
   );
 }
 
@@ -331,6 +352,8 @@ export function TiptapContent({ doc }: { doc: TiptapDocument }) {
         {renderNode(doc, "doc")}
       </div>
       <CodeBlockEnhancer />
+      {/* 同为"正文旁的客户端增强"，正文本身仍是服务端组件。 */}
+      <ImageLightbox />
     </>
   );
 }

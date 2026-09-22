@@ -4,6 +4,7 @@ import { isSupabaseMode } from "@/lib/api/posts";
 import { createClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
 import { AdminWorkspaceShell } from "@/components/admin/AdminWorkspaceShell";
+import { getConfiguredPostImageOrigin } from "@/lib/r2-post-image-url";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,11 @@ export default async function AdminPage({
 
   return (
     <AdminWorkspaceShell email={user.email} mode="create">
-      <PostEditor locale={locale} supabaseMode={isSupabaseMode()} />
+      <PostEditor
+        locale={locale}
+        supabaseMode={isSupabaseMode()}
+        managedImageOrigin={getConfiguredPostImageOrigin()}
+      />
     </AdminWorkspaceShell>
   );
 }

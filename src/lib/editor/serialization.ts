@@ -53,18 +53,27 @@ export function extractTiptapText(doc: TiptapDocument): string {
     .trim();
 }
 
+/**
+ * 收集正文里全部图片地址（展示图 + 原图）。
+ *
+ * 原图必须一起收集：它同样是本站在 R2 里的一份对象，漏掉它会让"图片删除后清理 R2"
+ * 失效 —— 原图会作为孤儿对象永远留在桶里；写入侧的"非本站图片"校验也会漏检这一处。
+ */
 export function extractTiptapImageUrls(doc: TiptapDocument): string[] {
   const urls = new Set<string>();
   const stack: JSONContent[] = [doc];
 
+  const collect = (value: unknown) => {
+    if (typeof value === "string" && /^https?:\/\//i.test(value)) {
+      urls.add(value);
+    }
+  };
+
   while (stack.length > 0) {
     const node = stack.pop()!;
-    if (
-      node.type === "image" &&
-      typeof node.attrs?.src === "string" &&
-      /^https?:\/\//i.test(node.attrs.src)
-    ) {
-      urls.add(node.attrs.src);
+    if (node.type === "image") {
+      collect(node.attrs?.src);
+      collect(node.attrs?.originalSrc);
     }
     stack.push(...(node.content ?? []));
   }

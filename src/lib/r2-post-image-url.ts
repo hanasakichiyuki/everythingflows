@@ -74,3 +74,23 @@ export function getPostImageKey(url: string): string | null {
 export function isR2PostImageUrl(url: string): boolean {
   return getPostImageKey(url) !== null;
 }
+
+/**
+ * 是否已配置图片托管域名。
+ *
+ * 未配置时 `isR2PostImageUrl` 恒为 false（无法判断"本站"），调用方应据此**跳过**校验，
+ * 而不是把全部图片判为非法。
+ */
+export function isPostImageHostConfigured(): boolean {
+  return getConfiguredPublicBaseUrl() !== null;
+}
+
+/**
+ * 已配置的图片托管域名（origin，如 `https://media.example.com`），未配置返回 null。
+ *
+ * 专供**服务端**把它下发给后台编辑器：浏览器里读不到 `R2_PUBLIC_BASE_URL`
+ * （非 `NEXT_PUBLIC_` 前缀），所以"插入图片时就地判断是不是本站图片"必须由服务端传。
+ */
+export function getConfiguredPostImageOrigin(): string | null {
+  return getConfiguredPublicBaseUrl()?.origin ?? null;
+}

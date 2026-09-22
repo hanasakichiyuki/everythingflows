@@ -25,11 +25,19 @@ import {
 } from "@/lib/editor/types";
 import { extractTiptapText } from "@/lib/editor/serialization";
 
-const AUTO_SAVE_INTERVAL = 30_000; // 30s
+/**
+ * 自动保存间隔。
+ *
+ * 刻意采用"定时快照"而不是"每次改动就保存"：正文改动非常频繁（编辑器侧已节流到
+ * 200ms 一次），逐次保存会把服务端打满，所以只按固定节奏落一次盘。
+ */
+const AUTO_SAVE_INTERVAL = 15_000; // 15s
 
 type Props = {
   locale: string;
   supabaseMode: boolean;
+  /** 本站图片托管域名（origin），由服务端下发，用于插入图片时就地校验。 */
+  managedImageOrigin?: string | null;
   initialData?: {
     id: string;
     title: string;
@@ -42,7 +50,12 @@ type Props = {
 
 type SaveStatus = "idle" | "saving" | "saved" | "error" | "publishing";
 
-export function PostEditor({ locale, supabaseMode, initialData }: Props) {
+export function PostEditor({
+  locale,
+  supabaseMode,
+  managedImageOrigin = null,
+  initialData,
+}: Props) {
   const t = useTranslations("admin");
   const router = useRouter();
   const [title, setTitle] = useState(initialData?.title ?? "");
@@ -70,6 +83,27 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   const changeVersionRef = useRef(0);
   const saveInFlightRef = useRef(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /**
+   * 始终指向最新的 saveDraft。
+   *
+   * 定时器必须只建一次：若把 setInterval 放进依赖 `saveDraft`（其依赖里含 contentJson）
+   * 的 effect，正文每次变化都会重建定时器、把倒计时重置 —— 结果是"只要在打字，
+   * 自动保存永远不会触发"。通过 ref 取最新逻辑即可两全。
+   */
+  const saveDraftRef = useRef<(() => Promise<void>) | null>(null);
+  /**
+   * 编辑器回传的最新正文。
+   *
+   * 编辑器侧对输入做了 200ms 节流，因此 React state 可能落后一个窗口；保存/发布路径
+   * 取值时优先读这个 ref（编辑器每次 flush 都会同步写入），这样"刚打完字就点保存"
+   * 不会漏掉最后几次输入。
+   */
+  const latestContentRef = useRef<TiptapDocument | null>(null);
+
+  const handleEditorChange = useCallback((document: TiptapDocument) => {
+    latestContentRef.current = document;
+    setContentJson(document);
+  }, []);
 
   const parsedTags = useMemo(
     () =>
@@ -87,8 +121,9 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
   );
 
   const saveDraft = useCallback(async () => {
+    const document = latestContentRef.current ?? contentJson;
     if (saveInFlightRef.current) return;
-    if (!title.trim() || isTiptapDocumentEmpty(contentJson)) return;
+    if (!title.trim() || isTiptapDocumentEmpty(document)) return;
 
     const savedChangeVersion = changeVersionRef.current;
     saveInFlightRef.current = true;
@@ -101,7 +136,7 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         description: description.trim(),
         tags: parsedTags,
         category: category.trim() || undefined,
-        contentJson,
+        contentJson: document,
         locale,
         id: postId,
       });
@@ -154,8 +189,16 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     router,
   ]);
 
+  // 让定时器始终调用最新的保存逻辑（见 saveDraftRef 的说明）。
+  useEffect(() => {
+    saveDraftRef.current = saveDraft;
+  }, [saveDraft]);
+
   const publish = async () => {
-    if (saveInFlightRef.current || !title.trim() || !hasContent) return;
+    const document = latestContentRef.current ?? contentJson;
+    if (saveInFlightRef.current || !title.trim() || isTiptapDocumentEmpty(document)) {
+      return;
+    }
     setSaveStatus("publishing");
     setMessage("");
 
@@ -165,7 +208,7 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         description: description.trim(),
         tags: parsedTags,
         category: category.trim() || undefined,
-        contentJson,
+        contentJson: document,
         locale,
         published: true,
         id: postId,
@@ -268,18 +311,18 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
     };
   }, []);
 
-  // Auto-save timer
+  // Auto-save timer：只依赖 isEditMode，正文变化不会把它重建（否则倒计时永远被重置）。
   useEffect(() => {
     if (!isEditMode) return;
-    autoSaveTimerRef.current = setInterval(() => {
-      if (hasChangesRef.current) {
-        saveDraft();
-      }
+    const timer = setInterval(() => {
+      if (hasChangesRef.current) void saveDraftRef.current?.();
     }, AUTO_SAVE_INTERVAL);
+    autoSaveTimerRef.current = timer;
     return () => {
-      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+      clearInterval(timer);
+      autoSaveTimerRef.current = null;
     };
-  }, [isEditMode, saveDraft]);
+  }, [isEditMode]);
 
   // Track changes
   useEffect(() => {
@@ -495,7 +538,8 @@ export function PostEditor({ locale, supabaseMode, initialData }: Props) {
         <div className="min-h-0 flex-1 overflow-y-auto">
           <NovelPostEditor
             key={initialData?.id ?? "new"}
-            onChange={setContentJson}
+            onChange={handleEditorChange}
+            managedImageOrigin={managedImageOrigin}
             initialContent={editorInitialContent}
           />
         </div>

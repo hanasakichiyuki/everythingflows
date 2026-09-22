@@ -40,6 +40,17 @@ export function EditorRuntime() {
   const [aiState, setAiState] = useState<AiState>(INITIAL_AI_STATE);
   const selectionRef = useRef<SavedSelection | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  /**
+   * 用 ref 读"是否正在生成"。
+   *
+   * 直接把 `aiState.status` 放进 `requestAi` 的依赖里，会让它的身份在每次状态变化时
+   * 重建；而它被当作 prop 传给工具栏和浮动菜单，连带触发它们重渲。
+   */
+  const aiStatusRef = useRef<AiState["status"]>(aiState.status);
+
+  useEffect(() => {
+    aiStatusRef.current = aiState.status;
+  }, [aiState.status]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -47,7 +58,7 @@ export function EditorRuntime() {
 
   const requestAi = useCallback(
     async (action: EditorAiAction) => {
-      if (!editor || aiState.status === "streaming") return;
+      if (!editor || aiStatusRef.current === "streaming") return;
 
       const { from, to } = editor.state.selection;
       const selectedText = editor.state.doc.textBetween(from, to, "\n");
@@ -110,11 +121,27 @@ export function EditorRuntime() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let text = "";
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          text += decoder.decode(value, { stream: true });
+        /**
+         * 流式内容按帧提交。
+         *
+         * 每个 chunk 都 setState 会一秒触发几十次 re-render，而每次重渲都会连带
+         * 工具栏 / 浮动菜单 / 斜杠菜单。这里先累积，最多每帧刷一次（肉眼无差别）。
+         */
+        let frame: number | null = null;
+        const flushStream = () => {
+          frame = null;
           setAiState({ status: "streaming", action, text });
+        };
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            text += decoder.decode(value, { stream: true });
+            if (frame === null) frame = window.requestAnimationFrame(flushStream);
+          }
+        } finally {
+          if (frame !== null) window.cancelAnimationFrame(frame);
+          frame = null;
         }
         text += decoder.decode();
         if (!text.trim()) throw new Error("AI 未返回内容");
@@ -134,7 +161,7 @@ export function EditorRuntime() {
         if (abortRef.current === controller) abortRef.current = null;
       }
     },
-    [aiState.status, editor]
+    [editor]
   );
 
   const applyAiResult = () => {
