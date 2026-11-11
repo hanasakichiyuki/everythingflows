@@ -1,0 +1,159 @@
+name: Deploy
+
+# 只在 master 分支推送和手动触发时部署；PR 的检查由 ci.yml 负责。
+# 注意：本仓库的默认分支是 master，不是 main。写成 main 会导致工作流永不触发。
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# 同一时间只允许一个部署在跑。
+# 不要 cancel-in-progress：中断到一半可能留下「软链已切、服务未重启」的中间状态。
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "11.5.3"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  deploy:
+    name: Build & deploy
+    runs-on: ubuntu-latest
+
+    # 是否已配好部署目标。这里必须用「job 级 env + 步骤级 if: env.X」的写法：
+    # secrets 上下文不在 steps[*].if 的可用列表里，直接写 if: secrets.DEPLOY_HOST != ''
+    # 会让 GitHub 在解析阶段拒掉整个文件，表现为「跑出 0 个 job、以文件路径为运行名」。
+    # 只导出布尔值，不把密钥本身铺到每个步骤的环境里。
+    env:
+      HAS_DEPLOY_TARGET: ${{ secrets.DEPLOY_HOST != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 与 ci.yml 有重叠，但部署链路自己守一遍门更可靠（失败即不部署）。
+      - name: Lint / typecheck / unit tests
+        run: |
+          pnpm run lint
+          pnpm run typecheck
+          pnpm run test
+
+      - name: Build (standalone)
+        env:
+          # 只有「构建期会被读到」的变量才放这里：
+          #   - NEXT_PUBLIC_* 会在构建时被内联进客户端 bundle
+          #   - R2_PUBLIC_BASE_URL 用于预渲染文章时重写 <img> 地址
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SITE_URL: https://flows.xin
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+          # 运行期密钥（SUPABASE_SERVICE_ROLE_KEY / UPSTASH_* / R2 AK / AI Key）
+          # 不需要进 CI，只配在服务器的 /etc/everythingflows/env.production 里。
+          # 仅当构建报缺少 service role 时，才取消下面这行注释：
+          # SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # 构建期会预渲染 24 个页面，每个页面都要跨洋读一次 Supabase。
+          # 任何一次网络抖动（ECONNRESET / 超时）都会让整个 build 失败，
+          # 所以这里带重试。重试前必须清掉 .next，否则半成品缓存会污染下一次构建。
+          set +e
+          for attempt in 1 2 3; do
+            echo "::group::build attempt ${attempt}/3"
+            pnpm run build
+            status=$?
+            echo "::endgroup::"
+
+            if [ "${status}" -eq 0 ]; then
+              echo "构建成功（第 ${attempt} 次尝试）"
+              exit 0
+            fi
+
+            if [ "${attempt}" -lt 3 ]; then
+              echo "::warning::构建第 ${attempt} 次失败（退出码 ${status}），清理缓存后重试"
+              rm -rf .next
+              sleep 15
+            fi
+          done
+
+          echo "::error::构建连续 3 次失败。若日志里是 ECONNRESET / fetch failed，多半是构建期访问 Supabase 失败；若是 TS/ESLint 报错，则是代码问题。"
+          exit 1
+
+      - name: Assemble release bundle
+        run: |
+          set -euo pipefail
+
+          # standalone 产物故意不带这两样，必须手工搬（漏了线上 CSS/JS/图片全 404）
+          mkdir -p .next/standalone/.next
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+          # 保险：Next 的 file tracing 偶尔漏掉 sharp 的平台包。
+          # 漏了的症状是线上 next/image 返回 500 并报
+          # Could not load the "sharp" module
+          if [ ! -d .next/standalone/node_modules/@img ]; then
+            echo "::warning::standalone 产物缺少 @img（sharp 平台包），从 node_modules 补入"
+            mkdir -p .next/standalone/node_modules/@img
+            cp -r node_modules/@img/. .next/standalone/node_modules/@img/
+          fi
+
+          test -f .next/standalone/server.js
+          tar -czf "flows-${GITHUB_SHA}.tar.gz" -C .next/standalone .
+          ls -lh "flows-${GITHUB_SHA}.tar.gz"
+
+      - name: Upload bundle as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flows-${{ github.sha }}
+          path: flows-${{ github.sha }}.tar.gz
+          retention-days: 14
+
+      # ---- 以下三步才真正碰服务器 ----
+      # 刚接入时 GitHub Secrets 可能还没配齐。没有 DEPLOY_HOST 就只构建并留档产物，
+      # 不把整条流水线标红 —— 否则第一次推送会得到一个看不出原因的失败。
+      - name: Configure SSH
+        if: env.HAS_DEPLOY_TARGET == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Upload bundle to server
+        if: env.HAS_DEPLOY_TARGET == 'true'
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/deploy_key \
+            -P "${{ secrets.DEPLOY_PORT }}" \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "flows-${GITHUB_SHA}.tar.gz" \
+            deploy/scripts/activate-release.sh \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/"
+
+      - name: Activate release
+        if: env.HAS_DEPLOY_TARGET == 'true'
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key \
+            -p "${{ secrets.DEPLOY_PORT }}" \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "bash /tmp/activate-release.sh ${GITHUB_SHA} /tmp/flows-${GITHUB_SHA}.tar.gz"

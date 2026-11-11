@@ -1,0 +1,18 @@
+# 万物流转 · 部署用户的最小 sudo 权限
+#
+# 安装：
+#   sudo cp deploy/sudoers/flows-deploy /etc/sudoers.d/flows-deploy
+#   sudo chmod 440 /etc/sudoers.d/flows-deploy
+#   sudo visudo -c        # 必须通过
+#
+# 只放开 flows 这一个 unit 的重启与状态查看，以及它的日志读取。
+# 不要图省事写成 `deploy ALL=(ALL) NOPASSWD: ALL` —— 那等于把 root 交给了 CI。
+#
+# 行尾的 `*` 通配是为了匹配 activate-release.sh 里的
+#   systemctl status flows --no-pager -l
+#   journalctl -u flows -n 50 --no-pager
+
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart flows
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl status flows
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl status flows *
+deploy ALL=(root) NOPASSWD: /usr/bin/journalctl -u flows *
