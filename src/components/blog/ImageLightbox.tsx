@@ -38,6 +38,16 @@ export function ImageLightbox() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading"
   );
+  const lightboxImgRef = useRef<HTMLImageElement>(null);
+
+  // 与 FragmentImage 同源的坑：图片命中缓存时，浏览器可能在 React 绑定 onLoad
+  // 之前就加载完成，onLoad 不再触发，"原图加载中…" 会一直挂在画面上。
+  useEffect(() => {
+    if (!opened) return;
+    const img = lightboxImgRef.current;
+    if (!img || !img.complete) return;
+    setStatus(img.naturalWidth > 0 ? "ready" : "error");
+  }, [opened]);
 
   useEffect(() => {
     // 往前找 `.prose-blog`，而不是直接取 `previousElementSibling`：正文后面可能还挂着
@@ -111,6 +121,7 @@ export function ImageLightbox() {
           {/* 原图尺寸不可预知，用原生 img 让它按容器等比缩放（object-contain）。 */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={lightboxImgRef}
             src={opened.src}
             alt={opened.alt}
             className="max-h-full max-w-full rounded-lg object-contain"

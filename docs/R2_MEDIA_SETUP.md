@@ -109,7 +109,7 @@ EdgeOne 官方源站文档原文：「对象存储源站：腾讯云 COS 或者*
 | 鉴权版本                              | AWS Signature v4                                       |
 | 地域                                | `auto`                                                 |
 | 私有访问授权                            | 开启                                                     |
-| Access Key ID / Secret Access Key | 3.1 里那把**只读**回源 Token                                  |
+| Access Key ID / Secret Access Key | 第 1 节那把**只读**回源 Token（Object Read only）                 |
 | 回源 HOST                           | 只能选「使用源站域名」，不可改                                        |
 
 ### 3.3 五个坑
