@@ -6,7 +6,6 @@ import { ArrowRight, ImageOff, Sparkles } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { MemoryFragment } from "@/types/memory";
 import { Surface } from "@/components/ui/surface";
-import { getPostImageProxyUrl } from "@/lib/post-image-url";
 
 interface FragmentsProps {
   fragments: MemoryFragment[];
@@ -48,10 +47,10 @@ export function Fragments({ fragments, unavailable = false }: FragmentsProps) {
               <Link href={`/fragments/${encodeURIComponent(fragment.id)}`} className="block">
                 {fragment.type === "image" && fragment.imageUrl && !failedImages.has(fragment.id) ? (
                   <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-primary-soft/40">
-                    {/* 受管图片都经同源 R2 代理，避免 Next 优化器和客户端代理的网络限制。 */}
+                    {/* 直连图片域名：走源站代理要占用 6 Mbps 出口带宽，实测慢 6–10 倍。 */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={getPostImageProxyUrl(fragment.imageUrl)}
+                      src={fragment.imageUrl}
                       alt={fragment.text || t("imageUnavailable")}
                       loading={index < 2 ? "eager" : "lazy"}
                       decoding="async"

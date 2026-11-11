@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getPostImageProxyUrl } from "@/lib/post-image-url";
 
 type ImageState = "loading" | "loaded" | "failed";
 
@@ -52,7 +51,9 @@ function FragmentImageContent({
 }) {
   const [state, setState] = useState<ImageState>(src ? "loading" : "failed");
   const imgRef = useRef<HTMLImageElement>(null);
-  const imageSrc = src ? getPostImageProxyUrl(src) : null;
+  // 直连 `media.*`（EdgeOne 边缘缓存一年）。走源站代理会把图片字节压在 6 Mbps
+  // 出口带宽上，实测比直连慢 6–10 倍。
+  const imageSrc = src ?? null;
 
   // 缓存命中时，浏览器可能在 React 绑定 onLoad 之前就把 img 加载完了（complete=true）。
   // 那一刻 onLoad 已经错过，永远不会再触发，于是 state 卡在 "loading"，
@@ -75,7 +76,7 @@ function FragmentImageContent({
           <span className="text-xs leading-5">{unavailableLabel}</span>
         </div>
       ) : (
-        // 用户上传图片尺寸不可预知，保留原生 img，并统一通过受限同源代理读取 R2。
+        // 用户上传图片尺寸不可预知，保留原生 img 直接读图片域名。
         // eslint-disable-next-line @next/next/no-img-element
         <img
           ref={imgRef}

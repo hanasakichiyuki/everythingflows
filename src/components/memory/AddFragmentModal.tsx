@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { prepareEditorImage } from "@/components/admin/editor/image-compress";
 
 interface AddFragmentModalProps {
   onClose: () => void;
@@ -94,8 +95,15 @@ export function AddFragmentModal({ onClose, onAdd }: AddFragmentModalProps) {
       let imageUrl: string | undefined;
 
       if (mode === "image" && imageFile) {
+        // 碎片位只有几百像素宽，原图直传会留下 1–2 MB 的 PNG/JPG，首屏一次拉好几张。
+        // 复用编辑器的压缩能力（最长边 2000、WebP 0.85），体积通常降到 1/5 – 1/10。
+        // 顺带绕开 `/api/upload` 的 5 MB 上限：手机原图经常超过它。
+        // 压缩失败（格式不支持／文件损坏）统一按上传失败提示，避免把中文原因漏到英文站。
+        const prepared = await prepareEditorImage(imageFile).catch(() => null);
+        if (!prepared) throw new Error(t("uploadError"));
+
         const formData = new FormData();
-        formData.append("file", imageFile);
+        formData.append("file", prepared.display, "fragment");
         const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
         
         if (!uploadRes.ok) {

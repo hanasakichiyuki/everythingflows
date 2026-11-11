@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { isR2PostImageUrl } from "@/lib/api/media";
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePublicFragmentRoutes } from "@/lib/revalidate-public-fragments";
 import { validateFragmentText } from "@/lib/fragment-validation";
 
 const WIDTHS = ["sm", "md", "lg"] as const;
@@ -89,10 +89,7 @@ export async function POST(request: Request) {
   }
 
   // 首页（最新碎碎念）与碎碎念页是 ISR，新增后立即失效缓存
-  revalidatePath("/");
-  revalidatePath("/fragments");
-  revalidatePath("/fragments/[id]", "page");
-  revalidatePath("/sitemap.xml");
+  revalidatePublicFragmentRoutes();
 
   return NextResponse.json({ data });
 }

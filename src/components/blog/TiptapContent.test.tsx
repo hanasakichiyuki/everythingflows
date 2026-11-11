@@ -167,9 +167,8 @@ describe("TiptapContent 结构化渲染", () => {
       ],
     });
 
-    expect(html).toContain(
-      `/api/post-image?src=${encodeURIComponent("https://media.example.com/posts/photo.webp")}`
-    );
+    expect(html).toContain('src="https://media.example.com/posts/photo.webp"');
+    expect(html).not.toContain("api/post-image");
     expect(html).not.toContain("project.supabase.co");
     expect((html.match(/<img/g) ?? []).length).toBe(1);
   });
@@ -200,13 +199,9 @@ describe("TiptapContent 结构化渲染", () => {
       ],
     });
 
-    expect(html).toContain(
-      `src="/api/post-image?src=${encodeURIComponent(display)}"`
-    );
-    // 原图的代理地址必须在服务端算好写进 data 属性：浏览器读不到 R2_PUBLIC_BASE_URL。
-    expect(html).toContain(
-      `data-lightbox-src="/api/post-image?src=${encodeURIComponent(original)}"`
-    );
+    expect(html).toContain(`src="${display}"`);
+    // 原图地址直接写进 data 属性，供灯箱直连图片域名读取。
+    expect(html).toContain(`data-lightbox-src="${original}"`);
     expect(html).toContain('data-lightbox-alt="示例"');
     expect(html).toContain("<button");
     // 只有第一张图被包按钮，且不泄漏非本站原图地址。

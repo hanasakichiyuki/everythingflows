@@ -12,7 +12,7 @@ import { normalizeCalloutKind } from "@/lib/editor/callout";
 import { isSafeCodeLanguage } from "@/lib/editor/code-block";
 import { highlightCodeToReact } from "@/lib/editor/highlight";
 import type { TiptapDocument } from "@/lib/editor/types";
-import { getPostImageSource, isManagedPostImageUrl } from "@/lib/post-image-proxy";
+import { isManagedPostImageUrl } from "@/lib/post-image-proxy";
 
 /**
  * 服务端正文渲染器：把已通过 `validateTiptapDocument` 白名单校验的结构化内容
@@ -199,13 +199,15 @@ function renderImage(node: JSONContent, key: string): ReactNode {
   const alt = asString(node.attrs?.alt);
 
   const image = (
-    // 受管图片统一经同源 R2 代理读取（尺寸不可预知），且渲染结果需与历史 HTML 逐节点
-    // 保持一致，因此保留原生 img，交给 Next 图片优化器反而会改变输出结构。
+    // 受管图片直接指向 `media.*` 图片域名（EdgeOne 边缘已按 immutable 缓存一年），
+    // 不经源站代理：代理会把几 MB 的字节压在 6 Mbps 出口上，实测慢 6–10 倍。
+    // 尺寸不可预知，且渲染结果需与历史 HTML 逐节点保持一致，因此保留原生 img，
+    // 交给 Next 图片优化器反而会改变输出结构。
     // eslint-disable-next-line @next/next/no-img-element
     <img
       className="tiptap-image"
       loading="lazy"
-      src={getPostImageSource(src)}
+      src={src}
       alt={alt}
       title={asString(node.attrs?.title)}
       decoding="async"
@@ -214,8 +216,6 @@ function renderImage(node: JSONContent, key: string): ReactNode {
   );
 
   // 有原图时包一层按钮作为"查看原图"的触发点，`ImageLightbox` 用事件委托消费它。
-  // 代理地址必须在服务端算好写进 data 属性：`getPostImageSource` 依赖非公开环境变量，
-  // 浏览器里算不出来，而正文要保持服务端组件。
   const originalSrc = asString(node.attrs?.originalSrc);
   if (!originalSrc || !isManagedPostImageUrl(originalSrc)) {
     return cloneElement(image, { key });
@@ -225,7 +225,7 @@ function renderImage(node: JSONContent, key: string): ReactNode {
     <button
       key={key}
       type="button"
-      data-lightbox-src={getPostImageSource(originalSrc)}
+      data-lightbox-src={originalSrc}
       data-lightbox-alt={alt ?? ""}
     >
       {image}

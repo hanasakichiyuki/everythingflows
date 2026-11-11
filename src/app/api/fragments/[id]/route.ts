@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePublicFragmentRoutes } from "@/lib/revalidate-public-fragments";
 import { deleteFragmentImage } from "@/lib/api/fragments";
 import { validateFragmentText } from "@/lib/fragment-validation";
 
@@ -96,10 +96,7 @@ export async function PATCH(
     return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
 
-  revalidatePath("/");
-  revalidatePath("/fragments");
-  revalidatePath("/fragments/[id]", "page");
-  revalidatePath("/sitemap.xml");
+  revalidatePublicFragmentRoutes();
 
   return NextResponse.json({ data });
 }
@@ -136,10 +133,7 @@ export async function DELETE(
 
   if (data.image_url) await deleteFragmentImage(data.image_url);
 
-  revalidatePath("/");
-  revalidatePath("/fragments");
-  revalidatePath("/fragments/[id]", "page");
-  revalidatePath("/sitemap.xml");
+  revalidatePublicFragmentRoutes();
 
   return NextResponse.json({ ok: true });
 }
