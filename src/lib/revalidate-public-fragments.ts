@@ -3,17 +3,25 @@ import { revalidatePath } from "next/cache";
 /**
  * 碎片（碎碎念）内容变化后失效的公开路由。
  *
- * 之前这里写的是 `revalidatePath("/")` + `revalidatePath("/fragments")`，看起来
- * 天经地义，实际**一条都没生效**：站点所有页面都挂在 `[locale]` 段下，真实 URL 是
- * `/zh/fragments`，而 `/fragments` 这个根级路由并不存在。Next 对不存在的 path
- * 不会报错，只是静默跳过 —— 于是新增碎片后刷新，页面上还是旧内容，要等 ISR 的
- * `revalidate = 3600` 自然过期才更新。
+ * 两个坑叠在一起，之前一直没修干净：
  *
- * 改用 `type: "layout"` 失效根布局下的整棵树（`revalidate-public-posts.ts` 用的
- * 是同一招，所以文章发布后能立刻看到）。ISR 是按访问生成，失效本身不产生开销。
+ * 1. 站点所有页面都挂在 `[locale]` 段下（`localePrefix: "never"`，对外是
+ *    `/fragments`，真实路由是 `/[locale]/fragments`）。传 `/fragments` 这种根级
+ *    路径 Next **不报错、直接跳过** ——「新增碎片后刷新还是旧内容」就是这个原因。
+ * 2. 只写 `revalidatePath("/", "layout")` 也不够稳：根布局失效在 standalone +
+ *    自托管下并不总能命中 `[locale]` 段下的页面缓存。
+ *
+ * 所以这里显式列出带 `[locale]` 的路由模式，最后再补一次整棵布局树兜底。
  */
 export function revalidatePublicFragmentRoutes() {
+  // 首页会渲染最新 6 条碎片，碎碎念列表页渲染全部，详情页单条。
+  revalidatePath("/[locale]", "page");
+  revalidatePath("/[locale]/fragments", "page");
+  revalidatePath("/[locale]/fragments/[id]", "page");
+
+  // 兜底：以后新增的、会展示碎片的页面不必再改这里。
   revalidatePath("/", "layout");
+
   // sitemap 是根级路由，不在 `[locale]` 布局之下，需要单独失效。
   revalidatePath("/sitemap.xml");
 }

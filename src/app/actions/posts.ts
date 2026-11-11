@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { publishPost, deletePost, deletePosts } from "@/lib/api/posts";
 import { revalidatePublicPostRoutes } from "@/lib/revalidate-public-posts";
 import { createClient } from "@/lib/supabase/server-client";
@@ -169,7 +168,6 @@ export async function deletePostAction(id: string) {
   const result = await deletePost(id);
 
   if (result.ok) {
-    revalidatePath("/admin");
     revalidatePublicPostRoutes();
   }
 
@@ -189,7 +187,6 @@ export async function deletePostsAction(ids: string[]) {
   const result = await deletePosts(ids);
 
   if (result.ok) {
-    revalidatePath("/admin");
     revalidatePublicPostRoutes();
   }
 

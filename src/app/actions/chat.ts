@@ -1,7 +1,6 @@
 "use server";
 
 import crypto from "crypto";
-import { revalidatePath } from "next/cache";
 import {
   createConversation,
   getConversation,
@@ -97,7 +96,6 @@ export async function createConversationAction(
     }
 
     const conversation = await createConversation(input, userId);
-    revalidatePath("/chat");
     return ok(conversation);
   });
 }
@@ -152,7 +150,6 @@ export async function updateConversationAction(
     }
 
     const conversation = await updateConversation(id, userId, updates);
-    revalidatePath("/chat");
     return ok(conversation);
   });
 }
@@ -164,7 +161,6 @@ export async function deleteConversationAction(
     const userId = await getUserId();
     if (!userId) return fail("请先登录");
     await deleteConversation(id, userId);
-    revalidatePath("/chat");
     return ok(null);
   });
 }
