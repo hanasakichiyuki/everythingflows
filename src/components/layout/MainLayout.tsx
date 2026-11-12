@@ -182,7 +182,24 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           </RouteTransition>
           {!isAdminWorkspace && (
             <footer className="mt-12 text-center text-xs text-muted/70">
-              {t("footer", { year: 2026, siteName: siteConfig.name })}
+              <p>{t("footer", { year: 2026, siteName: siteConfig.name })}</p>
+              {/*
+                备案号：工信部要求非经营性互联网信息服务在首页底部标明备案号，
+                且必须链接到工信部备案管理系统。配置为空时整段不渲染，
+                本地开发和未备案环境不会出现空链接。
+              */}
+              {siteConfig.icp ? (
+                <p className="mt-1.5">
+                  <a
+                    href="https://beian.miit.gov.cn/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-primary"
+                  >
+                    {siteConfig.icp}
+                  </a>
+                </p>
+              ) : null}
             </footer>
           )}
         </main>

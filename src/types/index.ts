@@ -46,6 +46,8 @@ export interface SiteConfig {
   name: string;
   description: string;
   url: string;
+  /** ICP 备案号，形如「沪ICP备2026000000号-1」；为空则页脚不显示 */
+  icp?: string;
   author: string;
   avatar: string;
   /** AI 聊天头像（/chat 页面 AI 消息左侧显示），放 public/ 下 */
